@@ -11,7 +11,7 @@
     <!-- MIT --><PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.15" />
     <!-- MIT --><PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.15" />
     <!-- MIT --><PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.15" />
-    <!-- Apache-2.0 --><PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
+    <!-- Apache-2.0 --><PackageVersion Include="Serilog.AspNetCore" Version="11.0.0" />
     <!-- Apache-2.0 --><PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
     <!-- MIT --><PackageVersion Include="System.CommandLine" Version="2.0.15" />
   </ItemGroup>
