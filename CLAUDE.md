@@ -40,7 +40,9 @@ Record decisions as short ADRs in docs/adr/NNNN-title.md.
 
 ## Commit and PR style
 Conventional commits referencing IDs, e.g. "feat(scaling): FR-SCL-01 custom factor (AC-30)".
-One milestone (section 9.10) per branch; PR description lists IDs, ACs, and test evidence.
+Branch flow (docs/branching.md, ADR 0004): `feature/*` from `develop` → PR into `develop` (squash) → PR
+`develop` → `main` (merge commit) after the dev build is tested. One milestone (section 9.10) per feature branch,
+e.g. `feature/m1-recipes`. PR description lists IDs, ACs, and test evidence. Add a CHANGELOG.md line per change.
 
 ## Repo commands
 - Build: `dotnet build RecipeWarden.slnx` (warnings are errors)
@@ -50,3 +52,4 @@ One milestone (section 9.10) per branch; PR description lists IDs, ACs, and test
 - Installer tests (root, in a container): `docker run --rm -v "$PWD:/src:ro" debian:12 bash /src/tests/installer/test-install.sh`
 - New migration: `dotnet tool restore && dotnet ef migrations add <Name> -p src/RecipeWarden.Infrastructure -s src/RecipeWarden.Infrastructure -o Data/Migrations`
 - Secret-scan hook: `git config core.hooksPath .githooks`
+- Package + smoke test locally: `build/package.sh 0.1.0-dev.0 dist && build/smoke-test.sh dist/recipewarden-0.1.0-dev.0-linux-x64.tar.gz 0.1.0-dev.0`

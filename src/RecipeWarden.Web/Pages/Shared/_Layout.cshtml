@@ -8,7 +8,7 @@
     var signedIn = User.Identity?.IsAuthenticated == true;
     var canEdit = signedIn && (await Authz.AuthorizeAsync(User, AppPolicies.CanEditRecipes)).Succeeded;
     var canAdmin = signedIn && (await Authz.AuthorizeAsync(User, AppPolicies.CanAdminister)).Succeeded;
-    var version = typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "dev";
+    var version = RecipeWarden.Web.Hosting.AppInfo.Version;
 }
 <!DOCTYPE html>
 <html lang="en" data-theme="@theme">
