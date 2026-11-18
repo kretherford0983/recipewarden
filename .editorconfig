@@ -1,0 +1,36 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+[*.{json,yml,yaml,props,csproj,xml}]
+indent_size = 2
+
+[*.sh]
+indent_size = 2
+
+[*.cs]
+# Async code in a server app has no SynchronizationContext; ConfigureAwait noise is not required in Web/Cli.
+dotnet_diagnostic.CA2007.severity = none
+
+[**/Migrations/*.cs]
+generated_code = true
+
+[tests/**/*.cs]
+# Test names follow requirement IDs (e.g. FR_UI_01_ThemeTests) and xUnit conventions.
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA1515.severity = none
+dotnet_diagnostic.CA2234.severity = none
+dotnet_diagnostic.CA1062.severity = none
+dotnet_diagnostic.CA1001.severity = none
+dotnet_diagnostic.CA1063.severity = none
+dotnet_diagnostic.CA1816.severity = none
+dotnet_diagnostic.CA5394.severity = none
+dotnet_diagnostic.CA1861.severity = none
+dotnet_diagnostic.CA1849.severity = none
+dotnet_diagnostic.CA2100.severity = none

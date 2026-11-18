@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\RecipeWarden.Core\RecipeWarden.Core.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- URL, Markdown, Docx and PDF importers (M4). Empty in M0. -->
+  <ItemGroup>
+    <ProjectReference Include="..\RecipeWarden.Core\RecipeWarden.Core.csproj" />
+  </ItemGroup>
+</Project>

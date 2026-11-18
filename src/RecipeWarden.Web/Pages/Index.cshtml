@@ -1,0 +1,13 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home";
+}
+<h1>RecipeWarden</h1>
+<section class="empty-state">
+    <p>No recipes yet.</p>
+    @if (Model.CanEdit)
+    {
+        <p><a class="button-link" href="/manage">Add or import one</a></p>
+    }
+</section>

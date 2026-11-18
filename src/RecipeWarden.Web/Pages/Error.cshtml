@@ -1,0 +1,9 @@
+@page "/error"
+@model ErrorModel
+@{
+    ViewData["Title"] = Model.Title;
+}
+<h1>@Model.Title</h1>
+<p>@Model.Message</p>
+<p class="muted">Reference: <code>@Model.CorrelationId</code></p>
+<p><a href="/">Go to the home page</a></p>

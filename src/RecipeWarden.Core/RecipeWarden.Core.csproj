@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Domain model and business rules. No I/O, no framework dependencies. -->
+  <PropertyGroup>
+    <RootNamespace>RecipeWarden.Core</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="RecipeWarden.Core.Tests" />
+  </ItemGroup>
+</Project>

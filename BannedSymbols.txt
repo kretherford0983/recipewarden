@@ -1,0 +1,8 @@
+M:Microsoft.EntityFrameworkCore.RelationalQueryableExtensions.FromSqlRaw``1(Microsoft.EntityFrameworkCore.DbSet{``0},System.String,System.Object[]);SEC-20: use FromSql/FromSqlInterpolated (parameterized) or LINQ
+M:Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.ExecuteSqlRaw(Microsoft.EntityFrameworkCore.Infrastructure.DatabaseFacade,System.String,System.Object[]);SEC-20: use ExecuteSql (parameterized)
+M:Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.ExecuteSqlRaw(Microsoft.EntityFrameworkCore.Infrastructure.DatabaseFacade,System.String,System.Collections.Generic.IEnumerable{System.Object});SEC-20: use ExecuteSql (parameterized)
+M:Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.ExecuteSqlRawAsync(Microsoft.EntityFrameworkCore.Infrastructure.DatabaseFacade,System.String,System.Object[]);SEC-20: use ExecuteSqlAsync (parameterized)
+M:Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.ExecuteSqlRawAsync(Microsoft.EntityFrameworkCore.Infrastructure.DatabaseFacade,System.String,System.Threading.CancellationToken);SEC-20: use ExecuteSqlAsync (parameterized)
+M:Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.ExecuteSqlRawAsync(Microsoft.EntityFrameworkCore.Infrastructure.DatabaseFacade,System.String,System.Collections.Generic.IEnumerable{System.Object},System.Threading.CancellationToken);SEC-20: use ExecuteSqlAsync (parameterized)
+M:Microsoft.AspNetCore.Mvc.Rendering.IHtmlHelper.Raw(System.String);SEC-22: never emit raw HTML; Razor encodes output
+M:Microsoft.AspNetCore.Mvc.Rendering.IHtmlHelper.Raw(System.Object);SEC-22: never emit raw HTML; Razor encodes output

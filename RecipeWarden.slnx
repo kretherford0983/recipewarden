@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/RecipeWarden.Cli/RecipeWarden.Cli.csproj" />
+    <Project Path="src/RecipeWarden.Core/RecipeWarden.Core.csproj" />
+    <Project Path="src/RecipeWarden.Importers/RecipeWarden.Importers.csproj" />
+    <Project Path="src/RecipeWarden.Infrastructure/RecipeWarden.Infrastructure.csproj" />
+    <Project Path="src/RecipeWarden.Web/RecipeWarden.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/RecipeWarden.Cli.Tests/RecipeWarden.Cli.Tests.csproj" />
+    <Project Path="tests/RecipeWarden.Core.Tests/RecipeWarden.Core.Tests.csproj" />
+    <Project Path="tests/RecipeWarden.Infrastructure.Tests/RecipeWarden.Infrastructure.Tests.csproj" />
+    <Project Path="tests/RecipeWarden.Web.Tests/RecipeWarden.Web.Tests.csproj" />
+  </Folder>
+</Solution>

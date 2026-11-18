@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>recipewarden</AssemblyName>
+    <RootNamespace>RecipeWarden.Cli</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\RecipeWarden.Core\RecipeWarden.Core.csproj" />
+    <ProjectReference Include="..\RecipeWarden.Infrastructure\RecipeWarden.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="RecipeWarden.Cli.Tests" />
+  </ItemGroup>
+</Project>

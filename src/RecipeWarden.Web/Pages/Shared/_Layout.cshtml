@@ -1,0 +1,84 @@
+@using Microsoft.AspNetCore.Antiforgery
+@using Microsoft.AspNetCore.Authorization
+@inject RecipeWarden.Web.Theme.ThemeResolver ThemeResolver
+@inject IAntiforgery Antiforgery
+@inject IAuthorizationService Authz
+@{
+    var theme = await ThemeResolver.GetValueAsync(Context);
+    var signedIn = User.Identity?.IsAuthenticated == true;
+    var canEdit = signedIn && (await Authz.AuthorizeAsync(User, AppPolicies.CanEditRecipes)).Succeeded;
+    var canAdmin = signedIn && (await Authz.AuthorizeAsync(User, AppPolicies.CanAdminister)).Succeeded;
+    var version = typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "dev";
+}
+<!DOCTYPE html>
+<html lang="en" data-theme="@theme">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <meta name="htmx-config" content='{"includeIndicatorStyles":false,"allowEval":false,"allowScriptTags":false}'>
+    @if (signedIn)
+    {
+        <meta name="rw-csrf" content="@Antiforgery.GetAndStoreTokens(Context).RequestToken">
+    }
+    <title>@(ViewData["Title"] is string t ? t + " · " : "")RecipeWarden</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
+    <script src="~/js/theme.js" asp-append-version="true" defer></script>
+    <script src="~/lib/htmx/htmx.min.js" defer></script>
+    <script src="~/js/app.js" asp-append-version="true" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+    <a class="brand" href="/">RecipeWarden</a>
+    <form class="search" role="search" method="get" action="/search">
+        <label for="site-search" class="visually-hidden">Search recipes</label>
+        <input id="site-search" name="q" type="search" placeholder="Search recipes" autocomplete="off">
+        <button type="submit" aria-label="Search">&#x1F50D;</button>
+    </form>
+    <div class="header-actions">
+        <button type="button" class="theme-toggle" id="theme-toggle"
+                data-signed-in="@(signedIn ? "true" : "false")"
+                aria-label="Theme: @theme. Change theme">
+            <span class="theme-toggle__label">@theme</span>
+        </button>
+        <a class="icon-link" href="/shopping" aria-label="Shopping list">&#x1F6D2;</a>
+        @if (signedIn)
+        {
+            <details class="user-menu">
+                <summary>@User.Identity?.Name</summary>
+                <ul>
+                    @if (canEdit) { <li><a href="/manage">Manage</a></li> }
+                    @if (canAdmin) { <li><a href="/admin">Admin</a></li> }
+                    <li>
+                        <form method="post" action="/account/logout">
+                            <button type="submit">Sign out</button>
+                        </form>
+                    </li>
+                </ul>
+            </details>
+        }
+        else
+        {
+            <a class="button-link" href="/account/login">Sign in</a>
+        }
+    </div>
+</header>
+<nav class="primary-nav" aria-label="Primary">
+    <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/recipes">Browse</a></li>
+        <li><a href="/collections">Collections</a></li>
+        <li><a href="/shopping">Shopping list</a></li>
+        @if (canEdit) { <li><a href="/manage">Manage</a></li> }
+    </ul>
+</nav>
+<main id="main" class="content">
+    @RenderBody()
+</main>
+<footer class="site-footer">
+    <span>RecipeWarden @version</span>
+    <span>Nutrition and allergen data are estimates.</span>
+</footer>
+</body>
+</html>

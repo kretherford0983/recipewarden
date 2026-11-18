@@ -1,0 +1,46 @@
+# RecipeWarden systemd unit (section 9.5, SEC-70). Installed by install.sh (M7).
+# Backup folders are opened by the drop-in written by "recipewarden apply-config";
+# local changes belong in "systemctl edit recipewarden" (override.conf), never in this file.
+[Unit]
+Description=RecipeWarden recipe manager
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=exec
+User=recipewarden
+Group=recipewarden
+WorkingDirectory=/opt/recipewarden/current
+ExecStart=/opt/recipewarden/current/RecipeWarden.Web
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=DOTNET_NOLOGO=1
+Environment=RECIPEWARDEN_CONFIG=/etc/recipewarden/appsettings.Production.json
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+# Hardening (SEC-70)
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+UMask=0077
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+ReadWritePaths=/var/lib/recipewarden /var/log/recipewarden
+
+[Install]
+WantedBy=multi-user.target
