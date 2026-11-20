@@ -32,7 +32,9 @@ rules (BR-, SEC-, UX-) and acceptance criteria (AC-) are referenced in code, tes
 - Business rules live in Core with unit tests, not in Razor pages.
 - No new package without stating its licence; permissive licences only.
 - Warnings are errors. Nullable is on. No TODOs left without an issue reference.
-- Private GitHub repo on Pro: keep CI under ~8 minutes; no CodeQL (not available); use the CI gates in 9.9.
+- Public GitHub repo (ADR 0005): keep CI under ~8 minutes; use the CI gates in 9.9; never a self-hosted runner.
+  Never commit secrets, real household data, emails or IPs beyond documentation examples.
+- Server-side commands and docs use bash, curl, tar and sha256sum only; never the GitHub CLI (section 9.5).
 
 ## When unsure
 If the spec is silent or contradictory, stop and ask, proposing 2-3 options with a recommendation.

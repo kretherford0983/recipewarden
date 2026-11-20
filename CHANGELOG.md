@@ -14,3 +14,4 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 - Installer skeleton with preflight checks (AC-91) and container tests; hardened systemd unit.
 - CI with coverage, vulnerable-package and secret-scan gates; Dependabot.
 - Branch flow `feature/*` → `develop` → `main` with development builds as GitHub pre-releases (ADR 0004).
+- Public repository; server downloads and docs use plain `curl`, never the GitHub CLI (ADR 0005).

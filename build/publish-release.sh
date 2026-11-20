@@ -7,6 +7,8 @@ version="$1"; release="$2"
 tag="v$version"
 pkg="recipewarden-$version-linux-x64.tar.gz"
 commit="${GITHUB_SHA::7}"
+base="https://github.com/$GITHUB_REPOSITORY/releases/download/$tag"
+guide="https://github.com/$GITHUB_REPOSITORY/blob/$tag/docs/test-install.md"
 
 if git rev-parse -q --verify "refs/tags/v$release" >/dev/null; then
   echo "::notice::v$release is already released - packages stay on this workflow run only. Bump <VersionPrefix> for the next release."
@@ -17,12 +19,14 @@ changes=$(bash "$(dirname "$0")/release-notes.sh" "$release")
 
 if [[ $GITHUB_REF_NAME == develop ]]; then
   cat > notes.md <<NOTES
-Development build from \`develop\` (commit $commit). Install on the **test** host:
-\`\`\`
-gh release download $tag -R $GITHUB_REPOSITORY
+Development build from \`develop\` (commit $commit). Download on the **test** host (curl only, section 9.5):
+\`\`\`bash
+cd /tmp
+curl -fsSLO $base/$pkg
+curl -fsSLO $base/SHA256SUMS.txt
 sha256sum -c --ignore-missing SHA256SUMS.txt
 \`\`\`
-Then follow docs/test-install.md with \`$pkg\`.
+Then install or upgrade with [docs/test-install.md]($guide) (V=$version).
 
 ---
 
@@ -34,7 +38,14 @@ else
 $changes
 
 ---
-Release build (commit $commit). Install or upgrade with \`$pkg\` (docs/test-install.md until the M7 installer).
+Release build (commit $commit). Download on the server (curl only, section 9.5):
+\`\`\`bash
+cd /tmp
+curl -fsSLO $base/$pkg
+curl -fsSLO $base/SHA256SUMS.txt
+sha256sum -c --ignore-missing SHA256SUMS.txt
+\`\`\`
+Then install or upgrade with [docs/test-install.md]($guide) (V=$version) until the M7 installer.
 NOTES
   gh release create "$tag" dist/* --target "$GITHUB_SHA" --latest --title "RecipeWarden $version" --notes-file notes.md
 fi

@@ -22,6 +22,5 @@ without PennyWarden's separate `test` stage.
 
 ## Consequences
 - Every merge to `develop` produces an installable test build; the M7 installer takes these packages.
-- Release assets of a private repository need a signed-in download (`gh release download`), so `curl | bash`
-  installs like PennyWarden's are not available unless the repository becomes public.
+- Release files are downloaded on servers with plain `curl` (the repository is public since ADR 0005).
 - About 2 extra Actions minutes per merge into `develop` or `main`.

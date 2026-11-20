@@ -3,18 +3,22 @@
 `install.sh` only runs preflight checks until milestone M7. Until then, install a build by hand on a Debian 12/13
 or Ubuntu 22.04/24.04 x64 host (a Proxmox LXC is fine). Everything below runs as root.
 
+Server commands use only what a minimal host has: bash, curl, tar and sha256sum (section 9.5). No GitHub CLI.
+
 ## 1. Download a build
-From your Mac or the host (needs the GitHub CLI signed in, because the repository is private):
+Pick the build on https://github.com/kretherford0983/recipewarden/releases (development builds are
+`v<version>-dev.<n>`; the release notes show these commands with the version filled in). On the host:
 ```bash
-gh release list -R kretherford0983/recipewarden            # development builds are v<version>-dev.<n>
-gh release download v0.1.0-dev.12 -R kretherford0983/recipewarden
-sha256sum -c --ignore-missing SHA256SUMS.txt
+V=0.1.0-dev.12
+cd /tmp
+curl -fsSLO https://github.com/kretherford0983/recipewarden/releases/download/v$V/recipewarden-$V-linux-x64.tar.gz
+curl -fsSLO https://github.com/kretherford0983/recipewarden/releases/download/v$V/SHA256SUMS.txt
+sha256sum -c --ignore-missing SHA256SUMS.txt     # must print: recipewarden-...tar.gz: OK
 ```
-Or download `recipewarden-<version>-linux-x64.tar.gz` and `SHA256SUMS.txt` from the release page and copy them over.
 
 ## 2. First install
 ```bash
-V=0.1.0-dev.12
+cd /tmp      # where the download is; V as in step 1
 apt-get install -y libicu-dev ca-certificates curl
 useradd --system --home-dir /var/lib/recipewarden --shell /usr/sbin/nologin recipewarden
 install -d -m 0750 -o recipewarden -g recipewarden /var/lib/recipewarden /var/lib/recipewarden/backups
@@ -49,8 +53,9 @@ loopback-only (cloudflared on the same host) use `http://127.0.0.1:5080` and `"T
 The auth cookie is `Secure`, so sign-in works through the tunnel (HTTPS) but not over plain `http://` to the LAN IP.
 
 ## 3. Upgrade to a newer build
+Download it as in step 1 (with the new `V`), then:
 ```bash
-V=0.1.0-dev.13
+cd /tmp
 tar -xzf recipewarden-$V-linux-x64.tar.gz -C /opt/recipewarden
 ln -sfn /opt/recipewarden/recipewarden-$V /opt/recipewarden/current
 cp /opt/recipewarden/current/recipewarden.service /etc/systemd/system/ && systemctl daemon-reload
