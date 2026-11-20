@@ -1,6 +1,6 @@
-# RecipeWarden — Specification v0.3
+# RecipeWarden — Specification v0.4
 
-Version 0.3 · 2026-11-18
+Version 0.4 · 2026-11-20
 
 ## 1. Overview
 
@@ -466,9 +466,9 @@ The app is internet-reachable through the tunnel, so it is built as a public web
 | SEC-74 | Backup destinations are never taken from request text: the saved value is the normalized matching entry from Backup:AllowedFolders (path-injection protection, BKP-APP-001). The app never mounts or authenticates to remote storage. |
 | SEC-75 | The backup private key is never stored on the server; the passphrase is never logged or persisted; a restore with a wrong kit or passphrase fails before any change. |
 
-### 5.9 Supply chain (private repo constraints)
+### 5.9 Supply chain
 
-GitHub code scanning (CodeQL) is not available for private repos on Free or Pro; it needs Team or Enterprise with GitHub Code Security. The pipeline therefore uses free equivalents:
+The repository is public (ADR 0005). The pipeline uses these gates; GitHub code scanning (CodeQL), free for public repositories, is a candidate addition decided separately:
 
 | ID | Rule |
 | --- | --- |
@@ -802,6 +802,8 @@ Network flags: `--bind <ip>` (the installer lists this host's IPv4 addresses to 
 | Same host | `127.0.0.1` | `127.0.0.1` | `http://localhost:5080` |
 | Own container or VM (e.g. Proxmox LXC) | host IP, e.g. `192.168.1.15` | tunnel container IP | `http://192.168.1.15:5080` |
 
+Server-side commands (installer, upgrade, download, restore) use only tools present on a minimal Debian/Ubuntu host: bash, coreutils, curl, tar and sha256sum. Nothing on the server needs the GitHub CLI, git or a GitHub account: release files are downloaded with plain `curl` from the public repository's releases (ADR 0005).
+
 The app host should have a static IP or DHCP reservation, since both the tunnel ingress rule and the bind address depend on it. Traffic between the tunnel container and the app host is plain HTTP on the LAN; TLS ends at Cloudflare.
 
 Restore at install: `--restore <archive>` validates the archive before touching anything, installs, restores data and users, applies migrations, keeps the new host's network settings (BR-64), and skips admin creation. Without `--restore`, the installer prints a one-time setup token and the URL of `/setup`, where the first admin is created or a backup is uploaded. The CLI offers the same at any time: `recipewarden restore <archive>` and `recipewarden health` (prints the health summary for SSH use).
@@ -913,16 +915,16 @@ Free text.
 
 Rules: tests are written with or before the code; every bug fix adds a failing test first; no test is skipped or deleted to make a build pass; coverage gates per NFR-06.
 
-### 9.9 CI/CD within GitHub Pro limits (private repo)
+### 9.9 CI/CD (public repository)
 
-GitHub Pro includes 3,000 Actions minutes a month and 2 GB of Packages storage; Actions artifacts, caches and Packages share one storage pool. Self-hosted runners do not consume minutes.
+The repository is public (ADR 0005): GitHub-hosted Actions minutes are free and release files are downloadable with plain `curl`. Actions artifacts, caches and Packages share one storage pool; keep runs short anyway (target under 8 minutes).
 
 - Branch flow (ADR 0004, docs/branching.md): `feature/*` → `develop` → `main`; `hotfix/*` → `main`, then back-merged into `develop`. A `promotion-rules` check enforces the flow, and that a version reaching `main` is unreleased and has a CHANGELOG section.
-- `ci.yml` on feature/hotfix pushes and every PR into `develop` or `main`: promotion rules → restore (NuGet cache) → build (warnings as errors) → all unit, integration and E2E tests (Playwright browsers cached) → coverage gate → vulnerable-package check → gitleaks → installer container tests. Target under 8 minutes, which allows roughly 350 runs a month.
+- `ci.yml` on feature/hotfix pushes and every PR into `develop` or `main`: promotion rules → restore (NuGet cache) → build (warnings as errors) → all unit, integration and E2E tests (Playwright browsers cached) → coverage gate → vulnerable-package check → gitleaks → installer container tests. Target under 8 minutes.
 - `build.yml` on pushes to `develop` and `main`: build the self-contained linux-x64 package (and arm64 when added), smoke-test it, and publish it with `install.sh` + SHA-256: `develop` → pre-release `v<version>-dev.<run>` for the test host (newest 3 kept); `main` → release `v<version>`.
 - Workflow-run artifact retention 1 day (7 for hand-run builds); releases kept.
 - Rulesets on `main` and `develop`: PR required, required checks must pass on an up-to-date branch, no force pushes or deletions.
-- If minutes get tight, register a self-hosted runner on the home lab (private repo only) and route CI there.
+- Never register a self-hosted runner: on a public repository, pull requests from forks could run code on the home lab.
 
 ### 9.10 Delivery phases
 
@@ -1131,7 +1133,8 @@ rules (BR-, SEC-, UX-) and acceptance criteria (AC-) are referenced in code, tes
 - Business rules live in Core with unit tests, not in Razor pages.
 - No new package without stating its licence; permissive licences only.
 - Warnings are errors. Nullable is on. No TODOs left without an issue reference.
-- Private GitHub repo on Pro: keep CI under ~8 minutes; no CodeQL (not available); use the CI gates in 9.9.
+- Public GitHub repo: keep CI under ~8 minutes; use the CI gates in 9.9; no self-hosted runners.
+- Server commands use curl, tar and sha256sum only; never the GitHub CLI (section 9.5).
 
 ## When unsure
 If the spec is silent or contradictory, stop and ask, proposing 2-3 options with a recommendation.
@@ -1167,6 +1170,7 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
+- v0.4 (2026-11-20): repository made public (ADR 0005). 9.5 — server-side commands use only bash, curl, tar and sha256sum, never the GitHub CLI; 5.9 and 9.9 updated for a public repository (CodeQL available, no self-hosted runners).
 - v0.3 (2026-11-18): 9.9 — branch flow `feature/*` → `develop` → `main` with development builds as GitHub pre-releases; `build.yml` replaces `release.yml`; `main` no longer requires linear history (ADR 0004).
 - v0.2 (2026-11-17): decisions D-01 to D-12 settled.
 

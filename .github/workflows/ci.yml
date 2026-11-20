@@ -1,4 +1,4 @@
-# Section 9.9: CI within GitHub Pro limits (private repo). Target: under 8 minutes.
+# Section 9.9: CI for the public repository (ADR 0005). Target: under 8 minutes.
 # Runs on work in progress (feature/*, hotfix/*) and on every pull request into develop or main.
 # Gates: branch flow (promotion-rules), build with warnings as errors, all tests, coverage (NFR-06),
 # vulnerable packages (SEC-81), secrets (SEC-83), installer container tests. Actions pinned to SHAs (SEC-84).
