@@ -1,6 +1,6 @@
-# RecipeWarden — Specification v0.2
+# RecipeWarden — Specification v0.3
 
-Version 0.2 · 2026-11-17
+Version 0.3 · 2026-11-18
 
 ## 1. Overview
 
@@ -760,7 +760,7 @@ recipewarden/
     install.sh  uninstall.sh  recipewarden.service  cloudflared-example.yml  fstab-nas-example
   docs/
     spec.md  traceability.md  erd.md  deployment-guide.md  adr/
-  .github/workflows/ci.yml  release.yml  dependabot.yml
+  .github/workflows/ci.yml  build.yml  dependabot.yml
   Directory.Build.props  Directory.Packages.props  CLAUDE.md
 ```
 
@@ -917,10 +917,11 @@ Rules: tests are written with or before the code; every bug fix adds a failing t
 
 GitHub Pro includes 3,000 Actions minutes a month and 2 GB of Packages storage; Actions artifacts, caches and Packages share one storage pool. Self-hosted runners do not consume minutes.
 
-- `ci.yml` on every push and PR: restore (NuGet cache) → build (warnings as errors) → all unit, integration and E2E tests (Playwright browsers cached) → coverage gate → vulnerable-package check → gitleaks. Target under 8 minutes, which allows roughly 350 runs a month.
-- `release.yml` on `v*` tags: build self-contained linux-x64 (and arm64), run the installer test, attach the tarball + `install.sh` + SHA-256 to a GitHub Release.
-- Artifact retention 7 days; releases kept.
-- Branch protection on `main`: PR required, CI must pass, linear history.
+- Branch flow (ADR 0004, docs/branching.md): `feature/*` → `develop` → `main`; `hotfix/*` → `main`, then back-merged into `develop`. A `promotion-rules` check enforces the flow, and that a version reaching `main` is unreleased and has a CHANGELOG section.
+- `ci.yml` on feature/hotfix pushes and every PR into `develop` or `main`: promotion rules → restore (NuGet cache) → build (warnings as errors) → all unit, integration and E2E tests (Playwright browsers cached) → coverage gate → vulnerable-package check → gitleaks → installer container tests. Target under 8 minutes, which allows roughly 350 runs a month.
+- `build.yml` on pushes to `develop` and `main`: build the self-contained linux-x64 package (and arm64 when added), smoke-test it, and publish it with `install.sh` + SHA-256: `develop` → pre-release `v<version>-dev.<run>` for the test host (newest 3 kept); `main` → release `v<version>`.
+- Workflow-run artifact retention 1 day (7 for hand-run builds); releases kept.
+- Rulesets on `main` and `develop`: PR required, required checks must pass on an up-to-date branch, no force pushes or deletions.
 - If minutes get tight, register a self-hosted runner on the home lab (private repo only) and route CI there.
 
 ### 9.10 Delivery phases
@@ -1163,6 +1164,11 @@ We are starting milestone M0 (Foundations) from docs/spec.md, section 9.10.
 ### 12.3 Prompts for later milestones
 
 Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. Show me the test list for these ACs before writing implementation code."
+
+## Changelog
+
+- v0.3 (2026-11-18): 9.9 — branch flow `feature/*` → `develop` → `main` with development builds as GitHub pre-releases; `build.yml` replaces `release.yml`; `main` no longer requires linear history (ADR 0004).
+- v0.2 (2026-11-17): decisions D-01 to D-12 settled.
 
 ## Sources
 

@@ -1,8 +1,11 @@
 # SEC-80: version updates for NuGet and GitHub Actions (alerts are enabled in repo settings).
+# Pull requests go into develop (docs/branching.md). Dependabot reads this file from main, so a change here
+# takes effect when it is released.
 version: 2
 updates:
   - package-ecosystem: nuget
     directory: /
+    target-branch: develop
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
@@ -17,7 +20,11 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "System.CommandLine"
         update-types: ["version-update:semver-major"]
+      # Serilog's major versions follow .NET's (Serilog.AspNetCore 11 pulls in Microsoft.Extensions 11).
+      - dependency-name: "Serilog*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
+    target-branch: develop
     schedule:
       interval: weekly

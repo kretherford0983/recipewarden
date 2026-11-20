@@ -1,12 +1,16 @@
 # Section 9.9: CI within GitHub Pro limits (private repo). Target: under 8 minutes.
-# Gates: build with warnings as errors, all tests, coverage (NFR-06), vulnerable packages (SEC-81),
-# secrets (SEC-83), installer container tests. Actions pinned to commit SHAs (SEC-84).
+# Runs on work in progress (feature/*, hotfix/*) and on every pull request into develop or main.
+# Gates: branch flow (promotion-rules), build with warnings as errors, all tests, coverage (NFR-06),
+# vulnerable packages (SEC-81), secrets (SEC-83), installer container tests. Actions pinned to SHAs (SEC-84).
+# Packages are built by build.yml when code lands in develop or main (docs/branching.md).
 name: ci
 
 on:
   push:
-    branches: [main]
+    branches: ["feature/**", "hotfix/**"]
   pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -21,6 +25,21 @@ env:
   NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
 
 jobs:
+  promotion:
+    name: promotion-rules
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Check branch flow and version
+        env:
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+        run: bash build/check-promotion.sh "$BASE" "$HEAD"
+
   build-test:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -60,6 +79,9 @@ jobs:
   secrets:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read # gitleaks-action lists the commits of a pull request
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
