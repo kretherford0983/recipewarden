@@ -3,6 +3,11 @@
 # Gates: branch flow (promotion-rules), build with warnings as errors, all tests, coverage (NFR-06),
 # vulnerable packages (SEC-81), secrets (SEC-83), installer container tests. Actions pinned to SHAs (SEC-84).
 # Packages are built by build.yml when code lands in develop or main (docs/branching.md).
+#
+# Speed (docs/testing.md, modelled on PennyWarden 2.4.0): independent jobs run side by side; the test projects
+# run at the same time and xUnit runs test classes on every core; the final job "test" passes only when every
+# other job passed and is the single check the branch rules require, so adding or splitting a job later never
+# needs a ruleset change. Time limits are about 3-4x a normal run so a hung run stops early.
 name: ci
 
 on:
@@ -29,7 +34,7 @@ jobs:
     name: promotion-rules
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -42,7 +47,7 @@ jobs:
 
   build-test:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 10 # normal ~1.5 min
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -62,23 +67,49 @@ jobs:
       - name: Build (warnings are errors)
         run: dotnet build RecipeWarden.slnx --no-restore --configuration Release
 
-      - name: Test with coverage gates (NFR-06)
+      - name: Tests with coverage gates (NFR-06), all projects at once, every core
         run: build/test.sh --no-build --configuration Release
+
+      - name: Upload coverage and test logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-results-${{ github.run_id }}
+          path: |
+            artifacts/coverage
+            artifacts/test-logs
+          if-no-files-found: ignore
+          retention-days: 7
+
+  checks:
+    name: dependency checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5 # normal ~40 s
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore RecipeWarden.slnx
 
       - name: Vulnerable packages (SEC-81)
         run: build/check-vulnerable.sh
 
-      - name: Upload coverage
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: coverage
-          path: artifacts/coverage
-          retention-days: 7
+      - name: Version format
+        run: bash build/version.sh --check
 
   secrets:
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 5 # normal ~10 s
     permissions:
       contents: read
       pull-requests: read # gitleaks-action lists the commits of a pull request
@@ -93,7 +124,7 @@ jobs:
 
   installer:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 5 # normal ~20 s
     strategy:
       fail-fast: false
       matrix:
@@ -104,3 +135,19 @@ jobs:
         run: shellcheck deploy/install.sh tests/installer/test-install.sh build/*.sh
       - name: Installer tests in ${{ matrix.image }}
         run: docker run --rm -v "$PWD:/src:ro" "${{ matrix.image }}" bash /src/tests/installer/test-install.sh
+
+  test:
+    name: test
+    needs: [promotion, build-test, checks, secrets, installer]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Every job passed (promotion-rules may be skipped outside pull requests)
+        env:
+          PROMOTION: ${{ needs.promotion.result }}
+          OTHERS: ${{ needs.build-test.result }} ${{ needs.checks.result }} ${{ needs.secrets.result }} ${{ needs.installer.result }}
+        run: |
+          echo "promotion-rules: $PROMOTION; build-test, checks, secrets, installer: $OTHERS"
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then [ "$PROMOTION" = "success" ]; else [ "$PROMOTION" = "success" ] || [ "$PROMOTION" = "skipped" ]; fi
+          [ "$OTHERS" = "success success success success" ]

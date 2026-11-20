@@ -53,6 +53,6 @@ request you don't want; add an `ignore` rule to skip a version for good. Dependa
 3. **Rules → Rulesets → `protect-main`**, targets **`main` and `develop`**:
    - Restrict deletions; Block force pushes. **No** "Require linear history" (develop → main uses a merge commit).
    - Require a pull request, **0** approvals, allowed merge methods **Merge and Squash**.
-   - Require status checks, **up to date** before merging: `promotion-rules`, `build-test`, `secrets`,
-     `installer (debian:12)`, `installer (debian:13)`, `installer (ubuntu:22.04)`, `installer (ubuntu:24.04)`.
+   - Require status checks, **up to date** before merging: **`test`** only. It is the `ci` job that passes when
+     every other job (promotion rules, build and tests, dependency checks, secrets, installer matrix) passed (ADR 0006).
 4. **Actions → General → Workflow permissions**: *Read repository contents* (the release job asks for write itself).
