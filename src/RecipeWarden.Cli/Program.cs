@@ -38,7 +38,8 @@ root.Subcommands.Add(health);
 // apply-config
 var dryRun = new Option<bool>("--dry-run") { Description = "Validate and show what would change; change nothing" };
 var noRestart = new Option<bool>("--no-restart") { Description = "Write the drop-in and reload systemd, but do not restart" };
-var applyConfig = new Command("apply-config", "Open Backup:AllowedFolders in the service sandbox (FR-BKP-09)") { dryRun, noRestart };
+var noReload = new Option<bool>("--no-reload") { Description = "Write the drop-in only; do not reload or restart systemd" };
+var applyConfig = new Command("apply-config", "Open Backup:AllowedFolders in the service sandbox (FR-BKP-09)") { dryRun, noRestart, noReload };
 applyConfig.SetAction(async (parse, ct) =>
 {
     var config = CliConfig.Load(CliConfig.ResolvePath(parse.GetValue(configOption)));
@@ -51,7 +52,10 @@ applyConfig.SetAction(async (parse, ct) =>
         Console.Error);
     var osUser = Environment.GetEnvironmentVariable("SUDO_USER") ?? Environment.UserName;
     return await runner.RunAsync(
-        new ApplyConfigRequest(folders, parse.GetValue(dryRun), parse.GetValue(noRestart), Environment.IsPrivilegedProcess, osUser), ct);
+        new ApplyConfigRequest(folders, parse.GetValue(dryRun), parse.GetValue(noRestart), Environment.IsPrivilegedProcess, osUser)
+        {
+            NoReload = parse.GetValue(noReload),
+        }, ct);
 });
 root.Subcommands.Add(applyConfig);
 

@@ -16,4 +16,6 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 - Branch flow `feature/*` → `develop` → `main` with development builds as GitHub pre-releases (ADR 0004).
 - Tests run in parallel (projects at once, classes on every core, database migrated once per test process);
   CI jobs side by side behind one required check, `test` (ADR 0006, docs/testing.md).
+- One-command install and upgrade: `curl … | sudo bash` with checksum check, automatic rollback, settings in
+  `/etc/recipewarden` and network settings in `network.json` (ADR 0007, docs/install.md).
 - Public repository; server downloads and docs use plain `curl`, never the GitHub CLI (ADR 0005).

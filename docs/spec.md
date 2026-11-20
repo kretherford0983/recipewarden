@@ -1,6 +1,6 @@
-# RecipeWarden — Specification v0.5
+# RecipeWarden — Specification v0.6
 
-Version 0.5 · 2026-11-20
+Version 0.6 · 2026-11-20
 
 ## 1. Overview
 
@@ -787,13 +787,17 @@ Pure, deterministic code in Core, and the most heavily tested part of the system
 
 | Item | Location |
 | --- | --- |
-| Binaries | `/opt/recipewarden/` (versioned subfolders + `current` symlink for rollback) |
+| Binaries | `/opt/recipewarden/releases/<version>-<time>/{web,cli}` + `current` symlink (3 kept, for rollback) |
 | Config | `/etc/recipewarden/appsettings.Production.json` |
 | Data | `/var/lib/recipewarden/{db,media,imports,backups,keys}` |
 | Logs | journald + `/var/log/recipewarden/` |
 | Service | `recipewarden.service`, user `recipewarden`, `Restart=on-failure` |
 
-`install.sh` flags: `--port`, `--bind`, `--data-dir`, `--backup-dir`, `--framework-dependent`, `--unattended`, `--upgrade`, `--uninstall [--purge]`. Steps: require root and a supported OS → check port with `ss` (suggest the next free one) → install missing packages (ICU, CA certificates, curl, sqlite3 for diagnostics; ASP.NET Core runtime only if framework-dependent) → create user and directories with permissions → copy release → write config → run migrations via CLI → create admin → install, enable and start the unit → poll `/health` → print URL and the cloudflared ingress example. Upgrades back up first and roll back the symlink if health fails.
+One command installs or upgrades (ADR 0007, docs/install.md): `curl -fsSL https://github.com/<owner>/recipewarden/releases/latest/download/install.sh | sudo bash`, or `…/releases/download/<tag>/install.sh | sudo bash -s -- --version <tag>` for a specific (e.g. development) build. `install.sh` resolves the release through the public GitHub API, downloads the package and `SHA256SUMS.txt`, and refuses a checksum mismatch.
+
+`install.sh` flags: `--version`, `--channel auto|release|dev`, `--package <file>`, `--port`, `--bind`, `--trusted-proxy`, `--allowed-ips`, `--data-dir`, `--backup-dir`, `--admin-email`, `--admin-password-file`, `--yes`, `--unattended`, `--no-start`, `--reconfigure`, `--uninstall [--purge]`, `--restore` (M7), `--framework-dependent` (later). Steps: require root, a supported OS and systemd → check the port from `/proc/net/tcp` (suggest the next free one) → download and verify → install missing packages (ICU, CA certificates) → create user and directories with permissions → unpack the release to `/opt/recipewarden/releases/<version>-<time>/` → on upgrade, stop and copy the database to `backups/pre-upgrade-<time>/` → write settings (new installs) → point `current` at the release, install the unit and the backup drop-in (`apply-config`) → start and poll `/health` → create the first admin → keep the three newest releases → print the URL and the cloudflared ingress example. An upgrade that fails health rolls back to the previous release automatically.
+
+Settings: `/etc/recipewarden/appsettings.Production.json` belongs to the server owner and is never overwritten; `/etc/recipewarden/network.json` (Kestrel URL, `Network:TrustedProxies`, `Network:AllowedSourceIps`) is written by the installer and `--reconfigure`, and may be edited by hand followed by a service restart. The app and CLI load both. `/usr/local/bin/recipewarden` runs CLI commands as the service user (root only for `apply-config`).
 
 Network flags: `--bind <ip>` (the installer lists this host's IPv4 addresses to pick from), `--trusted-proxy <ip>[,<ip>]` (the cloudflared host; defaults to the bind IP when loopback), `--allowed-ips <ip|cidr>[,…]` (extra direct-access sources), `--reconfigure` (change any of these, or the port, on an existing install; rewrites config and firewall rules, then restarts).
 
@@ -1173,6 +1177,7 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
+- v0.6 (2026-11-20): 9.5 — one-command `curl | sudo bash` installer with checksum verification, upgrade with automatic rollback, installer-owned `network.json` (ADR 0007).
 - v0.5 (2026-11-20): 9.8 and 9.9 — parallel tests and CI jobs, one aggregate required check `test` (ADR 0006).
 - v0.4 (2026-11-20): repository made public (ADR 0005). 9.5 — server-side commands use only bash, curl, tar and sha256sum, never the GitHub CLI; 5.9 and 9.9 updated for a public repository (CodeQL available, no self-hosted runners).
 - v0.3 (2026-11-18): 9.9 — branch flow `feature/*` → `develop` → `main` with development builds as GitHub pre-releases; `build.yml` replaces `release.yml`; `main` no longer requires linear history (ADR 0004).

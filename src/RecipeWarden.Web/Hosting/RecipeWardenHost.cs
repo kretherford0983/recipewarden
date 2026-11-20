@@ -22,6 +22,10 @@ public static class RecipeWardenHost
     public const string AntiforgeryCookieName = "__Host-rw-af";
     public const string AntiforgeryHeaderName = "RequestVerificationToken";
 
+    /// <summary>network.json in the same folder as the main config (written by install.sh, ADR 0007).</summary>
+    public static string NetworkConfigPath(string configPath) =>
+        Path.Combine(Path.GetDirectoryName(Path.GetFullPath(configPath)) ?? "/", "network.json");
+
     public static WebApplicationBuilder AddRecipeWarden(this WebApplicationBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -30,6 +34,8 @@ public static class RecipeWardenHost
         {
             var path = Environment.GetEnvironmentVariable(ConfigPathVariable) ?? DefaultConfigPath;
             builder.Configuration.AddJsonFile(path, optional: true, reloadOnChange: false);
+            // Installer-owned network settings (bind, port, trusted proxies, allowed IPs) beside the main config.
+            builder.Configuration.AddJsonFile(NetworkConfigPath(path), optional: true, reloadOnChange: false);
         }
 
         // FR-OPS-01, SEC-72: structured logs; request logging never includes bodies, cookies or tokens.

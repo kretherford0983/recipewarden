@@ -122,23 +122,74 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  installer:
+  package:
+    name: package
     runs-on: ubuntu-24.04
-    timeout-minutes: 5 # normal ~20 s
+    timeout-minutes: 8 # normal ~2 min
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Package (self-contained linux-x64) and smoke test
+        run: |
+          VERSION="$(bash build/version.sh --check)-ci.$GITHUB_RUN_NUMBER"
+          build/package.sh "$VERSION" dist
+          build/smoke-test.sh "dist/recipewarden-$VERSION-linux-x64.tar.gz" "$VERSION"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ci-package-${{ github.run_id }}
+          path: dist/recipewarden-*-linux-x64.tar.gz
+          retention-days: 1
+
+  installer:
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6 # normal ~1 min
     strategy:
       fail-fast: false
       matrix:
         image: ["debian:12", "debian:13", "ubuntu:22.04", "ubuntu:24.04"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ci-package-${{ github.run_id }}
+          path: dist
       - name: shellcheck
-        run: shellcheck deploy/install.sh tests/installer/test-install.sh build/*.sh
-      - name: Installer tests in ${{ matrix.image }}
-        run: docker run --rm -v "$PWD:/src:ro" "${{ matrix.image }}" bash /src/tests/installer/test-install.sh
+        run: shellcheck deploy/install.sh tests/installer/*.sh build/*.sh
+      - name: Installer tests in ${{ matrix.image }} (no systemd; --no-start)
+        run: |
+          PKG=$(basename dist/recipewarden-*-linux-x64.tar.gz)
+          docker run --rm -v "$PWD:/src:ro" -v "$PWD/dist:/dist:ro" "${{ matrix.image }}" \
+            bash -c "apt-get update -qq && apt-get install -y -qq curl ca-certificates >/dev/null && bash /src/tests/installer/test-install.sh /dist/$PKG"
+
+  install-systemd:
+    name: installer (systemd)
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8 # normal ~2 min
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ci-package-${{ github.run_id }}
+          path: dist
+      - name: Install, upgrade, rollback, reconfigure, uninstall with systemd
+        run: sudo bash tests/installer/test-install-systemd.sh dist/recipewarden-*-linux-x64.tar.gz
 
   test:
     name: test
-    needs: [promotion, build-test, checks, secrets, installer]
+    needs: [promotion, build-test, checks, secrets, package, installer, install-systemd]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 2
@@ -146,8 +197,8 @@ jobs:
       - name: Every job passed (promotion-rules may be skipped outside pull requests)
         env:
           PROMOTION: ${{ needs.promotion.result }}
-          OTHERS: ${{ needs.build-test.result }} ${{ needs.checks.result }} ${{ needs.secrets.result }} ${{ needs.installer.result }}
+          OTHERS: ${{ needs.build-test.result }} ${{ needs.checks.result }} ${{ needs.secrets.result }} ${{ needs.package.result }} ${{ needs.installer.result }} ${{ needs.install-systemd.result }}
         run: |
-          echo "promotion-rules: $PROMOTION; build-test, checks, secrets, installer: $OTHERS"
+          echo "promotion-rules: $PROMOTION; build-test, checks, secrets, package, installer, installer (systemd): $OTHERS"
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then [ "$PROMOTION" = "success" ]; else [ "$PROMOTION" = "success" ] || [ "$PROMOTION" = "skipped" ]; fi
-          [ "$OTHERS" = "success success success success" ]
+          [ "$OTHERS" = "success success success success success success" ]
