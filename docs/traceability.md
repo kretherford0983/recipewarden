@@ -76,7 +76,8 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | FR-INST-04 | CLI `admin create` done; installer prompt in M7 | `UserAdminService`, `AdminCreateCommand` | Infra.Tests `SEC_05_UserAdminServiceTests`; Cli.Tests `CliCommandTests` |
 | FR-BKP-08 | Validation rules done | `BackupFolderPolicy` (Core) | Core.Tests `FR_BKP_08_BackupFolderPolicyTests` |
 | FR-BKP-09 / AC-86 | Done except audit to `AuditEntry` (prints an audit line until FR-ADM-01, M7) | `ApplyConfigRunner`, `BackupFoldersDropIn` | Core.Tests `FR_BKP_09_DropInTests`; Cli.Tests `FR_BKP_09_ApplyConfigTests`, `HostFileSystemTests`, `HostAdapterTests` |
-| FR-INST-01/02 (preflight) / AC-91 | Argument parsing, root, OS and port checks done; install steps in M7 | `deploy/install.sh`, `deploy/recipewarden.service` | `tests/installer/test-install.sh` (CI matrix: Debian 12/13, Ubuntu 22.04/24.04) |
+| FR-INST-01/02/04, AC-90, AC-91 | One-command install done (ADR 0007): download + checksum, user/dirs, unit, network.json, first Admin; firewall rules and `/setup` token in M7 | `deploy/install.sh`, `deploy/recipewarden.service`, `/usr/local/bin/recipewarden` wrapper | `tests/installer/test-install.sh` (Debian 12/13, Ubuntu 22.04/24.04), `tests/installer/test-install-systemd.sh` |
+| FR-INST-03, AC-92 | Upgrade in place with database copy and automatic rollback done; full pre-upgrade backup in M7 | `deploy/install.sh` | `test-install-systemd.sh` (broken release rolled back) |
 
 ### Notes and open issues
 

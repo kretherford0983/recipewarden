@@ -24,3 +24,11 @@ public sealed class AppInfoTests(RecipeWardenFactory factory) : IClassFixture<Re
         html.ShouldContain($"RecipeWarden {AppInfo.Version}");
     }
 }
+
+[Trait("Req", "FR-INST-02")]
+public sealed class NetworkConfigPathTests
+{
+    [Fact]
+    public void Network_json_sits_beside_the_main_config() =>
+        RecipeWardenHost.NetworkConfigPath("/etc/recipewarden/appsettings.Production.json").ShouldBe("/etc/recipewarden/network.json");
+}

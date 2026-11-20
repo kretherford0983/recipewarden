@@ -96,6 +96,17 @@ public sealed class CliCommandTests : IDisposable
         config.GetSection("Backup:AllowedFolders").GetChildren().Select(c => c.Value).ShouldBe(["/mnt/a", "/mnt/b"]);
     }
 
+    [Fact]
+    [Trait("Req", "FR-INST-02")]
+    public void Network_json_beside_the_config_overrides_the_listening_address()
+    {
+        var path = Path.Combine(dir, "appsettings.Production.json");
+        File.WriteAllText(path, """{ "Kestrel": { "Endpoints": { "Http": { "Url": "http://127.0.0.1:5080" } } } }""");
+        File.WriteAllText(Path.Combine(dir, "network.json"), """{ "Kestrel": { "Endpoints": { "Http": { "Url": "http://192.168.1.15:6080" } } } }""");
+
+        CliConfig.HealthUri(CliConfig.Load(path)).ToString().ShouldBe("http://192.168.1.15:6080/health");
+    }
+
     public void Dispose()
     {
         SqliteConnection.ClearAllPools();

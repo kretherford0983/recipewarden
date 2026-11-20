@@ -140,6 +140,16 @@ public sealed class FR_BKP_09_ApplyConfigTests
     }
 
     [Fact]
+    public async Task No_reload_writes_the_drop_in_without_touching_systemd()
+    {
+        var exit = await Runner().RunAsync(Request(["/mnt/nas/recipewarden"]) with { NoReload = true }, TestContext.Current.CancellationToken);
+
+        exit.ShouldBe(ApplyConfigRunner.ExitOk);
+        fs.Files.ContainsKey(BackupFoldersDropIn.FilePath).ShouldBeTrue();
+        systemd.Calls.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task Unchanged_config_does_nothing()
     {
         fs.Files[BackupFoldersDropIn.FilePath] = Previous;

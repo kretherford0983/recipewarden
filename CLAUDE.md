@@ -52,7 +52,9 @@ e.g. `feature/m1-recipes`. PR description lists IDs, ACs, and test evidence. Add
 - All tests with coverage gates: `build/test.sh`
 - One project: `dotnet test --project tests/RecipeWarden.Web.Tests`
 - Vulnerable packages: `build/check-vulnerable.sh`
-- Installer tests (root, in a container): `docker run --rm -v "$PWD:/src:ro" debian:12 bash /src/tests/installer/test-install.sh`
+- Installer tests (root, in a container; package from build/package.sh):
+  `docker run --rm -v "$PWD:/src:ro" -v "$PWD/dist:/dist:ro" debian:12 bash -c "apt-get update -qq && apt-get install -y -qq curl >/dev/null && bash /src/tests/installer/test-install.sh /dist/recipewarden-<v>-linux-x64.tar.gz"`
+  With systemd (CI runner or a VM): `sudo bash tests/installer/test-install-systemd.sh dist/recipewarden-<v>-linux-x64.tar.gz`
 - New migration: `dotnet tool restore && dotnet ef migrations add <Name> -p src/RecipeWarden.Infrastructure -s src/RecipeWarden.Infrastructure -o Data/Migrations`
 - Secret-scan hook: `git config core.hooksPath .githooks`
 - Package + smoke test locally: `build/package.sh 0.1.0-dev.0 dist && build/smoke-test.sh dist/recipewarden-0.1.0-dev.0-linux-x64.tar.gz 0.1.0-dev.0`

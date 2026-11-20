@@ -12,7 +12,7 @@ Modelled on PennyWarden's flow, without the `test` branch: `develop` builds are 
 | Branch | Purpose | On every push/merge GitHub Actions… | Install with |
 |---|---|---|---|
 | `feature/*` | one milestone or change, branched from `develop` | runs `ci` | hand-run **build** (artifact only) |
-| `develop` | integration; what you test | **build**: pre-release `v<version>-dev.<run>` (newest 3 per version kept) | test host (docs/test-install.md) |
+| `develop` | integration; what you test | **build**: pre-release `v<version>-dev.<run>` (newest 3 per version kept) | test host: the `curl … | sudo bash` command in the release notes (docs/install.md) |
 | `main` | production | **build**: release `v<version>` + tag (once per version) | production host |
 
 Code reaches `develop` and `main` only through a pull request whose `ci` checks passed on the up-to-date branch,
@@ -34,7 +34,7 @@ systemd unit, `build-info.json`), plus `install.sh`, `build-info.json` and `SHA2
    release bumps `<VersionPrefix>` and adds `## <version> — unreleased` to `CHANGELOG.md`.
 2. **Push** the branch → `ci` runs.
 3. **Pull request feature → develop**; merge with **Squash** when green. The build publishes `v<version>-dev.<n>`.
-4. **Test**: install that pre-release on the test host (docs/test-install.md).
+4. **Test**: run the install command from that pre-release's notes on the test host (docs/install.md).
 5. **Release**: pull request **develop → main**, merge with **Create a merge commit**. The build publishes `v<version>`
    (notes = that version's CHANGELOG section) and removes its development pre-releases.
 6. **Hotfix**: branch `hotfix/<name>` from `main`, bump the patch number, pull request into `main`; then pull request

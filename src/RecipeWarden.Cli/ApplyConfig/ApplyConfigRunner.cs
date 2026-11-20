@@ -2,7 +2,11 @@ using RecipeWarden.Core.Backup;
 
 namespace RecipeWarden.Cli.ApplyConfig;
 
-internal sealed record ApplyConfigRequest(IReadOnlyList<string?> ConfiguredFolders, bool DryRun, bool NoRestart, bool IsPrivileged, string OsUser);
+internal sealed record ApplyConfigRequest(IReadOnlyList<string?> ConfiguredFolders, bool DryRun, bool NoRestart, bool IsPrivileged, string OsUser)
+{
+    /// <summary>Write the drop-in only: no daemon-reload, no restart (installer inside a container, --no-start).</summary>
+    public bool NoReload { get; init; }
+}
 
 /// <summary>
 /// FR-BKP-09 (BKP-SVC-001), AC-86: validate Backup:AllowedFolders, write or remove the systemd drop-in,
@@ -71,6 +75,12 @@ internal sealed class ApplyConfigRunner(IHostFileSystem fs, ISystemd systemd, IS
         // 2. Write (or remove) our drop-in only; override.conf is never touched.
         WriteDropIn(next);
         await output.WriteLineAsync($"audit: apply-config by {request.OsUser}: before=[{string.Join(", ", before)}] after=[{string.Join(", ", after)}]");
+
+        if (request.NoReload)
+        {
+            await output.WriteLineAsync("--no-reload: systemd was not reloaded.");
+            return ExitOk;
+        }
 
         if (!await systemd.DaemonReloadAsync(cancellationToken))
         {
