@@ -77,6 +77,12 @@ run 3 "milestone M7" "restore is not available yet" -- bash "$installer" --resto
 run 2 "run as root" "non-root is refused" -- setpriv --reuid=65534 --regid=65534 --clear-groups bash "$installer"
 run 2 "unsupported OS" "Fedora is refused" -- env OS_RELEASE_FILE="$(fake_os fedora 40)" bash "$installer"
 run 2 "unsupported OS" "Debian 11 is refused" -- env OS_RELEASE_FILE="$(fake_os debian 11)" bash "$installer"
+run 2 "unsupported OS" "Ubuntu 25.10 (not LTS) is refused" -- env OS_RELEASE_FILE="$(fake_os ubuntu 25.10)" bash "$installer"
+for v in "debian 12" "debian 13" "ubuntu 22.04" "ubuntu 24.04" "ubuntu 26.04"; do
+  # shellcheck disable=SC2086  # "id version" splits into fake_os's two arguments on purpose
+  run 1 "--trusted-proxy is required" "NFR-02: $v passes the OS check" -- \
+    env OS_RELEASE_FILE="$(fake_os $v)" bash "$installer" --no-start --yes --bind 192.168.1.15
+done
 if [[ ! -d /run/systemd/system ]]; then
   run 2 "systemd is not running" "a host without systemd needs --no-start" -- bash "$installer" --yes
 fi

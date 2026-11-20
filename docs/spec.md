@@ -1,6 +1,6 @@
-# RecipeWarden — Specification v0.6
+# RecipeWarden — Specification v0.7
 
-Version 0.6 · 2026-11-20
+Version 0.7 · 2026-11-20
 
 ## 1. Overview
 
@@ -222,7 +222,7 @@ Requirements carry stable IDs (FR = functional, NFR = non-functional) used by th
 | ID | Requirement |
 | --- | --- |
 | NFR-01 Performance | Recipe and home pages render server-side in under 300 ms at p95 with 5,000 recipes on a 2-vCPU host; search returns in under 200 ms. |
-| NFR-02 Footprint | Idle memory under 250 MB; runs on Debian 12/13 and Ubuntu 22.04/24.04 x64 (arm64 a Should). |
+| NFR-02 Footprint | Idle memory under 250 MB; runs on Debian 12/13 and Ubuntu 22.04/24.04/26.04 LTS x64 (arm64 a Should). |
 | NFR-03 Accessibility | WCAG 2.2 AA: keyboard reachable, visible focus, 4.5:1 contrast in both themes, labelled forms, alt text on images. |
 | NFR-04 Browsers | Current Safari (macOS/iOS), Chrome, Firefox, Edge; responsive from 360 px to desktop ultrawide (3440 px). |
 | NFR-05 Security | Meets every rule in section 5; no high/critical vulnerable packages at release. |
@@ -1082,7 +1082,7 @@ Each criterion is written Given / When / Then and becomes at least one automated
 | AC-80 | Given "Back up now", then an archive with database, media, config and a valid manifest is created and listed with its size and checksum. |
 | AC-81 | Given a daily schedule with retention keep-7-daily, 4-weekly, 6-monthly, after 60 simulated days, then exactly those archives remain and the newest is never deleted. |
 | AC-82 | Given a valid archive, when restored, then a pre-restore backup is made, data matches the archive, and the site returns to service. A tampered archive (checksum mismatch or `../` path) is rejected before anything changes. |
-| AC-90 | Given a clean Debian 12 or Ubuntu 24.04 host, when `install.sh --port 5080` runs, then dependencies are installed as needed, the service is enabled, starts on reboot, and `/health` returns ok on the chosen bind address and port. |
+| AC-90 | Given a clean Debian 12/13 or Ubuntu 22.04/24.04/26.04 host, when `install.sh --port 5080` runs, then dependencies are installed as needed, the service is enabled, starts on reboot, and `/health` returns ok on the chosen bind address and port. |
 | AC-91 | Given port 5080 in use, then the installer stops before changing anything and suggests a free port. |
 | AC-92 | Given an installed v1.0, when a v1.1 install runs with `--upgrade` and the new build fails health, then it rolls back to v1.0 automatically. |
 | AC-93 | Given `install.sh --bind 192.168.1.15 --port 5080 --trusted-proxy 192.168.1.20`, then the service listens on 192.168.1.15:5080; a request from 192.168.1.20 (the tunnel container) succeeds and its `CF-Connecting-IP` is used as the client IP; a request from any other LAN address is refused; forwarded headers from an untrusted address are ignored. `install.sh --reconfigure --bind 192.168.1.16` moves the listener and firewall rule without data loss. |
@@ -1177,6 +1177,7 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
+- v0.7 (2026-11-20): NFR-02, AC-90 — Ubuntu 26.04 LTS supported (installer, container tests and a systemd test on an Ubuntu 26.04 runner).
 - v0.6 (2026-11-20): 9.5 — one-command `curl | sudo bash` installer with checksum verification, upgrade with automatic rollback, installer-owned `network.json` (ADR 0007).
 - v0.5 (2026-11-20): 9.8 and 9.9 — parallel tests and CI jobs, one aggregate required check `test` (ADR 0006).
 - v0.4 (2026-11-20): repository made public (ADR 0005). 9.5 — server-side commands use only bash, curl, tar and sha256sum, never the GitHub CLI; 5.9 and 9.9 updated for a public repository (CodeQL available, no self-hosted runners).

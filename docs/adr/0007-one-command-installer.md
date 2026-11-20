@@ -20,8 +20,8 @@ that downloads and runs the installer, with settings edited afterwards if needed
   restarting the service works too. The host's own bind IP is always allowed (installer and CLI health checks).
 - `/usr/local/bin/recipewarden` is a wrapper that runs CLI commands as the service user (root only for `apply-config`).
 - The first Admin is created at install (prompt through `/dev/tty`, or `--admin-email` + `--admin-password-file`).
-- Tests: `tests/installer/test-install.sh` (Debian 12/13, Ubuntu 22.04/24.04 containers, `--no-start`) and
-  `tests/installer/test-install-systemd.sh` (real systemd on the CI runner: start, health, upgrade, rollback,
+- Tests: `tests/installer/test-install.sh` (Debian 12/13, Ubuntu 22.04/24.04/26.04 containers, `--no-start`) and
+  `tests/installer/test-install-systemd.sh` (real systemd on Ubuntu 24.04 and 26.04 CI runners: start, health, upgrade, rollback,
   reconfigure, uninstall). CI builds one package per run for both.
 
 ## Still in M7

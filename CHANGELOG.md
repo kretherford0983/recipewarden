@@ -18,4 +18,5 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
   CI jobs side by side behind one required check, `test` (ADR 0006, docs/testing.md).
 - One-command install and upgrade: `curl … | sudo bash` with checksum check, automatic rollback, settings in
   `/etc/recipewarden` and network settings in `network.json` (ADR 0007, docs/install.md).
+- Ubuntu 26.04 LTS supported by the installer and tested in CI (NFR-02).
 - Public repository; server downloads and docs use plain `curl`, never the GitHub CLI (ADR 0005).

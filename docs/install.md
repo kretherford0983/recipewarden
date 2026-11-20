@@ -1,6 +1,6 @@
 # Installing, upgrading and removing RecipeWarden
 
-One command installs or upgrades RecipeWarden on Debian 12/13 or Ubuntu 22.04/24.04 (x64). It uses only bash,
+One command installs or upgrades RecipeWarden on Debian 12/13 or Ubuntu 22.04, 24.04 or 26.04 LTS (x64). It uses only bash,
 curl, tar and sha256sum (ADR 0005, ADR 0007). Run it as any user with sudo.
 
 ## Install or upgrade
