@@ -226,6 +226,11 @@ check_port() {
 
 installed() { [[ -L $OPT/current && -f $ETC/network.json ]]; }
 
+# Addresses in one list of network.json (written by this script with each list on one line), one per line.
+list_from_network() {
+  { grep "\"$1\"" "$ETC/network.json" || true; } | { grep -oE '[0-9]+(\.[0-9]+){3}(/[0-9]+)?' || true; }
+}
+
 current_url() {
   local url
   url=$(sed -n 's/.*"Url": *"\([^"]*\)".*/\1/p' "$ETC/network.json" | head -1)
@@ -562,8 +567,9 @@ do_reconfigure() {
   old_port=$(current_url | sed -n 's/.*:\([0-9]*\)$/\1/p'); old_bind=$(current_url | sed -n 's#http://\([^:]*\):.*#\1#p')
   port=${port:-$old_port}; bind=${bind:-$old_bind}
   # network.json is written by this script with each list on one line
-  [[ -n $trusted_proxy ]] || trusted_proxy=$(grep '"TrustedProxies"' "$ETC/network.json" | grep -oE '[0-9]+(\.[0-9]+){3}' | paste -sd, -)
-  [[ -n $allowed_ips ]] || allowed_ips=$(grep '"AllowedSourceIps"' "$ETC/network.json" | grep -oE '[0-9]+(\.[0-9]+){3}(/[0-9]+)?' | { grep -vx "$old_bind" || true; } | paste -sd, -)
+  # (an empty list is normal, e.g. AllowedSourceIps on a loopback install: grep finding nothing is not an error)
+  [[ -n $trusted_proxy ]] || trusted_proxy=$(list_from_network TrustedProxies | paste -sd, -)
+  [[ -n $allowed_ips ]] || allowed_ips=$(list_from_network AllowedSourceIps | { grep -vx "$old_bind" || true; } | paste -sd, -)
   [[ $bind == 127.* || -n $trusted_proxy ]] || die $EXIT_USAGE "--trusted-proxy is required when --bind is not loopback"
   [[ $port == "$old_port" ]] || check_port
   data=$DATA_DEFAULT

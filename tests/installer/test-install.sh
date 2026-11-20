@@ -168,5 +168,13 @@ check "settings kept" test -f /etc/recipewarden/appsettings.Production.json
 run 0 "Removed the app, its data" "uninstall --purge removes everything" -- bash "$installer" --no-start --uninstall --purge
 check "host is back to its starting state" test "$before" == "$(snapshot)"
 
+# ------------------------------------------------------------------ loopback install: empty allowed list, reconfigure
+run 0 "is installed" "loopback install with defaults" -- bash "$installer" --no-start --yes --unattended --package "$package" --port "$((port + 3))"
+check "loopback: proxy defaults to the bind IP" grep -q '"TrustedProxies": \[ "127.0.0.1" \]' /etc/recipewarden/network.json
+check "loopback: no extra allowed addresses" grep -q '"AllowedSourceIps": \[  \]' /etc/recipewarden/network.json
+run 0 "network.json" "reconfigure works with an empty allowed list" -- bash "$installer" --no-start --reconfigure --port "$((port + 4))"
+check "loopback: new port written" grep -q "http://127.0.0.1:$((port + 4))" /etc/recipewarden/network.json
+run 0 "Removed the app, its data" "clean up" -- bash "$installer" --no-start --uninstall --purge
+
 echo "installer tests: $pass passed, $fail failed"
 [[ $fail -eq 0 ]]

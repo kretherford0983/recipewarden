@@ -61,7 +61,7 @@ check "and healthy" health 5080
 # ------------------------------------------------------------------ reconfigure (FR-INST-02)
 run 0 "network.json" "reconfigure moves the port" -- bash "$installer" --reconfigure --port 5090 --yes
 check "healthy on the new port" health 5090
-check "old port closed" bash -c '! curl -fsS --max-time 2 http://127.0.0.1:5080/health'
+check "old port closed" bash -c '! curl -fsS -o /dev/null --max-time 2 http://127.0.0.1:5080/health'
 
 # ------------------------------------------------------------------ uninstall
 run 0 "Kept:" "uninstall keeps data" -- bash "$installer" --uninstall
