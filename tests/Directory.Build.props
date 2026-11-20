@@ -17,6 +17,11 @@
     <PackageReference Include="coverlet.MTP" />
   </ItemGroup>
 
+  <!-- docs/testing.md: test classes run in parallel on every core; tests longer than 10 s are reported. -->
+  <ItemGroup>
+    <Content Include="$(MSBuildThisFileDirectory)xunit.runner.json" Link="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <Using Include="Xunit" />
     <Using Include="Shouldly" />

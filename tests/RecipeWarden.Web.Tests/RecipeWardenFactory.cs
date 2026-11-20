@@ -8,6 +8,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using RecipeWarden.Core.Security;
 using RecipeWarden.Infrastructure.Data;
+using RecipeWarden.Tests.Shared;
 
 namespace RecipeWarden.Web.Tests;
 
@@ -27,6 +28,7 @@ public sealed partial class RecipeWardenFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        TestDatabaseTemplate.CopyTo(dataDirectory); // migrated once per test process (docs/testing.md)
         builder.UseEnvironment("Testing");
         builder.UseSetting("Data:Directory", dataDirectory);
         builder.UseSetting("Serilog:MinimumLevel:Default", "Warning");
@@ -35,7 +37,11 @@ public sealed partial class RecipeWardenFactory : WebApplicationFactory<Program>
             builder.UseSetting(key, value);
         }
 
-        builder.ConfigureServices(s => s.AddSingleton<IStartupFilter, TestRemoteIpStartupFilter>());
+        builder.ConfigureServices(s =>
+        {
+            s.AddSingleton<IStartupFilter, TestRemoteIpStartupFilter>();
+            s.UseFastPasswordHashing();
+        });
     }
 
     public HttpClient CreateHttpsClient(bool allowRedirects = false) =>

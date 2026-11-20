@@ -5,4 +5,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Shared\TestDatabaseTemplate.cs" Link="Shared\TestDatabaseTemplate.cs" />
+  </ItemGroup>
 </Project>

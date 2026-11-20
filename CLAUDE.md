@@ -15,6 +15,7 @@ rules (BR-, SEC-, UX-) and acceptance criteria (AC-) are referenced in code, tes
 ## How we work
 1. Before coding, restate the requirement IDs in scope and list the acceptance criteria you will satisfy.
 2. Write or update tests first. Every AC gets at least one automated test tagged [Trait("Req", "<ID>")].
+   Tests must be parallel-safe and fast (docs/testing.md): no shared mutable state, no sleeps, one factory per class.
 3. Implement the smallest change that passes. Keep Core free of I/O.
 4. Run the full test suite. Never skip, weaken or delete a test to make it pass; if a test is wrong,
    explain why and get agreement first.

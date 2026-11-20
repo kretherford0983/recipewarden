@@ -1,6 +1,6 @@
-# RecipeWarden — Specification v0.4
+# RecipeWarden — Specification v0.5
 
-Version 0.4 · 2026-11-20
+Version 0.5 · 2026-11-20
 
 ## 1. Overview
 
@@ -915,6 +915,8 @@ Free text.
 
 Rules: tests are written with or before the code; every bug fix adds a failing test first; no test is skipped or deleted to make a build pass; coverage gates per NFR-06.
 
+Speed (ADR 0006, docs/testing.md): test projects run at the same time and test classes in parallel on every core; test databases are migrated once per test process and copied; E2E workers each get their own app instance; CI runs independent jobs side by side behind one aggregate required check, `test`.
+
 ### 9.9 CI/CD (public repository)
 
 The repository is public (ADR 0005): GitHub-hosted Actions minutes are free and release files are downloadable with plain `curl`. Actions artifacts, caches and Packages share one storage pool; keep runs short anyway (target under 8 minutes).
@@ -923,7 +925,8 @@ The repository is public (ADR 0005): GitHub-hosted Actions minutes are free and 
 - `ci.yml` on feature/hotfix pushes and every PR into `develop` or `main`: promotion rules → restore (NuGet cache) → build (warnings as errors) → all unit, integration and E2E tests (Playwright browsers cached) → coverage gate → vulnerable-package check → gitleaks → installer container tests. Target under 8 minutes.
 - `build.yml` on pushes to `develop` and `main`: build the self-contained linux-x64 package (and arm64 when added), smoke-test it, and publish it with `install.sh` + SHA-256: `develop` → pre-release `v<version>-dev.<run>` for the test host (newest 3 kept); `main` → release `v<version>`.
 - Workflow-run artifact retention 1 day (7 for hand-run builds); releases kept.
-- Rulesets on `main` and `develop`: PR required, required checks must pass on an up-to-date branch, no force pushes or deletions.
+- `ci.yml` jobs run side by side; the aggregate job `test` is the one required check (ADR 0006).
+- Rulesets on `main` and `develop`: PR required, the `test` check must pass on an up-to-date branch, no force pushes or deletions.
 - Never register a self-hosted runner: on a public repository, pull requests from forks could run code on the home lab.
 
 ### 9.10 Delivery phases
@@ -1170,6 +1173,7 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
+- v0.5 (2026-11-20): 9.8 and 9.9 — parallel tests and CI jobs, one aggregate required check `test` (ADR 0006).
 - v0.4 (2026-11-20): repository made public (ADR 0005). 9.5 — server-side commands use only bash, curl, tar and sha256sum, never the GitHub CLI; 5.9 and 9.9 updated for a public repository (CodeQL available, no self-hosted runners).
 - v0.3 (2026-11-18): 9.9 — branch flow `feature/*` → `develop` → `main` with development builds as GitHub pre-releases; `build.yml` replaces `release.yml`; `main` no longer requires linear history (ADR 0004).
 - v0.2 (2026-11-17): decisions D-01 to D-12 settled.

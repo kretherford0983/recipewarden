@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RecipeWarden.Infrastructure;
 using RecipeWarden.Infrastructure.Data;
+using RecipeWarden.Tests.Shared;
 
 namespace RecipeWarden.Infrastructure.Tests;
 
@@ -18,9 +19,15 @@ internal sealed class TestDatabase : IAsyncDisposable
 
     public ServiceProvider Provider { get; }
 
-    public static async Task<TestDatabase> CreateAsync()
+    /// <param name="fromTemplate">Start from the migrated template (default) or from an empty directory.</param>
+    public static async Task<TestDatabase> CreateAsync(bool fromTemplate = true)
     {
         var dir = Path.Combine(Path.GetTempPath(), "rw-infra-" + Guid.NewGuid().ToString("N"));
+        if (fromTemplate)
+        {
+            TestDatabaseTemplate.CopyTo(dir);
+        }
+
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?> { ["Data:Directory"] = dir })
             .Build();
@@ -29,6 +36,7 @@ internal sealed class TestDatabase : IAsyncDisposable
         services.AddLogging();
         services.AddRecipeWardenData(config);
         services.AddRecipeWardenIdentityCore();
+        services.UseFastPasswordHashing();
         var provider = services.BuildServiceProvider();
 
         await using (var scope = provider.CreateAsyncScope())

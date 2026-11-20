@@ -35,6 +35,18 @@ public sealed class NFR_07_SqliteConventionsTests
     }
 
     [Fact]
+    public async Task Fresh_empty_database_is_migrated_and_seeded()
+    {
+        await using var tdb = await TestDatabase.CreateAsync(fromTemplate: false);
+        await using var scope = tdb.Provider.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        (await PragmaAsync(db, 0)).ShouldBe("wal");
+        (await db.Database.GetPendingMigrationsAsync(TestContext.Current.CancellationToken)).ShouldBeEmpty();
+        (await db.Roles.CountAsync(TestContext.Current.CancellationToken)).ShouldBe(2);
+    }
+
+    [Fact]
     public async Task Initialization_is_idempotent()
     {
         await using var tdb = await TestDatabase.CreateAsync();
