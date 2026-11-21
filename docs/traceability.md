@@ -46,7 +46,7 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 
 ## Status by milestone
 
-**Current:** M0 complete and deployed (2026-11-20). **In progress:** M1 Recipes (spec 9.10) on `feature/m1-recipes`.
+**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** built on `feature/m1-recipes` (2026-11-21); merge, deploy and host test pending. **Next:** M2 Measurement.
 
 ### M0 Foundations (built 2026-11-17; deployed and verified 2026-11-20 — DONE)
 
@@ -82,32 +82,34 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | FR-INST-01/02/04, AC-90, AC-91 | One-command install done (ADR 0007): download + checksum, user/dirs, unit, network.json, first Admin; firewall rules and `/setup` token in M7 | `deploy/install.sh`, `deploy/recipewarden.service`, `/usr/local/bin/recipewarden` wrapper | `tests/installer/test-install.sh` (Debian 12/13, Ubuntu 22.04/24.04/26.04), `tests/installer/test-install-systemd.sh` |
 | FR-INST-03, AC-92 | Upgrade in place with database copy and automatic rollback done; full pre-upgrade backup in M7 | `deploy/install.sh` | `test-install-systemd.sh` (broken release rolled back) |
 
-### M1 Recipes (started 2026-11-20 — IN PROGRESS)
+### M1 Recipes (built 2026-11-21 — DONE, awaiting merge and host test)
 
 Scope decisions: ADR 0008 (slugs follow the title, old slugs redirect), ADR 0009 (text only — images in M4;
 "free of" filter BR-53 in M6; model gaps filled; drafts not public).
 
 | ID | Status | Implementation | Tests |
 | --- | --- | --- | --- |
-| FR-REC-01 / BR-01, BR-03, BR-04 | Core rules done (BR-01, BR-03); persistence planned. Text fields; images M4, nutrition/allergens M6 | Recipe aggregate (8.2), `PublishRules`, `ServingsRules` | Core `BR_01_PublishRulesTests`, `BR_03_ServingsRulesTests`; Infra `FR_REC_01_RecipePersistenceTests` |
-| FR-REC-02 / AC-01, AC-02 | Planned | `/manage/recipes/new`, `/manage/recipes/{id}/edit` | Web `FR_REC_02_RecipeEditorTests`; E2E `W2_AddRecipeTests` |
-| BR-02 | Core rules done (ADR 0008); alias table planned | `SlugRules`, `RecipeSlugAlias` | Core `BR_02_SlugRulesTests`; Infra `BR_02_SlugUniquenessTests` |
-| BR-06 | Diff done; concurrency token planned | `Recipe.Version`, `RecipeDiff` | Core `BR_06_RecipeDiffTests`; Infra `BR_06_ConcurrencyTests`; Web `BR_06_EditConflictTests` |
-| FR-REC-03 / AC-03 | Done: corpus 574 lines, 99.7% (misses: "minced beef", "boneless, skinless …"); authored corpus, so real-world rate is lower until M4 imports add lines | `IngredientLineParser` (Importers), `UnitCatalog` (Core) | Importers `FR_REC_03_IngredientLineParserTests`, `FR_REC_03_QuantityParserTests`, `FR_REC_03_IngredientCorpusTests`, `FR_REC_03_ParserRobustnessTests`, `FR_REC_01_IngredientListTests`; Core `FR_REC_03_UnitCatalogTests` |
-| FR-REC-04 / BR-05 / AC-04 | Core rules done; trash and purge planned | `Recipe.DeletedAt`, `TrashRules`, purge service, `/manage/trash` | Core `BR_05_TrashRulesTests`; Infra `FR_REC_04_SoftDeleteTests`; Web `FR_REC_04_TrashTests` |
+| FR-REC-01 / BR-01, BR-03, BR-04 | Done (text fields; images M4, nutrition/allergens M6) | Recipe aggregate (8.2), `PublishRules`, `ServingsRules`, `RecipeService` | Core `BR_01_PublishRulesTests`, `BR_03_ServingsRulesTests`; Infra `FR_REC_01_RecipePersistenceTests` |
+| FR-REC-02 / AC-01, AC-02 | Done | `/manage/recipes/new`, `/manage/recipes/{id}/edit`, `RecipeEdit`, `StepTextRules`, `editor.js` (reorder) | Core `FR_REC_02_*`; Web `FR_REC_02_RecipeEditorTests`; E2E `W2_AddRecipeTests` |
+| BR-02 | Done (ADR 0008) | `SlugRules`, `RecipeSlugAlias`, 301 from old slugs | Core `BR_02_SlugRulesTests`; Infra `BR_02_SlugUniquenessTests`; Web `FR_VIEW_01_ReadingViewTests` |
+| BR-06 | Done | `Recipe.Version`, `RecipeDiff`, conflict table in the editor | Core `BR_06_RecipeDiffTests`; Infra `BR_06_ConcurrencyTests`; Web `BR_06_EditConflictTests` |
+| FR-REC-03 / AC-03 | Done: corpus 574 lines, 99.7% (misses: "minced beef", "boneless, skinless …"); authored corpus, so the real-world rate is lower until M4 imports add lines | `IngredientLineParser` (Importers), `UnitCatalog` (Core), live chips | Importers `FR_REC_03_*`, `FR_REC_01_IngredientListTests`; Core `FR_REC_03_UnitCatalogTests` |
+| FR-REC-04 / BR-05 / AC-04 | Done | soft delete, `/manage/trash` (undo, restore, Admin purge), `TrashPurgeService` | Core `BR_05_TrashRulesTests`; Infra `FR_REC_04_SoftDeleteTests`; Web `FR_REC_04_TrashTests` |
 | FR-REC-06 | Column and checkbox only; behaviour in M2 | `Recipe.IsPrecision` | Infra `FR_REC_01_RecipePersistenceTests` |
-| BR-10 / BR-11 | Core rules done (any change away from Web needs Admin; source URLs http/https only); editor and reading view planned | `SourceRules` | Core `BR_10_SourceRulesTests`; Web `FR_VIEW_01_ReadingViewTests` |
-| FR-ORG-01 / AC-20 | Name rules done; store and pages planned | `Tag` (NormalizedName), `NameRules`, `/tags/{slug}`, `/manage/tags` | Core `FR_ORG_01_TagRulesTests`, `SafeTextTests`; Infra `FR_ORG_01_TagStoreTests`; Web `FR_ORG_01_TagTests` |
-| FR-ORG-02 / AC-20 | Planned | `Collection`, `/collections`, `/manage/collections` | Infra `FR_ORG_02_CollectionStoreTests`; Web `FR_ORG_02_CollectionTests` |
-| FR-SRCH-01 / AC-21 | Planned | `RecipeSearch` FTS5, `/search` | Infra `FR_SRCH_01_SearchTests`; Web `SEC_21_SearchPageTests` |
-| FR-SRCH-02 | Criteria parsing done; queries planned (no allergen filter until M6; no has-image until M4) | `SearchCriteria`, `/recipes` | Core `FR_SRCH_02_SearchFilterRulesTests`; Infra `FR_SRCH_02_SearchFilterTests` |
-| SEC-21 / AC-22 | Query builder done (unpaired surrogates handled by `SafeText`); database and page tests planned | `FtsQuery`, `SafeText` (Core) | Core `SEC_21_FtsQueryBuilderTests`, `SafeTextTests`; Infra `SEC_21_SearchInjectionTests`; Web `SEC_21_SearchPageTests` |
-| FR-VIEW-01 / AC-23 | Planned (reading view; AC-23 cook-mode part in M5) | `/recipes/{slug}` | Web `FR_VIEW_01_ReadingViewTests`; E2E `W1_PhoneReadingTests` |
-| AC-72 / SEC-13, SEC-14 | Planned | input DTOs; handler-level policy checks | Web `AC_72_OverpostingTests`, `FR_REC_04_TrashTests` |
-| AC-75 / SEC-30 | Planned (every new unsafe handler) | — | Web `SEC_30_AntiforgeryTests` |
-| AC-76 / SEC-22 | Planned (descriptions, notes) | Markdig + HtmlSanitizer | Web `AC_76_RecipeContentEncodingTests` |
-| SEC-63 | Planned (search, writes) | ASP.NET Core rate limiter | Web `SEC_63_RateLimitTests` |
-| AC-70 | Extended to every M1 route | — | Web `AC_70_AuthMatrixTests` |
+| BR-10 / BR-11 | Done (any change away from Web needs Admin; source URLs http/https only); BR-11 audit line waits for FR-ADM-01 (M7) | `SourceRules`, credit link in the reading view | Core `BR_10_SourceRulesTests`; Web `FR_REC_02_RecipeEditorTests`, `FR_VIEW_01_ReadingViewTests` |
+| FR-ORG-01 / AC-20 | Done | `Tag` (NormalizedName), `NameRules`, `TagService`, `/tags/{slug}`, `/manage/tags` | Core `FR_ORG_01_TagRulesTests`, `SafeTextTests`; Infra `FR_ORG_01_TagStoreTests`; Web `FR_ORG_TagAndCollectionTests` |
+| FR-ORG-02 / AC-20 | Done | `RecipeCollection`, `CollectionService`, `/collections`, `/collections/{slug}`, `/manage/collections` | Infra `FR_ORG_02_CollectionStoreTests`; Web `FR_ORG_TagAndCollectionTests` |
+| FR-SRCH-01 / AC-21 | Done (matched-term count, then bm25 field weights) | `RecipeSearch` FTS5, `RecipeSearchService`, `/search` | Infra `FR_SRCH_01_SearchTests`; Web `SEC_21_SearchPageTests`; E2E `W1_PhoneReadingTests` |
+| FR-SRCH-02 | Done (no allergen filter until M6; no has-image until M4; rating and last-cooked values come with FR-REC-07) | `SearchCriteria`, `/recipes` | Core `FR_SRCH_02_SearchFilterRulesTests`; Infra `FR_SRCH_02_SearchFilterTests` |
+| SEC-21 / AC-22 | Done | `FtsQuery`, `SafeText` (Core); expression passed as a parameter | Core `SEC_21_FtsQueryBuilderTests`, `SafeTextTests`; Infra `SEC_21_SearchInjectionTests`; Web `SEC_21_SearchPageTests` |
+| FR-VIEW-01 / AC-23 | Done for the reading view; AC-23 cook-mode part (wake lock, step check-off) in M5 | `/recipes/{slug}`, `IngredientFormatter` (UX-05) | Web `FR_VIEW_01_ReadingViewTests`; E2E `W1_PhoneReadingTests` |
+| FR-HOME-01 | First part: search, recently added, collections, tags (recommendations FR-HOME-02 later) | `/` | Web `FR_VIEW_01_ReadingViewTests.Home_lists_recent_recipes_collections_and_tags` |
+| AC-72 / SEC-13, SEC-14 | Done for M1 forms (last-Admin rule with `/admin/users`, M7) | input DTOs; route ids bind from the route only; purge re-checked in the handler | Web `AC_72_OverpostingTests`, `FR_REC_04_TrashTests` |
+| AC-75 / SEC-30 | Done for every M1 handler and form | `asp-antiforgery="true"` on every post form | Web `SEC_30_AntiforgeryTests`, `SEC_30_FormTokenTests` |
+| AC-76 / SEC-22 | Done (descriptions, notes, collection descriptions) | `MarkdownRenderer` (Markdig, raw HTML off + HtmlSanitizer) | Web `AC_76_RecipeContentEncodingTests` |
+| SEC-63 | Done for search (60/min per IP) and writes (120/min per user); sign-in limit not yet | `RateLimits`, configurable under `RateLimits` | Web `SEC_63_RateLimitTests` |
+| SEC-20 | `SqlQueryRaw` added to the banned list | `BannedSymbols.txt` | build |
+| AC-70 | Extended to every M1 route (sample URLs from seeded data) | — | Web `AC_70_AuthMatrixTests` |
 
 #### M0 deployment check (2026-11-20, test host)
 
@@ -137,3 +139,14 @@ Scope decisions: ADR 0008 (slugs follow the title, old slugs redirect), ADR 0009
   (b) exclude keys deliberately and document that a host move needs re-sign-in and AI keys re-entered;
   (c) export the key ring separately, e.g. with the restore kit. Tentative recommendation: (a).
   Not discussed yet — owner wants to revisit later.
+
+- **M1 notes (2026-11-21):**
+  - Two bugs found by the M1 tests and fixed: MVC binds form values before route values, so a posted `id`
+    could retarget a recipe edit (route ids now bind with `[FromRoute]`); and Razor adds no antiforgery token
+    to a form with a literal `action`, so post forms (M0's sign-out included) failed with 400 in a browser.
+  - BR-11 is applied to any change away from Web (not only Web→Personal), so an Editor cannot hide the credit
+    by switching to Manual. Spec v0.8 BR-11 says so.
+  - Rate limits are configurable (`RateLimits:SearchPerMinute`, `RateLimits:WritesPerMinute`); the admin
+    settings page (M7) will expose them.
+  - Not exercised on the host yet: the new pages behind the tunnel. The packaged build was started locally and
+    served `/`, `/recipes`, `/search` and `/collections` with the M1 migration applied.

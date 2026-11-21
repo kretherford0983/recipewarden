@@ -26,3 +26,9 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 - Scope decisions: recipe slugs follow the title with redirects from old slugs (ADR 0008); M1 is text only, images move to M4 and the "free of" filter to M6 (ADR 0009). Spec v0.8.
 - Core rules for recipes (publish/draft, slugs with redirects, servings, trash, edit-conflict diff, source credit), tag and collection names, and safe search queries (SEC-21). Search input with unpaired UTF-16 surrogates no longer causes an error.
 - Ingredient lines are split into amount (fractions, ranges, ½), unit, ingredient, preparation and notes, keeping the original text; doubtful lines are flagged for review (FR-REC-03).
+- Recipes can be added, edited, published or kept as drafts, deleted to a 30-day trash and restored (FR-REC-01/02/04).
+- Reading view with ingredient groups, step sections, fractions as ½ and source credit; old links redirect after a rename (FR-VIEW-01, BR-02).
+- Full-text search and browsing with tag, collection, time and rating filters (FR-SRCH-01/02).
+- Tags and collections, with management pages for editors (FR-ORG-01/02).
+- Security: search and write rate limits (SEC-63); safe Markdown (SEC-22); every form carries an antiforgery token, including sign-out (SEC-30).
+- Browser tests for adding and reading a recipe run in CI (Playwright).

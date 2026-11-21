@@ -251,7 +251,7 @@ These rules are enforced in the domain layer (not only the UI) and each has unit
 | ID | Rule |
 | --- | --- |
 | BR-10 | A recipe with source type Web must have a source URL and a display name; credit and link show on reading view, print and export, and cannot be hidden. |
-| BR-11 | Only an Admin can change a Web recipe's source type to Personal (e.g. heavily adapted), and the change is audit-logged. |
+| BR-11 | Only an Admin can change a Web recipe's source type to another type, e.g. Personal when heavily adapted (any change away from Web, so the credit cannot be hidden by another route), and the change is audit-logged. |
 | BR-12 | Copying a source image requires the user to tick the opt-in on that import; the image's original URL is stored with it. |
 | BR-13 | Imported HTML is never stored or rendered as HTML: text is extracted and stored as plain text or restricted Markdown. |
 
@@ -1178,7 +1178,7 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
-- v0.8 (2026-11-20): M1 scope (ADR 0009) — images move to M4 and the "free of" filter (BR-53) to M6; drafts are not public; 8.2 adds RecipeIngredient.Name, Recipe.DeletedById, RecipeSlugAlias and normalized names for tags and collections. BR-02 — slugs follow the title and old published slugs redirect (ADR 0008).
+- v0.8 (2026-11-20): M1 scope (ADR 0009) — images move to M4 and the "free of" filter (BR-53) to M6; drafts are not public; 8.2 adds RecipeIngredient.Name, Recipe.DeletedById, RecipeSlugAlias and normalized names for tags and collections. BR-02 — slugs follow the title and old published slugs redirect (ADR 0008). BR-11 — applies to any change away from Web.
 - v0.7 (2026-11-20): NFR-02, AC-90 — Ubuntu 26.04 LTS supported (installer, container tests and a systemd test on an Ubuntu 26.04 runner).
 - v0.6 (2026-11-20): 9.5 — one-command `curl | sudo bash` installer with checksum verification, upgrade with automatic rollback, installer-owned `network.json` (ADR 0007).
 - v0.5 (2026-11-20): 9.8 and 9.9 — parallel tests and CI jobs, one aggregate required check `test` (ADR 0006).
