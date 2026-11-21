@@ -1,6 +1,6 @@
 # RecipeWarden — requirements traceability
 
-Seeded from docs/spec.md section 10 (v0.2, 2026-11-17). Keep in step with the spec and the test suite.
+Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.8. Keep in step with the spec and the test suite.
 
 Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and tagged with `[Trait("Req", "FR-SCL-01")]`, so CI can print coverage per requirement and fail if any Must requirement has no test.
 
@@ -13,7 +13,7 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | FR-IMP-04/05 | BR-13; SEC-50–53 | Markdown, Docx, Pdf extractors | Importers.Tests FileImport; Web.Tests UploadValidation | AC-14, AC-15 |
 | FR-IMP-06/07 | BR-04 | Review page, duplicate detector | E2E W3/W4; Core.Tests Duplicates | AC-16 |
 | FR-ORG-01/02 | — | Tag, Collection tables; `/collections` | Web.Tests Tags, Collections | AC-20 |
-| FR-SRCH-01/02 | BR-53; SEC-21 | RecipeSearch FTS5; `/search` | Infra.Tests Search; Web.Tests SearchInjection | AC-21, AC-22 |
+| FR-SRCH-01/02 | SEC-21; BR-53 in M6 (ADR 0009) | RecipeSearch FTS5; `/search` | Infra.Tests Search; Web.Tests SearchInjection | AC-21, AC-22 |
 | FR-VIEW-01/02 | BR-10 | Recipe page anatomy (7.3); cook mode | E2E W1 | AC-23 |
 | FR-EXP-01 | BR-10, BR-28 | Print stylesheet; `/print` | E2E PrintLayout (PDF snapshot) | AC-24 |
 | FR-EXP-02/03 | BR-10 | recipe-md v1 (9.7) | Importers.Tests MarkdownRoundTrip | AC-25 |
@@ -46,7 +46,9 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 
 ## Status by milestone
 
-### M0 Foundations (2026-11-17)
+**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** built on `feature/m1-recipes` (2026-11-21); merge, deploy and host test pending. **Next:** M2 Measurement.
+
+### M0 Foundations (built 2026-11-17; deployed and verified 2026-11-20 — DONE)
 
 | ID | Status | Implementation | Tests |
 | --- | --- | --- | --- |
@@ -59,7 +61,8 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | SEC-10 | Done (fallback policy; also covers unmatched URLs) | `RecipeWardenHost.AddIdentityAndAuth`, Razor conventions | Web.Tests `AC_70_AuthMatrixTests` |
 | SEC-11 | Done | `AppRoles`, `AppPolicies` (Core); policies in Web | Core.Tests `SEC_11_PolicyRulesTests`; Web.Tests `AC_70_AuthMatrixTests` |
 | AC-70 | Done for every M0 endpoint; the table grows with each route | — | Web.Tests `AC_70_AuthMatrixTests` |
-| AC-71 | Editor→`/admin` 403 done; overposting part with first write forms (M1) | — | Web.Tests `AC_70_AuthMatrixTests.Editor_gets_403_on_admin_routes` |
+| AC-71 | Done (Editor→`/admin` 403) | — | Web.Tests `AC_70_AuthMatrixTests.Editor_gets_403_on_admin_routes` |
+| AC-72 / SEC-13 | Overposting part with the first write forms (M1); last-Admin rule with `/admin/users` (M7) | — | — |
 | SEC-01 | Length 12 done; common-password list later (M8) | `ServiceCollectionExtensions.ConfigureIdentity` | Infra.Tests, Cli.Tests (short password refused) |
 | SEC-02 / AC-77 | Done | Identity lockout; generic message | Web.Tests `SEC_03_SignInTests` |
 | SEC-03 | Cookie flags, 8 h sliding, 5-minute stamp check done; "remember me" (30 days) not yet | `ConfigureApplicationCookie` | Web.Tests `SEC_03_SignInTests` |
@@ -68,7 +71,7 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | SEC-60 / SEC-61 | App side done (allow-list, trusted proxies, CF-Connecting-IP); installer firewall in M7 | `SourceIpAllowListMiddleware`, `CloudflareClientIpMiddleware`, forwarded headers | Web.Tests `SEC_60_NetworkTrustTests`, `CloudflareClientIpMiddlewareTests` |
 | SEC-73 | Done | `/error` page with correlation ID | Web.Tests `SEC_62_SecurityHeadersTests.Errors_show_a_generic_page_with_a_reference` |
 | SEC-20 / SEC-22 | Banned-API analyzer in place (FromSqlRaw, ExecuteSqlRaw, Html.Raw) | `BannedSymbols.txt` | build |
-| SEC-71 | Data Protection keys in `<data>/keys` | `RecipeWardenHost` | — (installer permissions in M7) |
+| SEC-71 | Data Protection keys in `<data>/keys`; verified on the test host 2026-11-20 | `RecipeWardenHost` | — (installer permissions in M7) |
 | SEC-80–84 | Done | `ci.yml`, `build.yml`, `dependabot.yml`, `.githooks/pre-commit`, `.gitleaks.toml`, analyzers | CI |
 | NFR-06 | Gates in place (ADR 0003); parallel runs (ADR 0006) | `build/test.sh`, `tests/xunit.runner.json`, `tests/Shared/TestDatabaseTemplate.cs` | CI |
 | NFR-07 (WAL part) | Done | `DatabaseInitializer`, `SqlitePragmaInterceptor` | Infra.Tests `NFR_07_SqliteConventionsTests` |
@@ -78,6 +81,45 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | FR-BKP-09 / AC-86 | Done except audit to `AuditEntry` (prints an audit line until FR-ADM-01, M7) | `ApplyConfigRunner`, `BackupFoldersDropIn` | Core.Tests `FR_BKP_09_DropInTests`; Cli.Tests `FR_BKP_09_ApplyConfigTests`, `HostFileSystemTests`, `HostAdapterTests` |
 | FR-INST-01/02/04, AC-90, AC-91 | One-command install done (ADR 0007): download + checksum, user/dirs, unit, network.json, first Admin; firewall rules and `/setup` token in M7 | `deploy/install.sh`, `deploy/recipewarden.service`, `/usr/local/bin/recipewarden` wrapper | `tests/installer/test-install.sh` (Debian 12/13, Ubuntu 22.04/24.04/26.04), `tests/installer/test-install-systemd.sh` |
 | FR-INST-03, AC-92 | Upgrade in place with database copy and automatic rollback done; full pre-upgrade backup in M7 | `deploy/install.sh` | `test-install-systemd.sh` (broken release rolled back) |
+
+### M1 Recipes (built 2026-11-21 — DONE, awaiting merge and host test)
+
+Scope decisions: ADR 0008 (slugs follow the title, old slugs redirect), ADR 0009 (text only — images in M4;
+"free of" filter BR-53 in M6; model gaps filled; drafts not public).
+
+| ID | Status | Implementation | Tests |
+| --- | --- | --- | --- |
+| FR-REC-01 / BR-01, BR-03, BR-04 | Done (text fields; images M4, nutrition/allergens M6) | Recipe aggregate (8.2), `PublishRules`, `ServingsRules`, `RecipeService` | Core `BR_01_PublishRulesTests`, `BR_03_ServingsRulesTests`; Infra `FR_REC_01_RecipePersistenceTests` |
+| FR-REC-02 / AC-01, AC-02 | Done | `/manage/recipes/new`, `/manage/recipes/{id}/edit`, `RecipeEdit`, `StepTextRules`, `editor.js` (reorder) | Core `FR_REC_02_*`; Web `FR_REC_02_RecipeEditorTests`; E2E `W2_AddRecipeTests` |
+| BR-02 | Done (ADR 0008) | `SlugRules`, `RecipeSlugAlias`, 301 from old slugs | Core `BR_02_SlugRulesTests`; Infra `BR_02_SlugUniquenessTests`; Web `FR_VIEW_01_ReadingViewTests` |
+| BR-06 | Done | `Recipe.Version`, `RecipeDiff`, conflict table in the editor | Core `BR_06_RecipeDiffTests`; Infra `BR_06_ConcurrencyTests`; Web `BR_06_EditConflictTests` |
+| FR-REC-03 / AC-03 | Done: corpus 574 lines, 99.7% (misses: "minced beef", "boneless, skinless …"); authored corpus, so the real-world rate is lower until M4 imports add lines | `IngredientLineParser` (Importers), `UnitCatalog` (Core), live chips | Importers `FR_REC_03_*`, `FR_REC_01_IngredientListTests`; Core `FR_REC_03_UnitCatalogTests` |
+| FR-REC-04 / BR-05 / AC-04 | Done | soft delete, `/manage/trash` (undo, restore, Admin purge), `TrashPurgeService` | Core `BR_05_TrashRulesTests`; Infra `FR_REC_04_SoftDeleteTests`; Web `FR_REC_04_TrashTests` |
+| FR-REC-06 | Column and checkbox only; behaviour in M2 | `Recipe.IsPrecision` | Infra `FR_REC_01_RecipePersistenceTests` |
+| BR-10 / BR-11 | Done (any change away from Web needs Admin; source URLs http/https only); BR-11 audit line waits for FR-ADM-01 (M7) | `SourceRules`, credit link in the reading view | Core `BR_10_SourceRulesTests`; Web `FR_REC_02_RecipeEditorTests`, `FR_VIEW_01_ReadingViewTests` |
+| FR-ORG-01 / AC-20 | Done | `Tag` (NormalizedName), `NameRules`, `TagService`, `/tags/{slug}`, `/manage/tags` | Core `FR_ORG_01_TagRulesTests`, `SafeTextTests`; Infra `FR_ORG_01_TagStoreTests`; Web `FR_ORG_TagAndCollectionTests` |
+| FR-ORG-02 / AC-20 | Done | `RecipeCollection`, `CollectionService`, `/collections`, `/collections/{slug}`, `/manage/collections` | Infra `FR_ORG_02_CollectionStoreTests`; Web `FR_ORG_TagAndCollectionTests` |
+| FR-SRCH-01 / AC-21 | Done (matched-term count, then bm25 field weights) | `RecipeSearch` FTS5, `RecipeSearchService`, `/search` | Infra `FR_SRCH_01_SearchTests`; Web `SEC_21_SearchPageTests`; E2E `W1_PhoneReadingTests` |
+| FR-SRCH-02 | Done (no allergen filter until M6; no has-image until M4; rating and last-cooked values come with FR-REC-07) | `SearchCriteria`, `/recipes` | Core `FR_SRCH_02_SearchFilterRulesTests`; Infra `FR_SRCH_02_SearchFilterTests` |
+| SEC-21 / AC-22 | Done | `FtsQuery`, `SafeText` (Core); expression passed as a parameter | Core `SEC_21_FtsQueryBuilderTests`, `SafeTextTests`; Infra `SEC_21_SearchInjectionTests`; Web `SEC_21_SearchPageTests` |
+| FR-VIEW-01 / AC-23 | Done for the reading view; AC-23 cook-mode part (wake lock, step check-off) in M5 | `/recipes/{slug}`, `IngredientFormatter` (UX-05) | Web `FR_VIEW_01_ReadingViewTests`; E2E `W1_PhoneReadingTests` |
+| FR-HOME-01 | First part: search, recently added, collections, tags (recommendations FR-HOME-02 later) | `/` | Web `FR_VIEW_01_ReadingViewTests.Home_lists_recent_recipes_collections_and_tags` |
+| AC-72 / SEC-13, SEC-14 | Done for M1 forms (last-Admin rule with `/admin/users`, M7) | input DTOs; route ids bind from the route only; purge re-checked in the handler | Web `AC_72_OverpostingTests`, `FR_REC_04_TrashTests` |
+| AC-75 / SEC-30 | Done for every M1 handler and form | `asp-antiforgery="true"` on every post form | Web `SEC_30_AntiforgeryTests`, `SEC_30_FormTokenTests` |
+| AC-76 / SEC-22 | Done (descriptions, notes, collection descriptions) | `MarkdownRenderer` (Markdig, raw HTML off + HtmlSanitizer) | Web `AC_76_RecipeContentEncodingTests` |
+| SEC-63 | Done for search (60/min per IP) and writes (120/min per user); sign-in limit not yet | `RateLimits`, configurable under `RateLimits` | Web `SEC_63_RateLimitTests` |
+| SEC-20 | `SqlQueryRaw` added to the banned list | `BannedSymbols.txt` | build |
+| AC-70 | Extended to every M1 route (sample URLs from seeded data) | — | Web `AC_70_AuthMatrixTests` |
+
+#### M0 deployment check (2026-11-20, test host)
+
+- `recipewarden.service` enabled and active; runs from `/opt/recipewarden/current` (release folder under `releases/`); ~60 MB RAM.
+- Kestrel bound to the host's LAN IP on port 5080 (cloudflared in a separate container per SEC-60). `/health` returns 200.
+- Data Protection key ring at `/var/lib/recipewarden/keys` (owner `recipewarden`, mode 700). Same key reused after
+  `systemctl restart` (no new "No XML encryptor configured" warning), so keys persist outside the release folders.
+  That warning is expected: keys are unencrypted at rest, protected by folder permissions.
+- `backup-folders.conf` drop-in present, generated by `apply-config`, with `ReadWritePaths="-/var/lib/recipewarden/backups"`.
+- Not yet exercised on the host: sign-in via `recipewarden admin create` + browser, Cloudflare Tunnel route.
 
 ### Notes and open issues
 
@@ -89,3 +131,22 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
   anonymous write; SEC-10 allows anonymous access to read-only pages only. Options: (a) a narrow
   documented exception for the check-off endpoint with its own rate limit and antiforgery,
   (b) require sign-in to check off, (c) keep check-off state client-side only.
+- **Open (deferred by owner 2026-11-20; needs an ADR before M7):** Data Protection key ring in backups.
+  FR-BKP-01 defines a backup as database + images + config, so `<data>/keys` (SEC-71) is not included.
+  Restoring on a new host (FR-BKP-06) would then sign everyone out and leave AI API keys (SEC-45)
+  undecryptable. Options: (a) include `keys/` in the archive — backups are already encrypted (9.6.1,
+  SEC-75), so this adds no exposure; add a round-trip test that a restored AI key still decrypts;
+  (b) exclude keys deliberately and document that a host move needs re-sign-in and AI keys re-entered;
+  (c) export the key ring separately, e.g. with the restore kit. Tentative recommendation: (a).
+  Not discussed yet — owner wants to revisit later.
+
+- **M1 notes (2026-11-21):**
+  - Two bugs found by the M1 tests and fixed: MVC binds form values before route values, so a posted `id`
+    could retarget a recipe edit (route ids now bind with `[FromRoute]`); and Razor adds no antiforgery token
+    to a form with a literal `action`, so post forms (M0's sign-out included) failed with 400 in a browser.
+  - BR-11 is applied to any change away from Web (not only Web→Personal), so an Editor cannot hide the credit
+    by switching to Manual. Spec v0.8 BR-11 says so.
+  - Rate limits are configurable (`RateLimits:SearchPerMinute`, `RateLimits:WritesPerMinute`); the admin
+    settings page (M7) will expose them.
+  - Not exercised on the host yet: the new pages behind the tunnel. The packaged build was started locally and
+    served `/`, `/recipes`, `/search` and `/collections` with the M1 migration applied.

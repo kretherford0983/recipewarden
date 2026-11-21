@@ -1,0 +1,153 @@
+@model RecipeWarden.Web.Pages.Manage.Recipes.RecipeEditorPageModel
+@using RecipeWarden.Core.Recipes
+@* FR-REC-02, W2. UX-08: errors are summarized at the top and linked to their fields. *@
+@if (Model.Message is not null)
+{
+    <p class="notice" role="status">@Model.Message</p>
+}
+@if (Model.PublishProblems.Count > 0)
+{
+    <ul class="notice" aria-label="Needed before publishing">
+        @foreach (var p in Model.PublishProblems)
+        {
+            <li><a href="#@(RecipeWarden.Web.Pages.Manage.Recipes.RecipeInput.FieldName(p.Field).Replace('.', '_'))">@p.Message</a></li>
+        }
+    </ul>
+}
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="error-summary" role="alert" tabindex="-1">
+        <h2>Please fix the following</h2>
+        <ul>
+            @foreach (var (key, entry) in ViewData.ModelState.Where(e => e.Value!.Errors.Count > 0))
+            {
+                foreach (var error in entry!.Errors)
+                {
+                    <li><a href="#@key.Replace('.', '_')">@error.ErrorMessage</a></li>
+                }
+            }
+        </ul>
+    </div>
+}
+@if (Model.Differences.Count > 0)
+{
+    <table class="diff">
+        <caption>Your version and the saved version</caption>
+        <thead><tr><th scope="col">Field</th><th scope="col">Yours</th><th scope="col">Saved</th></tr></thead>
+        <tbody>
+            @foreach (var d in Model.Differences)
+            {
+                <tr><th scope="row">@d.Field</th><td class="pre">@d.Mine</td><td class="pre">@d.Theirs</td></tr>
+            }
+        </tbody>
+    </table>
+}
+
+<form method="post" action="@Model.FormAction" class="editor" id="recipe-editor" asp-antiforgery="true">
+    <input type="hidden" asp-for="Input.Version">
+
+    <div class="field">
+        <label asp-for="Input.Title">Title</label>
+        <input asp-for="Input.Title" maxlength="@PublishRules.MaxTitleLength" required>
+        <span asp-validation-for="Input.Title" class="field-error"></span>
+    </div>
+
+    <div class="field">
+        <label asp-for="Input.Description">Description <span class="hint">(Markdown)</span></label>
+        <textarea asp-for="Input.Description" rows="3" maxlength="@RecipeEdit.MaxDescriptionLength"></textarea>
+        <span asp-validation-for="Input.Description" class="field-error"></span>
+    </div>
+
+    <div class="field-row">
+        <div class="field">
+            <label asp-for="Input.Servings">Servings</label>
+            <input asp-for="Input.Servings" type="text" inputmode="decimal" placeholder="4">
+            <span asp-validation-for="Input.Servings" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Input.PrepMinutes">Prep (min)</label>
+            <input asp-for="Input.PrepMinutes" type="number" min="0" max="@RecipeEdit.MaxMinutes">
+            <span asp-validation-for="Input.PrepMinutes" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Input.CookMinutes">Cook (min)</label>
+            <input asp-for="Input.CookMinutes" type="number" min="0" max="@RecipeEdit.MaxMinutes">
+            <span asp-validation-for="Input.CookMinutes" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Input.TotalMinutes">Total (min)</label>
+            <input asp-for="Input.TotalMinutes" type="number" min="0" max="@RecipeEdit.MaxMinutes">
+            <span asp-validation-for="Input.TotalMinutes" class="field-error"></span>
+        </div>
+    </div>
+
+    <div class="field">
+        <label asp-for="Input.Tags">Tags <span class="hint">(comma-separated)</span></label>
+        <input asp-for="Input.Tags" list="known-tags" autocomplete="off">
+        <datalist id="known-tags">
+            @foreach (var t in Model.KnownTags) { <option value="@t"></option> }
+        </datalist>
+        <span asp-validation-for="Input.Tags" class="field-error"></span>
+    </div>
+
+    <div class="field">
+        <label asp-for="Input.Ingredients">Ingredients <span class="hint">(one per line; a line ending in “:” starts a group)</span></label>
+        <textarea asp-for="Input.Ingredients" rows="10" class="lines" data-reorder="ingredients"
+                  hx-post="@Model.FormAction?handler=Parse" hx-trigger="input changed delay:800ms, load"
+                  hx-target="#ingredient-preview" hx-include="this"></textarea>
+        <span asp-validation-for="Input.Ingredients" class="field-error"></span>
+        <div id="ingredient-preview" class="ingredient-preview" aria-live="polite"></div>
+    </div>
+
+    <div class="field">
+        <label asp-for="Input.Steps">Steps <span class="hint">(one per line; pasted numbering is removed)</span></label>
+        <textarea asp-for="Input.Steps" rows="10" class="lines" data-reorder="steps"></textarea>
+        <span asp-validation-for="Input.Steps" class="field-error"></span>
+    </div>
+
+    <div class="field">
+        <label asp-for="Input.Notes">Notes <span class="hint">(Markdown)</span></label>
+        <textarea asp-for="Input.Notes" rows="4" maxlength="@RecipeEdit.MaxNotesLength"></textarea>
+        <span asp-validation-for="Input.Notes" class="field-error"></span>
+    </div>
+
+    <div class="field checkbox">
+        <input asp-for="Input.IsPrecision">
+        <label asp-for="Input.IsPrecision">Baking / precision recipe <span class="hint">(tighter rounding when scaling)</span></label>
+    </div>
+
+    <fieldset class="source">
+        <legend>Source</legend>
+        <div class="field">
+            <label asp-for="Input.SourceType">Type</label>
+            <select asp-for="Input.SourceType">
+                <option value="Manual">Typed in</option>
+                <option value="Personal">Personal / family</option>
+                <option value="Web">From a website</option>
+                @if (Model.Input.SourceType == SourceType.File) { <option value="File">Imported file</option> }
+            </select>
+            <span asp-validation-for="Input.SourceType" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Input.SourceName">Name</label>
+            <input asp-for="Input.SourceName" maxlength="@SourceRules.MaxNameLength">
+            <span asp-validation-for="Input.SourceName" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Input.SourceUrl">Address</label>
+            <input asp-for="Input.SourceUrl" type="url" maxlength="@SourceRules.MaxUrlLength" placeholder="https://">
+            <span asp-validation-for="Input.SourceUrl" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Input.SourceAuthor">Author</label>
+            <input asp-for="Input.SourceAuthor" maxlength="@SourceRules.MaxNameLength">
+            <span asp-validation-for="Input.SourceAuthor" class="field-error"></span>
+        </div>
+    </fieldset>
+
+    <div class="actions">
+        <button type="submit" name="Action" value="publish" class="primary">Publish</button>
+        <button type="submit" name="Action" value="draft">Save draft</button>
+    </div>
+</form>
+<script src="~/js/editor.js" asp-append-version="true" defer></script>

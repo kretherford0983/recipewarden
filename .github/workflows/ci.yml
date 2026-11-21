@@ -81,6 +81,45 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  e2e:
+    name: end-to-end (Playwright)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10 # normal ~2.5 min
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Build the end-to-end tests
+        run: dotnet build tests/RecipeWarden.E2E.Tests --configuration Release
+
+      - name: Browser cache (keyed on the Playwright version)
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}
+
+      # docs/testing.md: browser only; system libraries are already on Ubuntu runners. install-deps is a short,
+      # best-effort try so an apt mirror outage cannot fail the job (PennyWarden, 2026-11-11).
+      - name: Install Chromium
+        run: pwsh tests/RecipeWarden.E2E.Tests/bin/Release/net10.0/playwright.ps1 install chromium
+
+      - name: System libraries for Chromium (best effort)
+        continue-on-error: true
+        timeout-minutes: 2
+        run: sudo pwsh tests/RecipeWarden.E2E.Tests/bin/Release/net10.0/playwright.ps1 install-deps chromium
+
+      - name: W1 and W2 in Chromium
+        run: build/e2e.sh --no-build --configuration Release
+
   checks:
     name: dependency checks
     runs-on: ubuntu-24.04
@@ -193,7 +232,7 @@ jobs:
 
   test:
     name: test
-    needs: [promotion, build-test, checks, secrets, package, installer, install-systemd]
+    needs: [promotion, build-test, e2e, checks, secrets, package, installer, install-systemd]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 2
@@ -201,8 +240,8 @@ jobs:
       - name: Every job passed (promotion-rules may be skipped outside pull requests)
         env:
           PROMOTION: ${{ needs.promotion.result }}
-          OTHERS: ${{ needs.build-test.result }} ${{ needs.checks.result }} ${{ needs.secrets.result }} ${{ needs.package.result }} ${{ needs.installer.result }} ${{ needs.install-systemd.result }}
+          OTHERS: ${{ needs.build-test.result }} ${{ needs.e2e.result }} ${{ needs.checks.result }} ${{ needs.secrets.result }} ${{ needs.package.result }} ${{ needs.installer.result }} ${{ needs.install-systemd.result }}
         run: |
-          echo "promotion-rules: $PROMOTION; build-test, checks, secrets, package, installer, installer (systemd): $OTHERS"
+          echo "promotion-rules: $PROMOTION; build-test, e2e, checks, secrets, package, installer, installer (systemd): $OTHERS"
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then [ "$PROMOTION" = "success" ]; else [ "$PROMOTION" = "success" ] || [ "$PROMOTION" = "skipped" ]; fi
-          [ "$OTHERS" = "success success success success success success" ]
+          [ "$OTHERS" = "success success success success success success success" ]

@@ -34,6 +34,19 @@ public sealed class AC_70_AuthMatrixTests(RecipeWardenFactory factory) : IClassF
         ["/account/theme"] = Access.SignedIn,   // FR-UI-01 profile theme (POST only)
         ["/manage"] = Access.Editor,
         ["/admin"] = Access.Admin,
+
+        // M1 (section 7.2)
+        ["/recipes"] = Access.Anonymous,
+        ["/recipes/{slug}"] = Access.Anonymous,
+        ["/search"] = Access.Anonymous,
+        ["/tags/{slug}"] = Access.Anonymous,
+        ["/collections"] = Access.Anonymous,
+        ["/collections/{slug}"] = Access.Anonymous,
+        ["/manage/recipes/new"] = Access.Editor,
+        ["/manage/recipes/{id:int}/edit"] = Access.Editor,
+        ["/manage/trash"] = Access.Editor,
+        ["/manage/tags"] = Access.Editor,
+        ["/manage/collections"] = Access.Editor,
     };
 
     public static TheoryData<string> ProtectedRoutes() =>
@@ -78,8 +91,9 @@ public sealed class AC_70_AuthMatrixTests(RecipeWardenFactory factory) : IClassF
     [MemberData(nameof(ProtectedRoutes))]
     public async Task Anonymous_page_request_redirects_to_sign_in(string route)
     {
+        await factory.SeedSamplesAsync();
         using var client = factory.CreateHttpsClient();
-        var response = await client.GetAsync(route, TestContext.Current.CancellationToken);
+        var response = await client.GetAsync(WebTestHelpers.SampleUrl(route), TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
         response.Headers.Location!.ToString().ShouldStartWith("https://localhost/account/login?ReturnUrl=");
@@ -89,8 +103,9 @@ public sealed class AC_70_AuthMatrixTests(RecipeWardenFactory factory) : IClassF
     [MemberData(nameof(ProtectedRoutes))]
     public async Task Anonymous_htmx_request_gets_401(string route)
     {
+        await factory.SeedSamplesAsync();
         using var client = factory.CreateHttpsClient();
-        using var request = new HttpRequestMessage(HttpMethod.Get, route);
+        using var request = new HttpRequestMessage(HttpMethod.Get, WebTestHelpers.SampleUrl(route));
         request.Headers.Add("HX-Request", "true");
         var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
@@ -101,8 +116,9 @@ public sealed class AC_70_AuthMatrixTests(RecipeWardenFactory factory) : IClassF
     [MemberData(nameof(ProtectedRoutes))]
     public async Task Anonymous_post_is_refused_before_anything_runs(string route)
     {
+        await factory.SeedSamplesAsync();
         using var client = factory.CreateHttpsClient();
-        using var request = new HttpRequestMessage(HttpMethod.Post, route) { Content = new StringContent("") };
+        using var request = new HttpRequestMessage(HttpMethod.Post, WebTestHelpers.SampleUrl(route)) { Content = new StringContent("") };
         request.Headers.Add("HX-Request", "true");
         var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
@@ -113,8 +129,9 @@ public sealed class AC_70_AuthMatrixTests(RecipeWardenFactory factory) : IClassF
     [MemberData(nameof(AnonymousRoutes))]
     public async Task Anonymous_routes_are_reachable_without_sign_in(string route)
     {
+        await factory.SeedSamplesAsync();
         using var client = factory.CreateHttpsClient();
-        var response = await client.GetAsync(route, TestContext.Current.CancellationToken);
+        var response = await client.GetAsync(WebTestHelpers.SampleUrl(route), TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
@@ -136,9 +153,13 @@ public sealed class AC_70_AuthMatrixTests(RecipeWardenFactory factory) : IClassF
     [Trait("Req", "FR-AUTH-02")]
     public async Task Editor_can_open_editor_routes()
     {
+        await factory.SeedSamplesAsync();
         using var editor = await factory.SignInAsync("editor-matrix2@example.com", AppRoles.Editor);
-        var response = await editor.GetAsync("/manage", TestContext.Current.CancellationToken);
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        foreach (var route in Expected.Where(e => e.Value == Access.Editor).Select(e => e.Key))
+        {
+            var response = await editor.GetAsync(WebTestHelpers.SampleUrl(route), TestContext.Current.CancellationToken);
+            response.StatusCode.ShouldBe(HttpStatusCode.OK, route);
+        }
     }
 
     [Fact]

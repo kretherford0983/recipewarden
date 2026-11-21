@@ -1,6 +1,13 @@
 @page
+@model RecipeWarden.Web.Pages.Manage.IndexModel
 @{
     ViewData["Title"] = "Manage";
 }
 <h1>Manage</h1>
-<p class="empty-state">Recipe management arrives in milestone M1.</p>
+<ul class="manage-links">
+    <li><a class="button-link primary" href="/manage/recipes/new">New recipe</a></li>
+    <li><a href="/recipes?status=draft">Drafts</a> (@Model.DraftCount)</li>
+    <li><a href="/manage/collections">Collections</a></li>
+    <li><a href="/manage/tags">Tags</a></li>
+    <li><a href="/manage/trash">Trash</a> (@Model.TrashCount)</li>
+</ul>

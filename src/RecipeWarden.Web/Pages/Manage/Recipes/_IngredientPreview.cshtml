@@ -1,0 +1,29 @@
+@model IReadOnlyList<RecipeWarden.Core.Recipes.IngredientLine>
+@using RecipeWarden.Core.Recipes
+@* W2 step 3: each line as chips (qty / unit / ingredient / prep), with a warning for low confidence (BR-04). *@
+@if (Model.Count > 0)
+{
+    <ol class="chips">
+        @foreach (var line in Model)
+        {
+            if (line.IsHeading)
+            {
+                <li class="chip-heading">@line.GroupHeading</li>
+                continue;
+            }
+
+            var p = line.Ingredient!;
+            <li class="@(p.NeedsReview ? "chip-line review" : "chip-line")">
+                @if (p.Quantity is decimal q)
+                {
+                    <span class="chip qty">@IngredientFormatter.Amount(q)@(p.QuantityMax is decimal m ? "–" + IngredientFormatter.Amount(m) : "")</span>
+                }
+                @if (p.UnitCode is not null) { <span class="chip unit">@p.UnitCode</span> }
+                <span class="chip name">@p.Name</span>
+                @if (p.Preparation is not null) { <span class="chip prep">@p.Preparation</span> }
+                @if (p.IsOptional) { <span class="chip">optional</span> }
+                @if (p.NeedsReview) { <span class="chip warn" title="Unsure how to read this line">check</span> }
+            </li>
+        }
+    </ol>
+}

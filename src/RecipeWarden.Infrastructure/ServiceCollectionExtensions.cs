@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RecipeWarden.Core.Security;
 using RecipeWarden.Infrastructure.Data;
 using RecipeWarden.Infrastructure.Identity;
+using RecipeWarden.Infrastructure.Recipes;
 
 namespace RecipeWarden.Infrastructure;
 
@@ -24,11 +26,17 @@ public static class ServiceCollectionExtensions
 
         services.AddDbContext<AppDbContext>(o => o
             .UseSqlite(data.ConnectionString)
-            .AddInterceptors(new SqlitePragmaInterceptor()));
+            .AddInterceptors(new SqlitePragmaInterceptor())
+            // Child rows of a soft-deleted recipe are only reached through the recipe, which the filter hides.
+            .ConfigureWarnings(w => w.Ignore(CoreEventId.PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning)));
 
         services.AddScoped<DatabaseInitializer>();
         services.AddScoped<UserAdminService>();
         services.AddScoped<UserPreferenceStore>();
+        services.AddScoped<TagService>();
+        services.AddScoped<RecipeService>();
+        services.AddScoped<RecipeSearchService>();
+        services.AddScoped<CollectionService>();
         return services;
     }
 

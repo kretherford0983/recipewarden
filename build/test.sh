@@ -17,6 +17,7 @@ jobs="${TEST_JOBS:-0}"   # 0 = all projects at once
 # project | coverage include filter | line threshold
 projects=(
   "RecipeWarden.Core.Tests|[RecipeWarden.Core]*|90"
+  "RecipeWarden.Importers.Tests|[RecipeWarden.Importers]*|80"
   "RecipeWarden.Infrastructure.Tests|[RecipeWarden.Infrastructure]*|80"
   "RecipeWarden.Web.Tests|[RecipeWarden.Web]*|80"
   "RecipeWarden.Cli.Tests|[recipewarden]*|80"

@@ -14,6 +14,8 @@
     <!-- Apache-2.0 --><PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <!-- Apache-2.0 --><PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
     <!-- MIT --><PackageVersion Include="System.CommandLine" Version="2.0.15" />
+    <!-- BSD-2-Clause --><PackageVersion Include="Markdig" Version="1.6.0" />
+    <!-- MIT (AngleSharp: MIT) --><PackageVersion Include="HtmlSanitizer" Version="11.0.26" />
   </ItemGroup>
 
   <ItemGroup Label="Analyzers">
@@ -26,5 +28,6 @@
     <!-- BSD-3-Clause --><PackageVersion Include="NSubstitute" Version="6.2.0" />
     <!-- MIT --><PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.15" />
     <!-- MIT --><PackageVersion Include="coverlet.MTP" Version="10.1.1" />
+    <!-- MIT --><PackageVersion Include="Microsoft.Playwright" Version="1.65.1" />
   </ItemGroup>
 </Project>

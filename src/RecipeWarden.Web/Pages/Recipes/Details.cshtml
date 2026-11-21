@@ -1,0 +1,122 @@
+@page "/recipes/{slug}"
+@model RecipeWarden.Web.Pages.Recipes.DetailsModel
+@using RecipeWarden.Core.Recipes
+@using RecipeWarden.Web.Content
+@{
+    var r = Model.Recipe!;
+    ViewData["Title"] = r.Title;
+}
+<article class="recipe" aria-labelledby="recipe-title">
+    <p class="breadcrumb"><a href="/recipes">Browse</a> ›</p>
+    @if (r.Status == RecipeStatus.Draft)
+    {
+        <p class="notice" role="status">Draft — only editors can see this recipe until it is published.</p>
+    }
+    <header class="recipe-header">
+        <h1 id="recipe-title">@r.Title</h1>
+        @if (r.Tags.Count > 0)
+        {
+            <ul class="tags" aria-label="Tags">
+                @foreach (var t in r.Tags) { <li><a href="/tags/@t.Slug">@t.Name</a></li> }
+            </ul>
+        }
+        @if (Model.CanEdit)
+        {
+            <p class="toolbar"><a class="button-link" href="/manage/recipes/@r.Id/edit">Edit</a></p>
+        }
+    </header>
+
+    <section class="recipe-meta" aria-label="About this recipe">
+        @if (r.Description is not null)
+        {
+            <div class="prose">@MarkdownRenderer.Render(r.Description)</div>
+        }
+        <dl class="facts">
+            <dt>Servings</dt>
+            <dd>@IngredientFormatter.Amount(r.Servings)@(r.ServingsEstimated ? " (estimated)" : "")</dd>
+            @if (r.PrepMinutes is int prep) { <dt>Prep</dt><dd>@prep min</dd> }
+            @if (r.CookMinutes is int cook) { <dt>Cook</dt><dd>@cook min</dd> }
+            @if (r.TotalMinutes is int total) { <dt>Total</dt><dd>@total min</dd> }
+            @if (r.IsPrecision) { <dt>Type</dt><dd>Baking / precision</dd> }
+        </dl>
+        @if (r.SourceName is not null || r.SourceUrl is not null)
+        {
+            @* BR-10: credit and link cannot be hidden. Source URLs are http(s) only (SourceRules). *@
+            <p class="source-credit">
+                Source:
+                @if (r.SourceUrl is not null)
+                {
+                    <a href="@r.SourceUrl" rel="noopener noreferrer nofollow">@(r.SourceName ?? r.SourceUrl)</a>
+                }
+                else
+                {
+                    <span>@r.SourceName</span>
+                }
+                @if (r.SourceAuthor is not null) { <span> by @r.SourceAuthor</span> }
+            </p>
+        }
+    </section>
+
+    <div class="recipe-columns">
+        <section class="ingredients" aria-labelledby="ingredients-heading">
+            <h2 id="ingredients-heading">Ingredients</h2>
+            @foreach (var g in r.Ingredients)
+            {
+                @if (g.Name is not null) { <h3>@g.Name</h3> }
+                <ul>
+                    @foreach (var line in g.Lines)
+                    {
+                        <li>
+                            @line.Text
+                            @if (line.NeedsReview && Model.CanEdit)
+                            {
+                                <span class="badge warn" title="The parser was unsure about this line; check it in the editor">check</span>
+                            }
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+        <section class="steps" aria-labelledby="steps-heading">
+            <h2 id="steps-heading">Steps</h2>
+            @foreach (var s in r.Steps)
+            {
+                @if (s.Name is not null) { <h3>@s.Name</h3> }
+                <ol>
+                    @foreach (var text in s.Steps) { <li>@text</li> }
+                </ol>
+            }
+        </section>
+    </div>
+
+    @if (r.Notes is not null)
+    {
+        <section class="notes" aria-labelledby="notes-heading">
+            <h2 id="notes-heading">Notes</h2>
+            <div class="prose">@MarkdownRenderer.Render(r.Notes)</div>
+        </section>
+    }
+
+    @if (r.Collections.Count > 0)
+    {
+        <p class="in-collections">In:
+            @for (var i = 0; i < r.Collections.Count; i++)
+            {
+                <a href="/collections/@r.Collections[i].Slug">@r.Collections[i].Name</a>@(i < r.Collections.Count - 1 ? ", " : "")
+            }
+        </p>
+    }
+
+    @if (Model.CanEdit && Model.AvailableCollections.Count > 0)
+    {
+        <form class="inline-form" method="post" action="/manage/collections?handler=AddRecipe" asp-antiforgery="true">
+            <input type="hidden" name="recipeId" value="@r.Id">
+            <input type="hidden" name="returnSlug" value="@r.Slug">
+            <label for="add-to-collection">Add to collection</label>
+            <select id="add-to-collection" name="collectionId">
+                @foreach (var c in Model.AvailableCollections) { <option value="@c.Id">@c.Name</option> }
+            </select>
+            <button type="submit">Add</button>
+        </form>
+    }
+</article>

@@ -7,5 +7,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Shared\TestDatabaseTemplate.cs" Link="Shared\TestDatabaseTemplate.cs" />
+    <Compile Include="..\Shared\ManualClock.cs" Link="Shared\ManualClock.cs" />
   </ItemGroup>
 </Project>

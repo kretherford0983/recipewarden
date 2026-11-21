@@ -20,7 +20,8 @@ internal sealed class TestDatabase : IAsyncDisposable
     public ServiceProvider Provider { get; }
 
     /// <param name="fromTemplate">Start from the migrated template (default) or from an empty directory.</param>
-    public static async Task<TestDatabase> CreateAsync(bool fromTemplate = true)
+    /// <param name="clock">Replaces the system clock (BR-05 trash tests).</param>
+    public static async Task<TestDatabase> CreateAsync(bool fromTemplate = true, TimeProvider? clock = null)
     {
         var dir = Path.Combine(Path.GetTempPath(), "rw-infra-" + Guid.NewGuid().ToString("N"));
         if (fromTemplate)
@@ -37,6 +38,10 @@ internal sealed class TestDatabase : IAsyncDisposable
         services.AddRecipeWardenData(config);
         services.AddRecipeWardenIdentityCore();
         services.UseFastPasswordHashing();
+        if (clock is not null)
+        {
+            services.AddSingleton(clock);
+        }
         var provider = services.BuildServiceProvider();
 
         await using (var scope = provider.CreateAsyncScope())

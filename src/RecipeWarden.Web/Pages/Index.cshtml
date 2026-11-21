@@ -4,10 +4,56 @@
     ViewData["Title"] = "Home";
 }
 <h1>RecipeWarden</h1>
-<section class="empty-state">
-    <p>No recipes yet.</p>
-    @if (Model.CanEdit)
-    {
-        <p><a class="button-link" href="/manage">Add or import one</a></p>
-    }
-</section>
+<form class="home-search" role="search" method="get" action="/search">
+    <label for="home-q" class="visually-hidden">Search recipes</label>
+    <input id="home-q" name="q" type="search" placeholder="Search recipes, ingredients, tags…">
+    <button type="submit">Search</button>
+</form>
+
+@if (Model.Recent.Count == 0)
+{
+    <section class="empty-state">
+        <p>No recipes yet.</p>
+        @if (Model.CanEdit)
+        {
+            <p><a class="button-link" href="/manage/recipes/new">Add one</a></p>
+        }
+    </section>
+}
+else
+{
+    <section aria-labelledby="recent-heading">
+        <h2 id="recent-heading">Recently added</h2>
+        <ul class="recipe-grid">
+            @foreach (var r in Model.Recent)
+            {
+                <li class="recipe-card">
+                    <a href="/recipes/@r.Slug"><h3>@r.Title</h3></a>
+                    @if (r.Summary is not null) { <p>@r.Summary</p> }
+                    @if (r.TotalMinutes is int min) { <p class="meta">@min min</p> }
+                </li>
+            }
+        </ul>
+        <p><a href="/recipes">Browse all recipes</a></p>
+    </section>
+}
+
+@if (Model.Collections.Count > 0)
+{
+    <section aria-labelledby="collections-heading">
+        <h2 id="collections-heading">Collections</h2>
+        <ul class="link-list">
+            @foreach (var c in Model.Collections) { <li><a href="/collections/@c.Slug">@c.Name</a></li> }
+        </ul>
+    </section>
+}
+
+@if (Model.Tags.Count > 0)
+{
+    <section aria-labelledby="tags-heading">
+        <h2 id="tags-heading">Browse by tag</h2>
+        <ul class="tags">
+            @foreach (var t in Model.Tags) { <li><a href="/tags/@t.Slug">@t.Name</a></li> }
+        </ul>
+    </section>
+}
