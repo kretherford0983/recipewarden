@@ -15,14 +15,30 @@ public sealed record AccountResult(bool Succeeded, IReadOnlyList<string> Errors)
 /// <summary>FR-INST-04, SEC-05, SEC-12: account creation outside the web UI (CLI and installer).</summary>
 public sealed class UserAdminService(UserManager<AppUser> users)
 {
-    public async Task<AccountResult> CreateAdminAsync(string email, string password)
+    /// <summary>AC-100: the email checks that need no password, so callers can run them before asking for one.</summary>
+    public async Task<AccountResult> CheckNewAdminEmailAsync(string email)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(email);
-        ArgumentNullException.ThrowIfNull(password);
+        if (AccountRules.ValidateEmail(email) is { } invalid)
+        {
+            return AccountResult.Fail(invalid);
+        }
 
         if (await users.FindByEmailAsync(email).ConfigureAwait(false) is not null)
         {
             return AccountResult.Fail($"An account for {email} already exists.");
+        }
+
+        return AccountResult.Ok;
+    }
+
+    public async Task<AccountResult> CreateAdminAsync(string email, string password)
+    {
+        ArgumentNullException.ThrowIfNull(password);
+
+        var check = await CheckNewAdminEmailAsync(email).ConfigureAwait(false);
+        if (!check.Succeeded)
+        {
+            return check;
         }
 
         var user = new AppUser { UserName = email, Email = email, EmailConfirmed = true };

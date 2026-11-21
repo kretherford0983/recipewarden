@@ -1,6 +1,6 @@
 # RecipeWarden — requirements traceability
 
-Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.9. Keep in step with the spec and the test suite.
+Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.10. Keep in step with the spec and the test suite.
 
 Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and tagged with `[Trait("Req", "FR-SCL-01")]`, so CI can print coverage per requirement and fail if any Must requirement has no test.
 
@@ -76,7 +76,7 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | NFR-06 | Gates in place (ADR 0003); parallel runs (ADR 0006) | `build/test.sh`, `tests/xunit.runner.json`, `tests/Shared/TestDatabaseTemplate.cs` | CI |
 | NFR-07 (WAL part) | Done | `DatabaseInitializer`, `SqlitePragmaInterceptor` | Infra.Tests `NFR_07_SqliteConventionsTests` |
 | NFR-08 | Done | `Directory.Build.props`, `Directory.Packages.props` | build |
-| FR-INST-04 | CLI `admin create` done; installer prompt in M7 | `UserAdminService`, `AdminCreateCommand` | Infra.Tests `SEC_05_UserAdminServiceTests`; Cli.Tests `CliCommandTests` |
+| FR-INST-04 / AC-100 | CLI `admin create` done (email checked before the password prompt, 2026-11-21); installer prompt in M7 | `AccountRules.ValidateEmail` (Core), `UserAdminService.CheckNewAdminEmailAsync`, `AdminCreateCommand`, `valid_email` in install.sh | Core.Tests `FR_INST_04_EmailRulesTests`; Infra.Tests `SEC_05_UserAdminServiceTests`; Cli.Tests `CliCommandTests`; installer `test-install.sh` |
 | FR-BKP-08 | Validation rules done | `BackupFolderPolicy` (Core) | Core.Tests `FR_BKP_08_BackupFolderPolicyTests` |
 | FR-BKP-09 / AC-86 | Done except audit to `AuditEntry` (prints an audit line until FR-ADM-01, M7) | `ApplyConfigRunner`, `BackupFoldersDropIn` | Core.Tests `FR_BKP_09_DropInTests`; Cli.Tests `FR_BKP_09_ApplyConfigTests`, `HostFileSystemTests`, `HostAdapterTests` |
 | FR-INST-01/02/04, AC-90, AC-91 | One-command install done (ADR 0007): download + checksum, user/dirs, unit, network.json, first Admin; firewall rules and `/setup` token in M7 | `deploy/install.sh`, `deploy/recipewarden.service`, `/usr/local/bin/recipewarden` wrapper | `tests/installer/test-install.sh` (Debian 12/13, Ubuntu 22.04/24.04/26.04), `tests/installer/test-install-systemd.sh` |
@@ -141,6 +141,15 @@ Scope decisions: ADR 0008 (slugs follow the title, old slugs redirect), ADR 0009
   (b) exclude keys deliberately and document that a host move needs re-sign-in and AI keys re-entered;
   (c) export the key ring separately, e.g. with the restore kit. Tentative recommendation: (a).
   Not discussed yet — owner wants to revisit later.
+
+- **Deferred to M2 by owner (2026-11-21), found while testing M1 on the host:**
+  - **Tag picker.** Tags are typed as one comma-separated text box, which works poorly with the built-in typed
+    tags (ADR 0011). Needs a picker that shows tags grouped by type with multi-select, plus typing a new tag.
+  - **Step headings.** A pasted list such as `1. **Preheat oven**` followed by an indented line
+    `Preheat oven to **375°F**.` becomes two steps per item, and the `**` shows literally, because the paste
+    splitter makes one step per line and step text is plain. Needs: numbered items with continuation lines kept as
+    one step, an optional step heading, and a decision on bold in step text (restricted Markdown per SEC-22, or
+    strip it). Spec is silent on step headings; raise options (e.g. a `Step.Title` column vs. Markdown) at M2 start.
 
 - **M1 notes (2026-11-21):**
   - Two bugs found by the M1 tests and fixed: MVC binds form values before route values, so a posted `id`

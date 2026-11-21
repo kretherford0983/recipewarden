@@ -34,3 +34,7 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 - Browser tests for adding and reading a recipe run in CI (Playwright).
 - Servings and times accept ranges ("6-8", "20-25 min") and hours ("1 hr 15 min", "1-1.5 hours"); "Ready in" filters on the longer end (ADR 0010).
 - Built-in tags for meals, courses, seasons, methods and diets, including "Homemade Ingredient"; your own tags with the same names are kept (ADR 0011).
+
+### Fixes
+- `recipewarden admin create` and the installer check the email before asking for a password: an invalid address
+  (e.g. `name@#example.com`) or one that already has an account is refused straight away with the reason (AC-100).

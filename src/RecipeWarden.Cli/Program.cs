@@ -20,8 +20,8 @@ var adminCreate = new Command("create", "Create an Admin account") { email, pass
 adminCreate.SetAction(async (parse, ct) =>
 {
     var config = CliConfig.Load(CliConfig.ResolvePath(parse.GetValue(configOption)));
-    var password = AdminCreateCommand.ReadPassword(parse.GetValue(passwordStdin));
-    return await AdminCreateCommand.RunAsync(config, parse.GetValue(email)!, password, Console.Out, Console.Error, ct);
+    var fromStdin = parse.GetValue(passwordStdin);
+    return await AdminCreateCommand.RunAsync(config, parse.GetValue(email)!, () => AdminCreateCommand.ReadPassword(fromStdin), Console.Out, Console.Error, ct);
 });
 var admin = new Command("admin", "Account administration") { adminCreate };
 root.Subcommands.Add(admin);
