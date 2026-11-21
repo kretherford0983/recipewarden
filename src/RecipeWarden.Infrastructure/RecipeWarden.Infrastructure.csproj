@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\RecipeWarden.Core\RecipeWarden.Core.csproj" />
+    <ProjectReference Include="..\RecipeWarden.Importers\RecipeWarden.Importers.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />

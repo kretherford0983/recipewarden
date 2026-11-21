@@ -1,0 +1,93 @@
+using RecipeWarden.Core.Organization;
+using RecipeWarden.Core.Recipes;
+
+namespace RecipeWarden.Infrastructure.Recipes;
+
+/// <summary>Result of a recipe, tag or collection write.</summary>
+public enum SaveStatus
+{
+    Saved,
+    Invalid,
+    Conflict,
+    NotFound,
+}
+
+/// <summary>
+/// The outcome of a save. <see cref="PublishProblems"/> lists what keeps a saved Draft from publishing (AC-02);
+/// <see cref="Errors"/> stop the save; <see cref="Differences"/> explain a BR-06 conflict.
+/// </summary>
+public sealed record SaveOutcome
+{
+    public SaveStatus Status { get; init; }
+    public int Id { get; init; }
+    public string? Slug { get; init; }
+    public RecipeStatus RecipeStatus { get; init; }
+    public int Version { get; init; }
+    public IReadOnlyList<PublishProblem> PublishProblems { get; init; } = [];
+    public IReadOnlyList<PublishProblem> Errors { get; init; } = [];
+    public IReadOnlyList<FieldDifference> Differences { get; init; } = [];
+
+    public static SaveOutcome NotFound { get; } = new() { Status = SaveStatus.NotFound };
+
+    public static SaveOutcome Invalid(IReadOnlyList<PublishProblem> errors) => new() { Status = SaveStatus.Invalid, Errors = errors };
+}
+
+/// <summary>A recipe as the editor shows it.</summary>
+public sealed record RecipeForEdit(int Id, string Slug, RecipeStatus Status, int Version, RecipeEdit Edit);
+
+public sealed record TagLink(string Name, string Slug, TagType? TagType);
+
+public sealed record IngredientGroupView(string? Name, IReadOnlyList<IngredientLineView> Lines);
+
+/// <summary>One ingredient for reading: the formatted text (UX-05), plus whether it still needs review (BR-04).</summary>
+public sealed record IngredientLineView(string Text, string RawText, bool NeedsReview, bool IsOptional);
+
+public sealed record StepSectionView(string? Name, IReadOnlyList<string> Steps);
+
+/// <summary>FR-VIEW-01 reading view (images, allergens and nutrition arrive in M4 and M6).</summary>
+public sealed record RecipeView
+{
+    public int Id { get; init; }
+    public required string Slug { get; init; }
+    public required string Title { get; init; }
+    public string? Description { get; init; }
+    public decimal Servings { get; init; }
+    public bool ServingsEstimated { get; init; }
+    public int? PrepMinutes { get; init; }
+    public int? CookMinutes { get; init; }
+    public int? TotalMinutes { get; init; }
+    public bool IsPrecision { get; init; }
+    public RecipeStatus Status { get; init; }
+    public SourceType SourceType { get; init; }
+    public string? SourceName { get; init; }
+    public string? SourceUrl { get; init; }
+    public string? SourceAuthor { get; init; }
+    public string? Notes { get; init; }
+    public int? Rating { get; init; }
+    public IReadOnlyList<IngredientGroupView> Ingredients { get; init; } = [];
+    public IReadOnlyList<StepSectionView> Steps { get; init; } = [];
+    public IReadOnlyList<TagLink> Tags { get; init; } = [];
+    public IReadOnlyList<CollectionLink> Collections { get; init; } = [];
+    public DateTimeOffset UpdatedAt { get; init; }
+}
+
+public sealed record CollectionLink(int Id, string Name, string Slug);
+
+/// <summary>Result of looking up a reading-view slug: the recipe, or the current slug to redirect to (ADR 0008).</summary>
+public sealed record RecipeLookup(RecipeView? Recipe, string? RedirectToSlug)
+{
+    public static RecipeLookup None { get; } = new(null, null);
+}
+
+/// <summary>A recipe in a grid or list.</summary>
+public sealed record RecipeCard(int Id, string Slug, string Title, string? Summary, int? TotalMinutes, int? Rating, RecipeStatus Status);
+
+public sealed record SearchPage(IReadOnlyList<RecipeCard> Items, int Total, int Page, int PageCount);
+
+public sealed record TrashItem(int Id, string Title, DateTimeOffset DeletedAt, DateTimeOffset PurgesOn);
+
+public sealed record TagSummary(int Id, string Name, string Slug, TagType? TagType, int RecipeCount);
+
+public sealed record CollectionSummary(int Id, string Name, string Slug, string? Description, int RecipeCount, int Version);
+
+public sealed record CollectionView(int Id, string Name, string Slug, string? Description, int Version, IReadOnlyList<RecipeCard> Recipes);
