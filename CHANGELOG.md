@@ -25,3 +25,4 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 - Traceability synced with the project copy: M0 marked done with its deployment check; AC-72 overposting carried into M1.
 - Scope decisions: recipe slugs follow the title with redirects from old slugs (ADR 0008); M1 is text only, images move to M4 and the "free of" filter to M6 (ADR 0009). Spec v0.8.
 - Core rules for recipes (publish/draft, slugs with redirects, servings, trash, edit-conflict diff, source credit), tag and collection names, and safe search queries (SEC-21). Search input with unpaired UTF-16 surrogates no longer causes an error.
+- Ingredient lines are split into amount (fractions, ranges, ½), unit, ingredient, preparation and notes, keeping the original text; doubtful lines are flagged for review (FR-REC-03).

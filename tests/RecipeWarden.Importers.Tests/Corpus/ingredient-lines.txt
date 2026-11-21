@@ -1,0 +1,580 @@
+# FR-REC-03 / AC-03 ingredient-line corpus.
+# Lines are written for this project to cover the patterns found in recipe sites, cookbooks and family cards
+# (no lines copied from commercial sites, no household recipes: the repository is public).
+# Format: category | raw | quantity | max | unit code | name | preparation | extras
+# extras (semicolon-separated): opt  state=<state>  note=<note>   Text compares ignore case; quantities within 0.001.
+# Categories: plain fraction range package prep optional vague metric count noqty compound
+plain | 1 cup sugar | 1 | | cup | sugar | |
+plain | 2 cups all-purpose flour | 2 | | cup | all-purpose flour | |
+plain | 1 tablespoon olive oil | 1 | | tbsp | olive oil | |
+plain | 2 tablespoons butter | 2 | | tbsp | butter | |
+plain | 1 teaspoon salt | 1 | | tsp | salt | |
+plain | 2 teaspoons baking powder | 2 | | tsp | baking powder | |
+plain | 1 tsp vanilla extract | 1 | | tsp | vanilla extract | |
+plain | 3 tbsp soy sauce | 3 | | tbsp | soy sauce | |
+plain | 4 cups chicken broth | 4 | | cup | chicken broth | |
+plain | 1 lb ground beef | 1 | | lb | ground beef | |
+plain | 2 lbs chicken thighs | 2 | | lb | chicken thighs | |
+plain | 8 oz cream cheese | 8 | | oz | cream cheese | |
+plain | 16 ounces pasta | 16 | | oz | pasta | |
+plain | 1 pound shrimp | 1 | | lb | shrimp | |
+plain | 3 pounds potatoes | 3 | | lb | potatoes | |
+plain | 2 cups milk | 2 | | cup | milk | |
+plain | 1 cup heavy cream | 1 | | cup | heavy cream | |
+plain | 1 Tbsp honey | 1 | | tbsp | honey | |
+plain | 2 T brown sugar | 2 | | tbsp | brown sugar | |
+plain | 1 t cinnamon | 1 | | tsp | cinnamon | |
+plain | 1 c. rolled oats | 1 | | cup | rolled oats | |
+plain | 2 C water | 2 | | cup | water | |
+plain | 1 qt buttermilk | 1 | | quart | buttermilk | |
+plain | 1 pint strawberries | 1 | | pint | strawberries | |
+plain | 1 gallon water | 1 | | gallon | water | |
+plain | 6 cups vegetable stock | 6 | | cup | vegetable stock | |
+plain | 2 tsp ground cumin | 2 | | tsp | ground cumin | |
+plain | 1 tsp ground cinnamon | 1 | | tsp | ground cinnamon | |
+plain | 1 tbsp chili powder | 1 | | tbsp | chili powder | |
+plain | 2 tsp dried oregano | 2 | | tsp | dried oregano | |
+plain | 1 tsp smoked paprika | 1 | | tsp | smoked paprika | |
+plain | 1 cup brown rice | 1 | | cup | brown rice | |
+plain | 2 cups shredded cheddar | 2 | | cup | cheddar | shredded |
+plain | 1 cup sour cream | 1 | | cup | sour cream | |
+plain | 3 cups bread flour | 3 | | cup | bread flour | |
+plain | 1 tablespoon cornstarch | 1 | | tbsp | cornstarch | |
+plain | 2 tablespoons lemon juice | 2 | | tbsp | lemon juice | |
+plain | 1 tablespoon Dijon mustard | 1 | | tbsp | Dijon mustard | |
+plain | 4 tablespoons unsalted butter | 4 | | tbsp | unsalted butter | |
+plain | 1 teaspoon baking soda | 1 | | tsp | baking soda | |
+plain | 2 cups frozen corn | 2 | | cup | corn | | state=frozen
+plain | 1 cup chopped walnuts | 1 | | cup | walnuts | chopped |
+plain | 1 cup semi-sweet chocolate chips | 1 | | cup | semi-sweet chocolate chips | |
+plain | 2 tbsp maple syrup | 2 | | tbsp | maple syrup | |
+plain | 1 tbsp sesame oil | 1 | | tbsp | sesame oil | |
+plain | 2 tbsp rice vinegar | 2 | | tbsp | rice vinegar | |
+plain | 1 cup mayonnaise | 1 | | cup | mayonnaise | |
+plain | 1 cup ketchup | 1 | | cup | ketchup | |
+plain | 1 lb. Italian sausage | 1 | | lb | Italian sausage | |
+plain | 2 lbs. russet potatoes | 2 | | lb | russet potatoes | |
+plain | 12 oz. bacon | 12 | | oz | bacon | |
+plain | 1 tsp. kosher salt | 1 | | tsp | kosher salt | |
+plain | 1 tbsp. tomato paste | 1 | | tbsp | tomato paste | |
+plain | 2 cups of flour | 2 | | cup | flour | |
+plain | 1 cup of milk | 1 | | cup | milk | |
+plain | 3 cups cooked rice | 3 | | cup | rice | | state=cooked
+plain | 2 cups uncooked macaroni | 2 | | cup | macaroni | | state=uncooked
+plain | 1 lb raw shrimp | 1 | | lb | shrimp | | state=raw
+plain | 4 cups cooked shredded chicken | 4 | | cup | chicken | shredded | state=cooked
+plain | 1 cup whole milk | 1 | | cup | whole milk | |
+plain | 2 cups powdered sugar | 2 | | cup | powdered sugar | |
+plain | 1 cup granulated sugar | 1 | | cup | granulated sugar | |
+plain | 1 cup packed brown sugar | 1 | | cup | brown sugar | packed |
+plain | 1 cup firmly packed light brown sugar | 1 | | cup | light brown sugar | firmly packed |
+plain | 1 cup buttermilk | 1 | | cup | buttermilk | |
+plain | 3 tablespoons fish sauce | 3 | | tbsp | fish sauce | |
+plain | 2 teaspoons garam masala | 2 | | tsp | garam masala | |
+plain | 1 teaspoon turmeric | 1 | | tsp | turmeric | |
+plain | 1 cup coconut milk | 1 | | cup | coconut milk | |
+plain | 1 cup panko breadcrumbs | 1 | | cup | panko breadcrumbs | |
+plain | 1 cup grated Parmesan | 1 | | cup | Parmesan | grated |
+plain | 2 cups baby spinach | 2 | | cup | baby spinach | |
+plain | 1 cup frozen peas | 1 | | cup | peas | | state=frozen
+plain | 1 cup dry white wine | 1 | | cup | dry white wine | |
+plain | 2 cups beef broth | 2 | | cup | beef broth | |
+plain | 1 tbsp Worcestershire sauce | 1 | | tbsp | Worcestershire sauce | |
+plain | 1 tsp hot sauce | 1 | | tsp | hot sauce | |
+plain | 1 cup plain Greek yogurt | 1 | | cup | plain Greek yogurt | |
+plain | 1 lb boneless skinless chicken breasts | 1 | | lb | boneless skinless chicken breasts | |
+plain | 2 lb pork shoulder | 2 | | lb | pork shoulder | |
+plain | 1 cup raisins | 1 | | cup | raisins | |
+plain | 1 cup old-fashioned oats | 1 | | cup | old-fashioned oats | |
+plain | 2 cups cake flour | 2 | | cup | cake flour | |
+plain | 1 teaspoon cream of tartar | 1 | | tsp | cream of tartar | |
+plain | 1 cup canola oil | 1 | | cup | canola oil | |
+plain | 1 cup apple cider | 1 | | cup | apple cider | |
+plain | 1 tbsp apple cider vinegar | 1 | | tbsp | apple cider vinegar | |
+plain | 1 tbsp fresh thyme leaves | 1 | | tbsp | fresh thyme leaves | |
+plain | 1 tsp red pepper flakes | 1 | | tsp | red pepper flakes | |
+plain | 1 tsp onion powder | 1 | | tsp | onion powder | |
+plain | 1 tsp garlic powder | 1 | | tsp | garlic powder | |
+plain | 1 cup ricotta cheese | 1 | | cup | ricotta cheese | |
+plain | 1 tablespoon instant espresso powder | 1 | | tbsp | instant espresso powder | |
+plain | 2 teaspoons active dry yeast | 2 | | tsp | active dry yeast | |
+plain | 1 cup warm water | 1 | | cup | warm water | |
+plain | 1 cup cold butter | 1 | | cup | cold butter | |
+plain | 1 cup molasses | 1 | | cup | molasses | |
+plain | 1 tbsp ground ginger | 1 | | tbsp | ground ginger | |
+plain | 1 tsp ground nutmeg | 1 | | tsp | ground nutmeg | |
+plain | 1 tsp ground cloves | 1 | | tsp | ground cloves | |
+plain | 2 cups pecan halves | 2 | | cup | pecan halves | |
+plain | 1 cup shredded coconut | 1 | | cup | coconut | shredded |
+plain | 5 cups bread cubes | 5 | | cup | bread cubes | |
+plain | 2 cups heavy whipping cream | 2 | | cup | heavy whipping cream | |
+plain | 1 cup corn syrup | 1 | | cup | corn syrup | |
+plain | 3 cups fresh blueberries | 3 | | cup | fresh blueberries | |
+plain | 1 cup sliced almonds | 1 | | cup | almonds | sliced |
+plain | 2 cups diced tomatoes | 2 | | cup | tomatoes | diced |
+plain | 1 cup minced onion | 1 | | cup | onion | minced |
+plain | 1 cup melted butter | 1 | | cup | butter | melted |
+plain | 1/2 cup softened butter | 0.5 | | cup | butter | softened |
+plain | 2 cups mashed bananas | 2 | | cup | bananas | mashed |
+plain | 1 cup crumbled feta | 1 | | cup | feta | crumbled |
+plain | 2 cups cubed butternut squash | 2 | | cup | butternut squash | cubed |
+plain | 1 cup toasted pine nuts | 1 | | cup | pine nuts | toasted |
+plain | 1 cup chopped fresh parsley | 1 | | cup | fresh parsley | chopped |
+plain | 2 tbsp finely chopped shallot | 2 | | tbsp | shallot | finely chopped |
+plain | 1 tsp freshly ground black pepper | 1 | | tsp | black pepper | freshly ground |
+plain | 1 tbsp freshly grated ginger | 1 | | tbsp | ginger | freshly grated |
+plain | 2 cups thinly sliced red onion | 2 | | cup | red onion | thinly sliced |
+plain | 1 cup coarsely chopped pecans | 1 | | cup | pecans | coarsely chopped |
+fraction | 1/2 cup sugar | 0.5 | | cup | sugar | |
+fraction | 1/4 cup olive oil | 0.25 | | cup | olive oil | |
+fraction | 3/4 cup milk | 0.75 | | cup | milk | |
+fraction | 1/3 cup honey | 0.3333 | | cup | honey | |
+fraction | 2/3 cup water | 0.6667 | | cup | water | |
+fraction | 1/8 tsp cayenne pepper | 0.125 | | tsp | cayenne pepper | |
+fraction | 1/2 tsp salt | 0.5 | | tsp | salt | |
+fraction | 1/4 tsp ground nutmeg | 0.25 | | tsp | ground nutmeg | |
+fraction | 1 1/2 cups flour | 1.5 | | cup | flour | |
+fraction | 2 1/4 cups all-purpose flour | 2.25 | | cup | all-purpose flour | |
+fraction | 1 3/4 cups sugar | 1.75 | | cup | sugar | |
+fraction | 1 1/2 teaspoons baking soda | 1.5 | | tsp | baking soda | |
+fraction | 2 1/2 pounds beef chuck | 2.5 | | lb | beef chuck | |
+fraction | 1 1/4 cups buttermilk | 1.25 | | cup | buttermilk | |
+fraction | 1 2/3 cups water | 1.6667 | | cup | water | |
+fraction | 1-1/2 cups rolled oats | 1.5 | | cup | rolled oats | |
+fraction | 2-1/2 cups milk | 2.5 | | cup | milk | |
+fraction | ½ cup butter | 0.5 | | cup | butter | |
+fraction | ¼ cup maple syrup | 0.25 | | cup | maple syrup | |
+fraction | ¾ cup brown sugar | 0.75 | | cup | brown sugar | |
+fraction | ⅓ cup vegetable oil | 0.3333 | | cup | vegetable oil | |
+fraction | ⅔ cup cocoa powder | 0.6667 | | cup | cocoa powder | |
+fraction | ⅛ teaspoon salt | 0.125 | | tsp | salt | |
+fraction | 1½ cups milk | 1.5 | | cup | milk | |
+fraction | 1 ½ cups all-purpose flour | 1.5 | | cup | all-purpose flour | |
+fraction | 2¼ cups flour | 2.25 | | cup | flour | |
+fraction | 1 ¾ cups chicken stock | 1.75 | | cup | chicken stock | |
+fraction | 1⅓ cups sugar | 1.3333 | | cup | sugar | |
+fraction | 3 ½ cups bread flour | 3.5 | | cup | bread flour | |
+fraction | ½ tsp vanilla extract | 0.5 | | tsp | vanilla extract | |
+fraction | ¼ tsp black pepper | 0.25 | | tsp | black pepper | |
+fraction | ½ lb mushrooms | 0.5 | | lb | mushrooms | |
+fraction | 1/2 lb ground pork | 0.5 | | lb | ground pork | |
+fraction | 3/4 lb green beans | 0.75 | | lb | green beans | |
+fraction | 1/2 teaspoon dried thyme | 0.5 | | tsp | dried thyme | |
+fraction | 1/2 tablespoon soy sauce | 0.5 | | tbsp | soy sauce | |
+fraction | 1 1/2 tablespoons cornstarch | 1.5 | | tbsp | cornstarch | |
+fraction | 0.5 cup water | 0.5 | | cup | water | |
+fraction | 1.5 cups milk | 1.5 | | cup | milk | |
+fraction | 2.5 lbs chicken wings | 2.5 | | lb | chicken wings | |
+fraction | 0.25 tsp salt | 0.25 | | tsp | salt | |
+fraction | 1.75 cups flour | 1.75 | | cup | flour | |
+fraction | 1/2 cup chopped onion | 0.5 | | cup | onion | chopped |
+fraction | 1/4 cup minced fresh cilantro | 0.25 | | cup | fresh cilantro | minced |
+fraction | 1/3 cup grated Parmesan cheese | 0.3333 | | cup | Parmesan cheese | grated |
+fraction | 1/2 cup melted coconut oil | 0.5 | | cup | coconut oil | melted |
+fraction | 3/4 cup packed dark brown sugar | 0.75 | | cup | dark brown sugar | packed |
+fraction | 1/4 cup sliced green onions | 0.25 | | cup | green onions | sliced |
+fraction | 1/2 cup diced celery | 0.5 | | cup | celery | diced |
+fraction | 1/2 cup heavy cream | 0.5 | | cup | heavy cream | |
+fraction | 1/4 cup fresh lime juice | 0.25 | | cup | fresh lime juice | |
+fraction | 1/2 cup dry red wine | 0.5 | | cup | dry red wine | |
+fraction | 1/2 cup sour cream | 0.5 | | cup | sour cream | |
+fraction | 1/4 cup tahini | 0.25 | | cup | tahini | |
+fraction | 1/2 cup plain yogurt | 0.5 | | cup | plain yogurt | |
+fraction | 1/3 cup mayonnaise | 0.3333 | | cup | mayonnaise | |
+fraction | 1/2 tsp red pepper flakes | 0.5 | | tsp | red pepper flakes | |
+fraction | 1/4 teaspoon ground cloves | 0.25 | | tsp | ground cloves | |
+fraction | 3/4 teaspoon kosher salt | 0.75 | | tsp | kosher salt | |
+fraction | 1/2 cup quick-cooking oats | 0.5 | | cup | quick-cooking oats | |
+fraction | 1/2 cup sweetened condensed milk | 0.5 | | cup | sweetened condensed milk | |
+fraction | 2/3 cup evaporated milk | 0.6667 | | cup | evaporated milk | |
+fraction | 1 1/2 cups shredded mozzarella | 1.5 | | cup | mozzarella | shredded |
+fraction | 1 1/2 lb flank steak | 1.5 | | lb | flank steak | |
+fraction | 1/2 cup cooked quinoa | 0.5 | | cup | quinoa | | state=cooked
+range | 2-3 tablespoons water | 2 | 3 | tbsp | water | |
+range | 1-2 teaspoons hot sauce | 1 | 2 | tsp | hot sauce | |
+range | 2 to 3 cups chicken broth | 2 | 3 | cup | chicken broth | |
+range | 3 to 4 pounds pork shoulder | 3 | 4 | lb | pork shoulder | |
+range | 2–3 cloves garlic | 2 | 3 | clove | garlic | |
+range | 1 – 2 tbsp honey | 1 | 2 | tbsp | honey | |
+range | 1/2-3/4 cup milk | 0.5 | 0.75 | cup | milk | |
+range | 1/4 to 1/2 tsp cayenne | 0.25 | 0.5 | tsp | cayenne | |
+range | 1 to 1 1/2 cups water | 1 | 1.5 | cup | water | |
+range | 2 or 3 carrots | 2 | 3 | | carrots | |
+range | 4-6 chicken thighs | 4 | 6 | | chicken thighs | |
+range | 6 to 8 slices bacon | 6 | 8 | slice | bacon | |
+range | 3-4 cups spinach | 3 | 4 | cup | spinach | |
+range | 1-2 jalapeños, minced | 1 | 2 | | jalapeños | minced |
+range | 2-3 lbs beef short ribs | 2 | 3 | lb | beef short ribs | |
+range | 1 1/2 to 2 cups flour | 1.5 | 2 | cup | flour | |
+range | 1/2 - 1 tsp salt | 0.5 | 1 | tsp | salt | |
+range | 4 to 5 cups vegetable broth | 4 | 5 | cup | vegetable broth | |
+range | 8-10 oz spaghetti | 8 | 10 | oz | spaghetti | |
+range | 2-4 tbsp sugar | 2 | 4 | tbsp | sugar | |
+range | 10-12 fresh basil leaves | 10 | 12 | | fresh basil leaves | |
+range | 1-2 cups shredded cheese | 1 | 2 | cup | cheese | shredded |
+range | 3 to 4 tablespoons olive oil | 3 | 4 | tbsp | olive oil | |
+range | 2-3 sprigs fresh rosemary | 2 | 3 | sprig | fresh rosemary | |
+range | 1–1½ cups milk | 1 | 1.5 | cup | milk | |
+range | ¼-½ tsp chili flakes | 0.25 | 0.5 | tsp | chili flakes | |
+range | 5-6 medium potatoes, peeled | 5 | 6 | | medium potatoes | peeled |
+range | 2 to 3 large tomatoes, diced | 2 | 3 | | large tomatoes | diced |
+range | 1-2 limes, juiced | 1 | 2 | | limes | juiced |
+range | 3-5 drops vanilla extract | 3 | 5 | drop | vanilla extract | |
+range | 12-16 ounces penne | 12 | 16 | oz | penne | |
+range | 2-2 1/2 cups water | 2 | 2.5 | cup | water | |
+range | 1 or 2 bay leaves | 1 | 2 | | bay leaves | |
+range | 4-5 green onions, sliced | 4 | 5 | | green onions | sliced |
+range | 1/3-1/2 cup sugar | 0.3333 | 0.5 | cup | sugar | |
+range | 6-8 cups water | 6 | 8 | cup | water | |
+range | 2-3 Tbsp lemon juice | 2 | 3 | tbsp | lemon juice | |
+range | 1 to 2 teaspoons sriracha | 1 | 2 | tsp | sriracha | |
+range | 3 - 4 cups cooked rice | 3 | 4 | cup | rice | | state=cooked
+range | 8 to 10 chicken drumsticks | 8 | 10 | | chicken drumsticks | |
+package | 1 (15 oz) can black beans | 1 | | can | black beans | | note=15 oz
+package | 1 (15-ounce) can chickpeas, drained and rinsed | 1 | | can | chickpeas | drained and rinsed | note=15-ounce
+package | 2 (14.5 oz) cans diced tomatoes | 2 | | can | tomatoes | diced | note=14.5 oz
+package | 1 (8 oz) package cream cheese, softened | 1 | | package | cream cheese | softened | note=8 oz
+package | 1 (28-ounce) can crushed tomatoes | 1 | | can | tomatoes | crushed | note=28-ounce
+package | 1 (10 ounce) bag frozen spinach | 1 | | bag | spinach | | note=10 ounce; state=frozen
+package | 2 (6 oz) cans tomato paste | 2 | | can | tomato paste | | note=6 oz
+package | 1 (16 oz) box spaghetti | 1 | | box | spaghetti | | note=16 oz
+package | 1 (12 ounce) bottle beer | 1 | | bottle | beer | | note=12 ounce
+package | 1 (0.25 ounce) envelope active dry yeast | 1 | | envelope | active dry yeast | | note=0.25 ounce
+package | 1 (13.5 oz) can coconut milk | 1 | | can | coconut milk | | note=13.5 oz
+package | 1 (4 oz) can diced green chiles | 1 | | can | green chiles | diced | note=4 oz
+package | 1 8-ounce package cream cheese | 1 | | package | cream cheese | | note=8-ounce
+package | 2 15-ounce cans pinto beans, drained | 2 | | can | pinto beans | drained | note=15-ounce
+package | 1 can (15 oz) tomato sauce | 1 | | can | tomato sauce | | note=15 oz
+package | 1 package (8 oz) mushrooms, sliced | 1 | | package | mushrooms | sliced | note=8 oz
+package | 1 can (14 ounces) sweetened condensed milk | 1 | | can | sweetened condensed milk | | note=14 ounces
+package | 1 jar (24 oz) marinara sauce | 1 | | jar | marinara sauce | | note=24 oz
+package | 1 can tomato soup | 1 | | can | tomato soup | |
+package | 2 cans kidney beans | 2 | | can | kidney beans | |
+package | 1 package dry ranch dressing mix | 1 | | package | dry ranch dressing mix | |
+package | 1 packet taco seasoning | 1 | | package | taco seasoning | |
+package | 1 box yellow cake mix | 1 | | box | yellow cake mix | |
+package | 1 jar salsa | 1 | | jar | salsa | |
+package | 1 bag tortilla chips | 1 | | bag | tortilla chips | |
+package | 1 container whipped topping, thawed | 1 | | container | whipped topping | thawed |
+package | 1 pkg. instant vanilla pudding | 1 | | package | instant vanilla pudding | |
+package | 2 pkgs active dry yeast | 2 | | package | active dry yeast | |
+package | 1 (9-inch) unbaked pie crust | 1 | | | unbaked pie crust | | note=9-inch
+package | 1 (3 lb) whole chicken | 1 | | | whole chicken | | note=3 lb
+package | 1 (2 pound) pork tenderloin | 1 | | | pork tenderloin | | note=2 pound
+package | 1 (14 oz) package extra-firm tofu, drained | 1 | | package | extra-firm tofu | drained | note=14 oz
+package | 1 (15.25 oz) can whole kernel corn, drained | 1 | | can | whole kernel corn | drained | note=15.25 oz
+package | 1 (10.75 ounce) can cream of mushroom soup | 1 | | can | cream of mushroom soup | | note=10.75 ounce
+package | 2 (8 ounce) packages cream cheese | 2 | | package | cream cheese | | note=8 ounce
+package | 1 (16 ounce) container sour cream | 1 | | container | sour cream | | note=16 ounce
+package | 1 (12 oz) bag chocolate chips | 1 | | bag | chocolate chips | | note=12 oz
+package | 3 (6 ounce) salmon fillets | 3 | | | salmon fillets | | note=6 ounce
+package | 4 (4 ounce) boneless pork chops | 4 | | | boneless pork chops | | note=4 ounce
+package | 1 (1 ounce) packet onion soup mix | 1 | | package | onion soup mix | | note=1 ounce
+prep | 1 onion, chopped | 1 | | | onion | chopped |
+prep | 2 carrots, peeled and diced | 2 | | | carrots | peeled and diced |
+prep | 3 cloves garlic, minced | 3 | | clove | garlic | minced |
+prep | 1 cup flour, sifted | 1 | | cup | flour | sifted |
+prep | 2 eggs, beaten | 2 | | | eggs | beaten |
+prep | 1 red bell pepper, seeded and chopped | 1 | | | red bell pepper | seeded and chopped |
+prep | 2 celery stalks, thinly sliced | 2 | | | celery stalks | thinly sliced |
+prep | 1 lb chicken breast, cut into 1-inch pieces | 1 | | lb | chicken breast | cut into 1-inch pieces |
+prep | 1/2 cup butter, melted | 0.5 | | cup | butter | melted |
+prep | 1 cup butter, softened | 1 | | cup | butter | softened |
+prep | 1/2 cup butter, at room temperature | 0.5 | | cup | butter | at room temperature |
+prep | 2 tomatoes, seeded and diced | 2 | | | tomatoes | seeded and diced |
+prep | 1 cucumber, peeled and sliced | 1 | | | cucumber | peeled and sliced |
+prep | 1 lemon, zested and juiced | 1 | | | lemon | zested and juiced |
+prep | 1 avocado, pitted and cubed | 1 | | | avocado | pitted and cubed |
+prep | 2 potatoes, peeled and cut into chunks | 2 | | | potatoes | peeled and cut into chunks |
+prep | 1 bunch kale, stems removed | 1 | | bunch | kale | stems removed |
+prep | 1 head broccoli, cut into florets | 1 | | head | broccoli | cut into florets |
+prep | 1 small onion, finely diced | 1 | | | small onion | finely diced |
+prep | 1 large carrot, grated | 1 | | | large carrot | grated |
+prep | 1 jalapeño, seeded and minced | 1 | | | jalapeño | seeded and minced |
+prep | 8 oz mushrooms, sliced | 8 | | oz | mushrooms | sliced |
+prep | 1 lb asparagus, trimmed | 1 | | lb | asparagus | trimmed |
+prep | 1 cup pecans, toasted and chopped | 1 | | cup | pecans | toasted and chopped |
+prep | 2 cups cheddar cheese, shredded | 2 | | cup | cheddar cheese | shredded |
+prep | 1/4 cup fresh basil, chopped | 0.25 | | cup | fresh basil | chopped |
+prep | 2 tablespoons fresh parsley, finely chopped | 2 | | tbsp | fresh parsley | finely chopped |
+prep | 1 tbsp ginger, peeled and grated | 1 | | tbsp | ginger | peeled and grated |
+prep | 1 lb shrimp, peeled and deveined | 1 | | lb | shrimp | peeled and deveined |
+prep | 4 slices bacon, chopped | 4 | | slice | bacon | chopped |
+prep | 1 shallot, minced | 1 | | | shallot | minced |
+prep | 2 leeks, white parts only, sliced | 2 | | | leeks | white parts only, sliced |
+prep | 1 zucchini, halved and sliced | 1 | | | zucchini | halved and sliced |
+prep | 1 apple, cored and diced | 1 | | | apple | cored and diced |
+prep | 3 cups bread, cubed | 3 | | cup | bread | cubed |
+prep | 1 cup cream cheese, softened | 1 | | cup | cream cheese | softened |
+prep | 2 sticks butter, cold and cubed | 2 | | stick | butter | cold and cubed |
+prep | 1 lb ground turkey, browned | 1 | | lb | ground turkey | browned |
+prep | 1 cup chickpeas, rinsed and drained | 1 | | cup | chickpeas | rinsed and drained |
+prep | 1 mango, peeled and diced | 1 | | | mango | peeled and diced |
+prep | 1 cup strawberries, hulled and sliced | 1 | | cup | strawberries | hulled and sliced |
+prep | 2 tbsp butter, cut into pieces | 2 | | tbsp | butter | cut into pieces |
+prep | 1 egg, lightly beaten | 1 | | | egg | lightly beaten |
+prep | 2 egg whites, stiffly beaten | 2 | | | egg whites | stiffly beaten |
+prep | 1 cup milk, warmed | 1 | | cup | milk | warmed |
+prep | 1/2 cup walnuts, roughly chopped | 0.5 | | cup | walnuts | roughly chopped |
+prep | 1 red onion, thinly sliced into rings | 1 | | | red onion | thinly sliced into rings |
+prep | 3 green onions, sliced, white and green parts separated | 3 | | | green onions | sliced, white and green parts separated |
+prep | 1 lb beef sirloin, sliced against the grain | 1 | | lb | beef sirloin | sliced against the grain |
+prep | 1 cup frozen berries, thawed | 1 | | cup | berries | thawed | state=frozen
+prep | 1 cup chopped onion, divided | 1 | | cup | onion | chopped | note=divided
+prep | 1/2 cup sugar, divided | 0.5 | | cup | sugar | | note=divided
+prep | 2 tbsp olive oil, divided | 2 | | tbsp | olive oil | | note=divided
+prep | 1 cup grated Parmesan, divided | 1 | | cup | Parmesan | grated | note=divided
+prep | 4 eggs, at room temperature | 4 | | | eggs | at room temperature |
+prep | 2 ripe bananas, mashed | 2 | | | ripe bananas | mashed |
+prep | 1 lb Brussels sprouts, trimmed and halved | 1 | | lb | Brussels sprouts | trimmed and halved |
+prep | 1 eggplant, cut into 1/2-inch rounds | 1 | | | eggplant | cut into 1/2-inch rounds |
+prep | 6 oz baby spinach, roughly chopped | 6 | | oz | baby spinach | roughly chopped |
+prep | 2 cups cooked chicken, shredded | 2 | | cup | chicken | shredded | state=cooked
+prep | 1 cup dried cranberries, chopped | 1 | | cup | dried cranberries | chopped |
+prep | 1 fennel bulb, cored and thinly sliced | 1 | | | fennel bulb | cored and thinly sliced |
+optional | 1/2 cup walnuts (optional) | 0.5 | | cup | walnuts | | opt
+optional | 1 tsp cayenne pepper (optional) | 1 | | tsp | cayenne pepper | | opt
+optional | 1 cup raisins, optional | 1 | | cup | raisins | | opt
+optional | 2 tbsp fresh cilantro, chopped (optional) | 2 | | tbsp | fresh cilantro | chopped | opt
+optional | 1/4 cup chopped pecans, optional | 0.25 | | cup | pecans | chopped | opt
+optional | Optional: 1 cup chocolate chips | 1 | | cup | chocolate chips | | opt
+optional | optional: 1/2 tsp almond extract | 0.5 | | tsp | almond extract | | opt
+optional | 1 jalapeño, minced (optional) | 1 | | | jalapeño | minced | opt
+optional | 1 tbsp sugar (optional) | 1 | | tbsp | sugar | | opt
+optional | 1/2 cup shredded coconut (optional) | 0.5 | | cup | coconut | shredded | opt
+optional | 2 slices bacon, cooked and crumbled (optional) | 2 | | slice | bacon | cooked and crumbled | opt
+optional | 1 tsp lemon zest (optional) | 1 | | tsp | lemon zest | | opt
+optional | 1/4 tsp red pepper flakes, optional | 0.25 | | tsp | red pepper flakes | | opt
+optional | 1 cup frozen peas (optional) | 1 | | cup | peas | | opt; state=frozen
+optional | 2 tbsp capers, drained (optional) | 2 | | tbsp | capers | drained | opt
+optional | 1/2 cup sliced black olives (optional) | 0.5 | | cup | black olives | sliced | opt
+optional | 1 tbsp fresh dill (optional) | 1 | | tbsp | fresh dill | | opt
+optional | 1/4 cup toasted sesame seeds (optional) | 0.25 | | cup | sesame seeds | toasted | opt
+optional | 1 avocado, sliced, optional | 1 | | | avocado | sliced | opt
+optional | 1 tsp vanilla extract (optional) | 1 | | tsp | vanilla extract | | opt
+optional | 1/2 cup heavy cream (optional) | 0.5 | | cup | heavy cream | | opt
+optional | 1 pinch saffron (optional) | 1 | | pinch | saffron | | opt
+optional | 2 tbsp butter, for serving (optional) | 2 | | tbsp | butter | | opt; note=for serving
+optional | 1/4 cup golden raisins (optional) | 0.25 | | cup | golden raisins | | opt
+optional | 1 tsp instant coffee (optional) | 1 | | tsp | instant coffee | | opt
+vague | salt to taste | | | | salt | | note=to taste
+vague | Salt and pepper to taste | | | | Salt and pepper | | note=to taste
+vague | salt, to taste | | | | salt | | note=to taste
+vague | freshly ground black pepper, to taste | | | | black pepper | freshly ground | note=to taste
+vague | 1 pinch salt | 1 | | pinch | salt | |
+vague | a pinch of salt | 1 | | pinch | salt | |
+vague | A pinch of nutmeg | 1 | | pinch | nutmeg | |
+vague | pinch of cayenne | | | pinch | cayenne | |
+vague | 1 dash hot sauce | 1 | | dash | hot sauce | |
+vague | a dash of Worcestershire sauce | 1 | | dash | Worcestershire sauce | |
+vague | 2 dashes bitters | 2 | | dash | bitters | |
+vague | 1 smidgen cinnamon | 1 | | smidgen | cinnamon | |
+vague | 3 drops food coloring | 3 | | drop | food coloring | |
+vague | a handful of fresh basil | 1 | | handful | fresh basil | |
+vague | 1 handful spinach | 1 | | handful | spinach | |
+vague | 2 pinches red pepper flakes | 2 | | pinch | red pepper flakes | |
+vague | sugar to taste | | | | sugar | | note=to taste
+vague | lemon juice, to taste | | | | lemon juice | | note=to taste
+vague | hot sauce, to taste | | | | hot sauce | | note=to taste
+vague | kosher salt and freshly ground pepper, to taste | | | | kosher salt and freshly ground pepper | | note=to taste
+vague | 1/2 tsp salt, or to taste | 0.5 | | tsp | salt | | note=or to taste
+vague | 1 tsp sugar, or more to taste | 1 | | tsp | sugar | | note=or more to taste
+vague | 2 tbsp honey, or to taste | 2 | | tbsp | honey | | note=or to taste
+vague | water as needed | | | | water | | note=as needed
+vague | flour, as needed | | | | flour | | note=as needed
+vague | 1 cup broth, plus more as needed | 1 | | cup | broth | | note=plus more as needed
+vague | 1/4 cup flour, plus more for dusting | 0.25 | | cup | flour | | note=plus more for dusting
+vague | 2 tbsp olive oil, plus more for drizzling | 2 | | tbsp | olive oil | | note=plus more for drizzling
+vague | oil for frying | | | | oil | | note=for frying
+vague | vegetable oil, for frying | | | | vegetable oil | | note=for frying
+vague | powdered sugar for dusting | | | | powdered sugar | | note=for dusting
+vague | fresh parsley for garnish | | | | fresh parsley | | note=for garnish
+vague | lime wedges, for serving | | | | lime wedges | | note=for serving
+vague | sour cream, for serving | | | | sour cream | | note=for serving
+vague | chopped cilantro, for garnish | | | | cilantro | chopped | note=for garnish
+vague | butter for greasing | | | | butter | | note=for greasing
+vague | cooking spray | | | | cooking spray | |
+vague | nonstick cooking spray | | | | nonstick cooking spray | |
+vague | ice | | | | ice | |
+vague | 1 pinch kosher salt | 1 | | pinch | kosher salt | |
+vague | a few dashes of hot sauce | | | dash | hot sauce | | note=a few
+vague | 1 tsp salt, divided | 1 | | tsp | salt | | note=divided
+vague | salt and freshly ground black pepper | | | | salt and freshly ground black pepper | |
+metric | 200 g flour | 200 | | g | flour | |
+metric | 250g butter | 250 | | g | butter | |
+metric | 500 g minced beef | 500 | | g | minced beef | |
+metric | 1 kg potatoes | 1 | | kg | potatoes | |
+metric | 1.5kg chicken | 1.5 | | kg | chicken | |
+metric | 100 ml milk | 100 | | ml | milk | |
+metric | 250ml water | 250 | | ml | water | |
+metric | 1 l chicken stock | 1 | | l | chicken stock | |
+metric | 1 litre water | 1 | | l | water | |
+metric | 1.5 liters vegetable broth | 1.5 | | l | vegetable broth | |
+metric | 400 g canned tomatoes | 400 | | g | canned tomatoes | |
+metric | 150 g caster sugar | 150 | | g | caster sugar | |
+metric | 75 g unsalted butter, softened | 75 | | g | unsalted butter | softened |
+metric | 300 g plain flour, sifted | 300 | | g | plain flour | sifted |
+metric | 2 tbsp olive oil (30 ml) | 2 | | tbsp | olive oil | | note=30 ml
+metric | 200 g (1 cup) sugar | 200 | | g | sugar | | note=1 cup
+metric | 120 g (1 cup) all-purpose flour | 120 | | g | all-purpose flour | | note=1 cup
+metric | 1 cup (240 ml) milk | 1 | | cup | milk | | note=240 ml
+metric | 1 cup (125 g) flour | 1 | | cup | flour | | note=125 g
+metric | 1/2 cup (113 g) butter, melted | 0.5 | | cup | butter | melted | note=113 g
+metric | 2 cups (480 ml) chicken broth | 2 | | cup | chicken broth | | note=480 ml
+metric | 1 lb (450 g) ground beef | 1 | | lb | ground beef | | note=450 g
+metric | 50 g dark chocolate, chopped | 50 | | g | dark chocolate | chopped |
+metric | 10 g fresh yeast | 10 | | g | fresh yeast | |
+metric | 5 g salt | 5 | | g | salt | |
+metric | 750 ml red wine | 750 | | ml | red wine | |
+metric | 2 kg pork belly | 2 | | kg | pork belly | |
+metric | 300ml double cream | 300 | | ml | double cream | |
+metric | 100g ground almonds | 100 | | g | ground almonds | |
+metric | 25 g grated parmesan | 25 | | g | parmesan | grated |
+metric | 60 ml lemon juice | 60 | | ml | lemon juice | |
+metric | 500ml milk | 500 | | ml | milk | |
+metric | 1.2 kg lamb shoulder | 1.2 | | kg | lamb shoulder | |
+metric | 15 ml soy sauce | 15 | | ml | soy sauce | |
+metric | 225g cream cheese | 225 | | g | cream cheese | |
+metric | 180 g dark brown sugar | 180 | | g | dark brown sugar | |
+metric | 1 kilogram tomatoes | 1 | | kg | tomatoes | |
+metric | 400 grams pasta | 400 | | g | pasta | |
+metric | 250 millilitres stock | 250 | | ml | stock | |
+metric | 30 g butter, cubed | 30 | | g | butter | cubed |
+metric | 2lb chicken wings | 2 | | lb | chicken wings | |
+metric | 8oz cheddar | 8 | | oz | cheddar | |
+metric | 12 fl oz beer | 12 | | floz | beer | |
+metric | 8 fluid ounces orange juice | 8 | | floz | orange juice | |
+metric | 4 fl. oz. heavy cream | 4 | | floz | heavy cream | |
+count | 2 eggs | 2 | | | eggs | |
+count | 3 large eggs | 3 | | | large eggs | |
+count | 1 egg yolk | 1 | | | egg yolk | |
+count | 4 egg whites | 4 | | | egg whites | |
+count | 1 onion | 1 | | | onion | |
+count | 2 medium onions | 2 | | | medium onions | |
+count | 1 large yellow onion | 1 | | | large yellow onion | |
+count | 3 carrots | 3 | | | carrots | |
+count | 2 lemons | 2 | | | lemons | |
+count | 1 lime | 1 | | | lime | |
+count | 4 chicken breasts | 4 | | | chicken breasts | |
+count | 6 chicken thighs | 6 | | | chicken thighs | |
+count | 12 corn tortillas | 12 | | | corn tortillas | |
+count | 8 flour tortillas | 8 | | | flour tortillas | |
+count | 1 bay leaf | 1 | | | bay leaf | |
+count | 2 bay leaves | 2 | | | bay leaves | |
+count | 4 cloves garlic | 4 | | clove | garlic | |
+count | 6 garlic cloves | 6 | | | garlic cloves | |
+count | 1 clove garlic, crushed | 1 | | clove | garlic | crushed |
+count | 2 sticks unsalted butter | 2 | | stick | unsalted butter | |
+count | 1 stick butter, melted | 1 | | stick | butter | melted |
+count | 3 slices bread | 3 | | slice | bread | |
+count | 8 slices bacon | 8 | | slice | bacon | |
+count | 4 slices Swiss cheese | 4 | | slice | Swiss cheese | |
+count | 2 sprigs fresh thyme | 2 | | sprig | fresh thyme | |
+count | 1 sprig rosemary | 1 | | sprig | rosemary | |
+count | 1 bunch cilantro | 1 | | bunch | cilantro | |
+count | 1 bunch green onions | 1 | | bunch | green onions | |
+count | 1 head garlic | 1 | | head | garlic | |
+count | 1 head romaine lettuce | 1 | | head | romaine lettuce | |
+count | 2 stalks celery | 2 | | stalk | celery | |
+count | 1 stalk lemongrass | 1 | | stalk | lemongrass | |
+count | 4 pieces salmon | 4 | | piece | salmon | |
+count | 2 avocados | 2 | | | avocados | |
+count | 3 ripe bananas | 3 | | | ripe bananas | |
+count | 6 Roma tomatoes | 6 | | | Roma tomatoes | |
+count | 1 green bell pepper | 1 | | | green bell pepper | |
+count | 2 jalapeños | 2 | | | jalapeños | |
+count | 1 cinnamon stick | 1 | | | cinnamon stick | |
+count | 2 star anise | 2 | | | star anise | |
+count | 1 vanilla bean | 1 | | | vanilla bean | |
+count | 4 hamburger buns | 4 | | | hamburger buns | |
+count | 1 baguette | 1 | | | baguette | |
+count | 2 sweet potatoes | 2 | | | sweet potatoes | |
+count | 1 whole chicken | 1 | | | whole chicken | |
+count | one onion | 1 | | | onion | |
+count | two eggs | 2 | | | eggs | |
+count | three cloves garlic | 3 | | clove | garlic | |
+count | an egg | 1 | | | egg | |
+count | a lemon | 1 | | | lemon | |
+count | 1 egg | 1 | | | egg | |
+count | 10 large shrimp | 10 | | | large shrimp | |
+count | 4 English muffins | 4 | | | English muffins | |
+count | 2 portobello mushrooms | 2 | | | portobello mushrooms | |
+count | 1 small head cauliflower | 1 | | | small head cauliflower | |
+count | 6 large egg yolks | 6 | | | large egg yolks | |
+count | 24 Oreo cookies | 24 | | | Oreo cookies | |
+count | 12 graham crackers | 12 | | | graham crackers | |
+count | 1 pie crust | 1 | | | pie crust | |
+count | 2 pears | 2 | | | pears | |
+count | 3 Granny Smith apples | 3 | | | Granny Smith apples | |
+noqty | Salt | | | | Salt | |
+noqty | Black pepper | | | | Black pepper | |
+noqty | Fresh parsley, chopped | | | | Fresh parsley | chopped |
+noqty | Grated Parmesan | | | | Parmesan | grated |
+noqty | Lemon wedges | | | | Lemon wedges | |
+noqty | Crushed red pepper | | | | red pepper | crushed |
+noqty | Olive oil | | | | Olive oil | |
+noqty | Sesame seeds | | | | Sesame seeds | |
+noqty | Maple syrup | | | | Maple syrup | |
+noqty | Whipped cream | | | | Whipped cream | |
+noqty | Fresh berries | | | | Fresh berries | |
+noqty | Tortilla chips | | | | Tortilla chips | |
+noqty | Sliced green onions | | | | green onions | sliced |
+noqty | Shredded lettuce | | | | lettuce | shredded |
+noqty | Hot cooked rice | | | | Hot cooked rice | |
+noqty | Crusty bread | | | | Crusty bread | |
+noqty | Ice cream | | | | Ice cream | |
+noqty | Toasted pine nuts | | | | pine nuts | toasted |
+noqty | Microgreens | | | | Microgreens | |
+noqty | Sea salt flakes | | | | Sea salt flakes | |
+noqty | Chopped fresh chives | | | | fresh chives | chopped |
+noqty | Avocado, sliced | | | | Avocado | sliced |
+noqty | Pickled red onions | | | | Pickled red onions | |
+noqty | Water | | | | Water | |
+noqty | Cornstarch slurry | | | | Cornstarch slurry | |
+compound | 1 cup plus 2 tablespoons flour | 1 | | cup | flour | | note=plus 2 tablespoons
+compound | 1/2 cup plus 2 tbsp sugar | 0.5 | | cup | sugar | | note=plus 2 tbsp
+compound | 2 cups plus 1 tablespoon milk | 2 | | cup | milk | | note=plus 1 tablespoon
+compound | 1 tbsp plus 1 tsp lemon juice | 1 | | tbsp | lemon juice | | note=plus 1 tsp
+compound | 1 cup + 2 tbsp water | 1 | | cup | water | | note=plus 2 tbsp
+compound | 1 cup butter (2 sticks), softened | 1 | | cup | butter | softened | note=2 sticks
+compound | 1 cup (2 sticks) butter, softened | 1 | | cup | butter | softened | note=2 sticks
+compound | 2 cups (about 8 oz) shredded cheddar | 2 | | cup | cheddar | shredded | note=about 8 oz
+compound | 1 lb (about 4 cups) cauliflower florets | 1 | | lb | cauliflower florets | | note=about 4 cups
+compound | 3 cups (12 oz) fresh cranberries | 3 | | cup | fresh cranberries | | note=12 oz
+compound | 4 oz feta (about 1 cup), crumbled | 4 | | oz | feta | crumbled | note=about 1 cup
+compound | 1 medium onion (about 1 cup), chopped | 1 | | | medium onion | chopped | note=about 1 cup
+compound | 2 large lemons (about 1/2 cup juice) | 2 | | | large lemons | | note=about 1/2 cup juice
+compound | 3 garlic cloves, minced (about 1 tablespoon) | 3 | | | garlic cloves | minced | note=about 1 tablespoon
+compound | 1 cup butter or margarine | 1 | | cup | butter or margarine | |
+compound | 1/2 cup chicken or vegetable broth | 0.5 | | cup | chicken or vegetable broth | |
+compound | 2 tbsp fresh or 2 tsp dried thyme | 2 | | tbsp | fresh or 2 tsp dried thyme | |
+compound | 1 cup sour cream or plain Greek yogurt | 1 | | cup | sour cream or plain Greek yogurt | |
+compound | 1 lb boneless chicken thighs or breasts | 1 | | lb | boneless chicken thighs or breasts | |
+compound | 1/4 cup fresh lemon juice (from 2 lemons) | 0.25 | | cup | fresh lemon juice | | note=from 2 lemons
+compound | 1 tsp lemon zest (from 1 lemon) | 1 | | tsp | lemon zest | | note=from 1 lemon
+compound | 2 cups cooked rice (from 2/3 cup uncooked) | 2 | | cup | rice | | state=cooked; note=from 2/3 cup uncooked
+compound | 1 cup chopped onion (1 medium) | 1 | | cup | onion | chopped | note=1 medium
+compound | 1 1/2 cups milk, warmed (110°F) | 1.5 | | cup | milk | warmed | note=110°F
+compound | 1 cup water, at 100°F | 1 | | cup | water | at 100°F |
+compound | 2 cups (16 oz) ricotta | 2 | | cup | ricotta | | note=16 oz
+compound | 1 1/2 cups (6 ounces) shredded Gruyère | 1.5 | | cup | Gruyère | shredded | note=6 ounces
+compound | 1 (14 oz) can (about 1 1/2 cups) black beans | 1 | | can | black beans | | note=14 oz; note=about 1 1/2 cups
+compound | - 2 cups flour | 2 | | cup | flour | |
+compound | • 1 tsp salt | 1 | | tsp | salt | |
+compound | * 3 eggs | 3 | | | eggs | |
+compound | 1 cup all purpose flour | 1 | | cup | all purpose flour | |
+compound | 2 Tablespoons Butter | 2 | | tbsp | Butter | |
+compound | 1 TBSP soy sauce | 1 | | tbsp | soy sauce | |
+compound | 1 TSP salt | 1 | | tsp | salt | |
+compound | 1 Cup Sugar | 1 | | cup | Sugar | |
+compound | 2 c flour | 2 | | cup | flour | |
+compound | 1 tsp. pure vanilla extract. | 1 | | tsp | pure vanilla extract | |
+compound | 3 tbs. sugar | 3 | | tbsp | sugar | |
+compound | 1 tbl butter | 1 | | tbsp | butter | |
+compound | 2 lb. 80/20 ground beef | 2 | | lb | 80/20 ground beef | |
+compound | 1 cup 2% milk | 1 | | cup | 2% milk | |
+compound | 1 (12-inch) pizza crust | 1 | | | pizza crust | | note=12-inch
+compound | 2 cups  milk | 2 | | cup | milk | |
+compound | 1 cup sugar  | 1 | | cup | sugar | |
+compound | 1 lb. lean ground beef (90% lean) | 1 | | lb | lean ground beef | | note=90% lean
+compound | 4 boneless, skinless chicken breasts | 4 | | | boneless, skinless chicken breasts | |
