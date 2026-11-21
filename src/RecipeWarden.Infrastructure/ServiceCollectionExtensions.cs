@@ -62,6 +62,7 @@ public static class ServiceCollectionExtensions
         o.Lockout.AllowedForNewUsers = true;
 
         o.User.RequireUniqueEmail = true;
+        o.User.AllowedUserNameCharacters = AccountRules.UserNameCharacters; // FR-INST-04: the email is the user name
         o.SignIn.RequireConfirmedAccount = false; // SEC-05: accounts are created by an Admin, not self sign-up
     }
 }

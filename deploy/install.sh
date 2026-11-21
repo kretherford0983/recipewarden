@@ -159,8 +159,8 @@ parse_args() {
   [[ -z $allowed_ips ]] || validate_list --allowed-ips "$allowed_ips" is_ipv4_or_cidr
   [[ -z $data_dir ]] || is_safe_path "$data_dir" || die $EXIT_USAGE "--data-dir must be an absolute path without special characters"
   [[ -z $backup_dir ]] || is_safe_path "$backup_dir" || die $EXIT_USAGE "--backup-dir must be an absolute path without special characters"
-  [[ -z $admin_email || $admin_email =~ ^[^[:space:]@\"\']+@[^[:space:]@\"\']+\.[^[:space:]@\"\']+$ ]] \
-    || die $EXIT_USAGE "--admin-email is not a valid email address"
+  [[ -z $admin_email ]] || valid_email "$admin_email" \
+    || die $EXIT_USAGE "--admin-email is not a valid email address (letters, digits and . _ + - before the @; a domain such as example.com after it)"
   [[ -z $admin_password_file || -r $admin_password_file ]] || die $EXIT_USAGE "--admin-password-file: cannot read $admin_password_file"
   (( purge == 0 )) || [[ $mode == uninstall ]] || die $EXIT_USAGE "--purge is only valid with --uninstall"
   (( framework_dependent == 0 )) || die $EXIT_NOT_IMPLEMENTED "--framework-dependent is not available yet (self-contained builds only, D-05)"
@@ -444,6 +444,17 @@ snapshot_data() {
   cp -a "$db" "$snap/"
 }
 
+# AC-100: the same rule as AccountRules.ValidateEmail in Core (the email is also the user name).
+valid_email() {
+  local e=$1 local_part domain
+  (( ${#e} <= 254 )) || return 1
+  [[ $e =~ ^([A-Za-z0-9._+-]+)@([A-Za-z0-9.-]+)$ ]] || return 1
+  local_part=${BASH_REMATCH[1]}; domain=${BASH_REMATCH[2]}
+  (( ${#local_part} <= 64 )) || return 1
+  [[ $local_part != .* && $local_part != *. && $local_part != *..* ]] || return 1
+  [[ $domain =~ ^([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$ ]]
+}
+
 create_admin() {
   [[ $is_upgrade == 0 ]] || return 0
   if [[ -z $admin_email ]]; then
@@ -455,7 +466,7 @@ create_admin() {
       log "No Admin account created. Create one later with:  sudo $APP admin create --email you@example.com"
       return 0
     fi
-    [[ $admin_email =~ ^[^[:space:]@\"\']+@[^[:space:]@\"\']+\.[^[:space:]@\"\']+$ ]] \
+    valid_email "$admin_email" \
       || { warn "'$admin_email' is not a valid email; create the Admin later with: sudo $APP admin create --email ..."; return 0; }
   fi
   step "creating Admin account $admin_email"

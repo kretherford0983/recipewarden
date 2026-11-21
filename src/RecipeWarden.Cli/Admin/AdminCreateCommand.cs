@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using RecipeWarden.Core.Security;
 using RecipeWarden.Infrastructure;
 using RecipeWarden.Infrastructure.Data;
 using RecipeWarden.Infrastructure.Identity;
@@ -10,8 +11,23 @@ namespace RecipeWarden.Cli.Admin;
 /// <summary>FR-INST-04, SEC-05: create an Admin account from the server shell.</summary>
 internal static class AdminCreateCommand
 {
-    public static async Task<int> RunAsync(IConfiguration config, string email, string password, TextWriter output, TextWriter error, CancellationToken cancellationToken)
+    public static Task<int> RunAsync(IConfiguration config, string email, string password, TextWriter output, TextWriter error, CancellationToken cancellationToken) =>
+        RunAsync(config, email, () => password, output, error, cancellationToken);
+
+    /// <summary>
+    /// AC-100: the email is checked (format, then whether an account already has it) before
+    /// <paramref name="readPassword"/> is called, so nobody types a password for an address that will be refused.
+    /// </summary>
+    public static async Task<int> RunAsync(IConfiguration config, string email, Func<string> readPassword, TextWriter output, TextWriter error, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(readPassword);
+
+        if (AccountRules.ValidateEmail(email) is { } invalid)
+        {
+            await error.WriteLineAsync($"error: {invalid}");
+            return 1;
+        }
+
         var services = new ServiceCollection();
         services.AddLogging(b => b.SetMinimumLevel(LogLevel.Warning));
         services.AddRecipeWardenData(config);
@@ -20,8 +36,10 @@ internal static class AdminCreateCommand
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
         await scope.ServiceProvider.GetRequiredService<DatabaseInitializer>().InitializeAsync(cancellationToken);
+        var accounts = scope.ServiceProvider.GetRequiredService<UserAdminService>();
 
-        var result = await scope.ServiceProvider.GetRequiredService<UserAdminService>().CreateAdminAsync(email, password);
+        var check = await accounts.CheckNewAdminEmailAsync(email);
+        var result = check.Succeeded ? await accounts.CreateAdminAsync(email, readPassword()) : check;
         if (!result.Succeeded)
         {
             foreach (var e in result.Errors)

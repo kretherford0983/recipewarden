@@ -1,6 +1,6 @@
 # RecipeWarden — requirements traceability
 
-Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.9. Keep in step with the spec and the test suite.
+Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.10. Keep in step with the spec and the test suite.
 
 Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and tagged with `[Trait("Req", "FR-SCL-01")]`, so CI can print coverage per requirement and fail if any Must requirement has no test.
 
@@ -76,7 +76,7 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | NFR-06 | Gates in place (ADR 0003); parallel runs (ADR 0006) | `build/test.sh`, `tests/xunit.runner.json`, `tests/Shared/TestDatabaseTemplate.cs` | CI |
 | NFR-07 (WAL part) | Done | `DatabaseInitializer`, `SqlitePragmaInterceptor` | Infra.Tests `NFR_07_SqliteConventionsTests` |
 | NFR-08 | Done | `Directory.Build.props`, `Directory.Packages.props` | build |
-| FR-INST-04 | CLI `admin create` done; installer prompt in M7 | `UserAdminService`, `AdminCreateCommand` | Infra.Tests `SEC_05_UserAdminServiceTests`; Cli.Tests `CliCommandTests` |
+| FR-INST-04 / AC-100 | CLI `admin create` done (email checked before the password prompt, 2026-11-21); installer prompt in M7 | `AccountRules.ValidateEmail` (Core), `UserAdminService.CheckNewAdminEmailAsync`, `AdminCreateCommand`, `valid_email` in install.sh | Core.Tests `FR_INST_04_EmailRulesTests`; Infra.Tests `SEC_05_UserAdminServiceTests`; Cli.Tests `CliCommandTests`; installer `test-install.sh` |
 | FR-BKP-08 | Validation rules done | `BackupFolderPolicy` (Core) | Core.Tests `FR_BKP_08_BackupFolderPolicyTests` |
 | FR-BKP-09 / AC-86 | Done except audit to `AuditEntry` (prints an audit line until FR-ADM-01, M7) | `ApplyConfigRunner`, `BackupFoldersDropIn` | Core.Tests `FR_BKP_09_DropInTests`; Cli.Tests `FR_BKP_09_ApplyConfigTests`, `HostFileSystemTests`, `HostAdapterTests` |
 | FR-INST-01/02/04, AC-90, AC-91 | One-command install done (ADR 0007): download + checksum, user/dirs, unit, network.json, first Admin; firewall rules and `/setup` token in M7 | `deploy/install.sh`, `deploy/recipewarden.service`, `/usr/local/bin/recipewarden` wrapper | `tests/installer/test-install.sh` (Debian 12/13, Ubuntu 22.04/24.04/26.04), `tests/installer/test-install-systemd.sh` |

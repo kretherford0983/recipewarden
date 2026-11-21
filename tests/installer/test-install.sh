@@ -70,6 +70,9 @@ run 1 "absolute path" "relative data dir is rejected" -- bash "$installer" --dat
 # shellcheck disable=SC2016  # the literal $(id) is the point of the test
 run 1 "absolute path" "data dir with \$ is rejected" -- bash "$installer" --data-dir '/srv/$(id)'
 run 1 "not a valid email" "bad admin email is rejected" -- bash "$installer" --admin-email 'x;id'
+run 1 "not a valid email" "admin email with # after the @ is rejected (AC-100)" -- bash "$installer" --admin-email 'first.last@#example.com'
+run 1 "not a valid email" "admin email without a domain dot is rejected (AC-100)" -- bash "$installer" --admin-email 'name@example'
+run 1 "not a valid email" "admin email with .. is rejected (AC-100)" -- bash "$installer" --admin-email 'na..me@example.com'
 run 1 "file not found" "missing package is rejected" -- bash "$installer" --package /nope.tar.gz
 run 3 "milestone M7" "restore is not available yet" -- bash "$installer" --restore /tmp/backup.tar.gz
 

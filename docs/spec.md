@@ -1,6 +1,6 @@
-# RecipeWarden — Specification v0.9
+# RecipeWarden — Specification v0.10
 
-Version 0.9 · 2026-11-21
+Version 0.10 · 2026-11-21
 
 ## 1. Overview
 
@@ -980,7 +980,7 @@ This matrix seeds `docs/traceability.md` in the repo. Test classes are named aft
 | FR-ADM-01 | SEC-72 | AuditEntry | Web.Tests Audit | AC-74 |
 | NFR-05 | SEC-20–84 | Middleware, headers, CI checks | Web.Tests Headers, Csrf, Uploads, Ssrf; CI gates | AC-75, AC-76, AC-77 |
 | FR-BKP-01–05 | BR-60–63; SEC-54 | BackupService, BackupRecord; `/admin/backups` | Infra.Tests Backup, Retention, Restore; E2E W7 | AC-80, AC-81, AC-82 |
-| FR-INST-01–04 | SEC-60, SEC-70, SEC-71 | install.sh, unit file | Installer container tests | AC-90, AC-91, AC-92, AC-93 |
+| FR-INST-01–04 | SEC-60, SEC-70, SEC-71 | install.sh, unit file, `recipewarden admin create` | Installer container tests; Cli.Tests | AC-90, AC-91, AC-92, AC-93, AC-100 |
 | NFR-01/03/06 | — | — | Perf test (5,000 recipes); Playwright axe scan; coverage gate | AC-95, AC-96, AC-97 |
 | FR-EXP-04 to 08 | BR-90–97; BR-10 | AiExportBuilder, AI-response importer, recipe-md schema; /export-ai, /manage/import/ai-response | Importers.Tests AiExport, AiResponseImport; E2E W10 | AC-26 to AC-29 |
 | FR-BKP-06/07 | BR-62, BR-64–66; SEC-15, SEC-54 | install.sh --restore, /setup, CLI restore | Installer container tests (migration A to B); Web.Tests Setup; Cli.Tests Restore | AC-83, AC-84, AC-85 |
@@ -1095,6 +1095,7 @@ Each criterion is written Given / When / Then and becomes at least one automated
 | AC-85 | Given the service is running, when recipewarden restore \<archive> runs in the shell, then it takes a pre-restore backup, stops the service, restores, migrates, restarts, and the health check passes. An archive from a newer version is refused before any change (BR-65). |
 | AC-98 | Given an Admin opens Health, then database size, WAL size, reclaimable pages, last integrity check, volume total/used/free, space by category and last backup age are shown, and the byte figures match the filesystem within 1%. |
 | AC-99 | Given simulated free space at 15%, then status is Warning, Admins see a banner with a recommendation, and /health/ready returns 200; at 8% status is Critical and /health/ready returns 503. Given 30 days of snapshots growing 100 MB/day with 3 GB free, then the projection shows about 30 days until full. |
+| AC-100 | Given `recipewarden admin create` or the installer's `--admin-email` with an invalid email (e.g. `name@#example.com`, `name@example`, `na..me@example.com`), then it stops with a message quoting the address and the reason before asking for a password or writing anything. Given an email that already has an account (any letter case), then the CLI stops with "already exists" before asking for a password. Valid emails are plain ASCII: letters, digits and . _ + - before the @ (no leading, trailing or double dot, at most 64 characters), dot-separated labels of letters, digits and hyphens after it ending in a letters-only top-level domain, at most 254 characters in all. |
 | AC-86 | (PennyWarden AC-BKP-001 to 004) A relative path, or one under /home, /root or /run/user, makes apply-config fail with nothing changed; a missing folder is a warning and the service still starts; the drop-in has exactly one ReadWritePaths="-\<folder>" per listed folder and is removed for an empty list; if health fails after apply-config, the previous drop-in is restored. |
 | AC-87 | (AC-BKP-005, 006) Saving a schedule whose destination is not in the allowed list is refused and the saved value is always the config entry; Test on a writable listed folder succeeds and leaves no probe file; on a read-only folder it reports the OS error with the hint. |
 | AC-88 | (AC-BKP-007 to 009) An interrupted backup leaves no file with the final name; retention never deletes a file it did not write; with the marker file missing (share unmounted), the run fails and nothing is written. |
@@ -1178,6 +1179,7 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
+- v0.10 (2026-11-21): AC-100 — account emails are checked (format, then duplicates) before a password is asked for, by the CLI, the account service and the installer.
 - v0.9 (2026-11-21): servings and times accept ranges, and times accept hours (ADR 0010; BR-03, 8.2 *Max columns, FR-SRCH-02 filter on the high end). Built-in default tags (ADR 0011, FR-ORG-01).
 - v0.8 (2026-11-20): M1 scope (ADR 0009) — images move to M4 and the "free of" filter (BR-53) to M6; drafts are not public; 8.2 adds RecipeIngredient.Name, Recipe.DeletedById, RecipeSlugAlias and normalized names for tags and collections. BR-02 — slugs follow the title and old published slugs redirect (ADR 0008). BR-11 — applies to any change away from Web.
 - v0.7 (2026-11-20): NFR-02, AC-90 — Ubuntu 26.04 LTS supported (installer, container tests and a systemd test on an Ubuntu 26.04 runner).
