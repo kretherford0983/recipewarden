@@ -89,19 +89,19 @@ Scope decisions: ADR 0008 (slugs follow the title, old slugs redirect), ADR 0009
 
 | ID | Status | Implementation | Tests |
 | --- | --- | --- | --- |
-| FR-REC-01 / BR-01, BR-03, BR-04 | Planned (text fields; images M4, nutrition/allergens M6) | Recipe aggregate (8.2), `PublishRules`, `ServingsRules` | Core `BR_01_PublishRulesTests`, `BR_03_ServingsRulesTests`; Infra `FR_REC_01_RecipePersistenceTests` |
+| FR-REC-01 / BR-01, BR-03, BR-04 | Core rules done (BR-01, BR-03); persistence planned. Text fields; images M4, nutrition/allergens M6 | Recipe aggregate (8.2), `PublishRules`, `ServingsRules` | Core `BR_01_PublishRulesTests`, `BR_03_ServingsRulesTests`; Infra `FR_REC_01_RecipePersistenceTests` |
 | FR-REC-02 / AC-01, AC-02 | Planned | `/manage/recipes/new`, `/manage/recipes/{id}/edit` | Web `FR_REC_02_RecipeEditorTests`; E2E `W2_AddRecipeTests` |
-| BR-02 | Planned (ADR 0008) | `SlugRules`, `RecipeSlugAlias` | Core `BR_02_SlugRulesTests`; Infra `BR_02_SlugUniquenessTests` |
-| BR-06 | Planned | `Recipe.Version`, `RecipeDiff` | Core `BR_06_RecipeDiffTests`; Infra `BR_06_ConcurrencyTests`; Web `BR_06_EditConflictTests` |
+| BR-02 | Core rules done (ADR 0008); alias table planned | `SlugRules`, `RecipeSlugAlias` | Core `BR_02_SlugRulesTests`; Infra `BR_02_SlugUniquenessTests` |
+| BR-06 | Diff done; concurrency token planned | `Recipe.Version`, `RecipeDiff` | Core `BR_06_RecipeDiffTests`; Infra `BR_06_ConcurrencyTests`; Web `BR_06_EditConflictTests` |
 | FR-REC-03 / AC-03 | Planned | `IngredientLineParser` (Importers), `UnitCatalog` (Core) | Importers `FR_REC_03_*` (golden, quantity, corpus ≥95% and ≥85% per category, robustness) |
-| FR-REC-04 / BR-05 / AC-04 | Planned | `Recipe.DeletedAt`, `TrashRules`, purge service, `/manage/trash` | Core `BR_05_TrashRulesTests`; Infra `FR_REC_04_SoftDeleteTests`; Web `FR_REC_04_TrashTests` |
+| FR-REC-04 / BR-05 / AC-04 | Core rules done; trash and purge planned | `Recipe.DeletedAt`, `TrashRules`, purge service, `/manage/trash` | Core `BR_05_TrashRulesTests`; Infra `FR_REC_04_SoftDeleteTests`; Web `FR_REC_04_TrashTests` |
 | FR-REC-06 | Column and checkbox only; behaviour in M2 | `Recipe.IsPrecision` | Infra `FR_REC_01_RecipePersistenceTests` |
-| BR-10 / BR-11 | Planned (manual source fields, credit in reading view) | `SourceRules` | Core `BR_10_SourceRulesTests`; Web `FR_VIEW_01_ReadingViewTests` |
-| FR-ORG-01 / AC-20 | Planned | `Tag` (NormalizedName), `TagRules`, `/tags/{slug}`, `/manage/tags` | Core `FR_ORG_01_TagRulesTests`; Infra `FR_ORG_01_TagStoreTests`; Web `FR_ORG_01_TagTests` |
+| BR-10 / BR-11 | Core rules done (any change away from Web needs Admin; source URLs http/https only); editor and reading view planned | `SourceRules` | Core `BR_10_SourceRulesTests`; Web `FR_VIEW_01_ReadingViewTests` |
+| FR-ORG-01 / AC-20 | Name rules done; store and pages planned | `Tag` (NormalizedName), `NameRules`, `/tags/{slug}`, `/manage/tags` | Core `FR_ORG_01_TagRulesTests`, `SafeTextTests`; Infra `FR_ORG_01_TagStoreTests`; Web `FR_ORG_01_TagTests` |
 | FR-ORG-02 / AC-20 | Planned | `Collection`, `/collections`, `/manage/collections` | Infra `FR_ORG_02_CollectionStoreTests`; Web `FR_ORG_02_CollectionTests` |
 | FR-SRCH-01 / AC-21 | Planned | `RecipeSearch` FTS5, `/search` | Infra `FR_SRCH_01_SearchTests`; Web `SEC_21_SearchPageTests` |
-| FR-SRCH-02 | Planned (no allergen filter until M6; no has-image until M4) | `SearchFilterRules`, `/recipes` | Core `FR_SRCH_02_SearchFilterRulesTests`; Infra `FR_SRCH_02_SearchFilterTests` |
-| SEC-21 / AC-22 | Planned | `FtsQueryBuilder` (Core) | Core `SEC_21_FtsQueryBuilderTests`; Infra `SEC_21_SearchInjectionTests`; Web `SEC_21_SearchPageTests` |
+| FR-SRCH-02 | Criteria parsing done; queries planned (no allergen filter until M6; no has-image until M4) | `SearchCriteria`, `/recipes` | Core `FR_SRCH_02_SearchFilterRulesTests`; Infra `FR_SRCH_02_SearchFilterTests` |
+| SEC-21 / AC-22 | Query builder done (unpaired surrogates handled by `SafeText`); database and page tests planned | `FtsQuery`, `SafeText` (Core) | Core `SEC_21_FtsQueryBuilderTests`, `SafeTextTests`; Infra `SEC_21_SearchInjectionTests`; Web `SEC_21_SearchPageTests` |
 | FR-VIEW-01 / AC-23 | Planned (reading view; AC-23 cook-mode part in M5) | `/recipes/{slug}` | Web `FR_VIEW_01_ReadingViewTests`; E2E `W1_PhoneReadingTests` |
 | AC-72 / SEC-13, SEC-14 | Planned | input DTOs; handler-level policy checks | Web `AC_72_OverpostingTests`, `FR_REC_04_TrashTests` |
 | AC-75 / SEC-30 | Planned (every new unsafe handler) | — | Web `SEC_30_AntiforgeryTests` |
