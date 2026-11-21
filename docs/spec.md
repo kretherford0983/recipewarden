@@ -1,6 +1,6 @@
-# RecipeWarden — Specification v0.7
+# RecipeWarden — Specification v0.8
 
-Version 0.7 · 2026-11-20
+Version 0.8 · 2026-11-20
 
 ## 1. Overview
 
@@ -240,7 +240,7 @@ These rules are enforced in the domain layer (not only the UI) and each has unit
 | ID | Rule |
 | --- | --- |
 | BR-01 | A published recipe needs a title (1–200 chars), at least one ingredient and at least one step. Imports that miss these save as Draft. |
-| BR-02 | Slugs are generated from the title, are unique, and never change once published (old slugs redirect if a title changes). |
+| BR-02 | Slugs are generated from the title and are unique. A published URL never stops working: when a published recipe's title changes, the slug follows it and every earlier published slug redirects (301) to the current one (ADR 0008). |
 | BR-03 | Servings must be a positive number; if unknown, the recipe defaults to 4 and is flagged "servings estimated". |
 | BR-04 | The original ingredient text is always kept alongside parsed fields; a parse with confidence below 0.8 is flagged for review. |
 | BR-05 | Deleting sends a recipe to trash; purge after 30 days is automatic; only Admin can purge immediately. |
@@ -299,7 +299,7 @@ These rules are enforced in the domain layer (not only the UI) and each has unit
 | BR-50 | Nutrition precedence: manual > imported > calculated. Calculated nutrition with completeness below 70% displays as "partial". |
 | BR-51 | Nutrition is per serving and unchanged by scaling (servings scale with it). |
 | BR-52 | Allergen detection uses the ingredient catalogue mapping plus keyword rules; manual overrides win and survive re-detection. |
-| BR-53 | A "free of" filter excludes any recipe with that allergen detected or manually set, and also recipes with unmatched ingredients unless the user chooses "include unverified". |
+| BR-53 | (M6, ADR 0009) A "free of" filter excludes any recipe with that allergen detected or manually set, and also recipes with unmatched ingredients unless the user chooses "include unverified". |
 | BR-54 | Nutrition data is local only: the app never calls a nutrition service. Mapping precedence for an ingredient: Editor mapping > custom food > automatic name/alias match. Unmapped ingredients lower completeness (BR-50) and appear in the unmatched report. |
 
 ### 4.7 Backups
@@ -639,14 +639,15 @@ SQLite via EF Core 10 with code-first migrations applied at startup. Images live
 
 | Table | Key columns | Notes |
 | --- | --- | --- |
-| Recipe | Id, Slug, Title, Description, Servings, ServingsEstimated, YieldText, YieldAmount, YieldUnitId, YieldSource (Measured/Entered/Estimated), FinishedDensityGPerMl, PrepMinutes, CookMinutes, TotalMinutes, IsPrecision, Status (Draft/Published), SourceType (Manual/Web/File/Personal), SourceUrl, SourceName, SourceAuthor, SourceImportedAt, FinishImageId, ParentRecipeId, Notes, Rating, LastCookedAt, InventoryVersionSeen, Version, DeletedAt | Root entity. |
+| Recipe | Id, Slug, Title, Description, Servings, ServingsEstimated, YieldText, YieldAmount, YieldUnitId, YieldSource (Measured/Entered/Estimated), FinishedDensityGPerMl, PrepMinutes, CookMinutes, TotalMinutes, IsPrecision, Status (Draft/Published), SourceType (Manual/Web/File/Personal), SourceUrl, SourceName, SourceAuthor, SourceImportedAt, FinishImageId, ParentRecipeId, Notes, Rating, LastCookedAt, InventoryVersionSeen, Version, DeletedAt, DeletedById | Root entity. FinishImageId arrives with images in M4 (ADR 0009). |
 | IngredientGroup | Id, RecipeId, Name, SortOrder | "For the sauce". Optional. |
-| RecipeIngredient | Id, RecipeId, GroupId, SortOrder, RawText, Quantity, QuantityMax, QuantityText, UnitId, FoodId, Preparation, State (raw/cooked/…), IsOptional, Note, ParseConfidence | RawText always kept (BR-04). |
+| RecipeIngredient | Id, RecipeId, GroupId, SortOrder, RawText, Quantity, QuantityMax, QuantityText, UnitId, Name, FoodId, Preparation, State (raw/cooked/…), IsOptional, Note, ParseConfidence | RawText always kept (BR-04). Name is the parsed ingredient text, kept whether or not a Food matches (ADR 0009); FoodId arrives in M2. |
 | Step | Id, RecipeId, SortOrder, Text, ImageId, SectionName, TimerSeconds | Timer parsed from text. |
 | Image | Id, StoragePath, ContentType, Width, Height, Bytes, Sha256, AltText, SourceUrl | Shared by finish and step images. |
 | RecipeTag | RecipeId, TagId | Composite PK. |
-| Tag | Id, Name, Slug, TagType | Unique on lower(Name). |
-| Collection | Id, Name, Slug, Description, SortOrder, Version | Custom lists. |
+| RecipeSlugAlias | Slug (PK), RecipeId, CreatedAt | Earlier published slugs; redirect to the current one (BR-02, ADR 0008). |
+| Tag | Id, Name, NormalizedName, Slug, TagType | Unique on NormalizedName (trimmed, spaces collapsed, Unicode-normalized, lower case). |
+| Collection | Id, Name, NormalizedName, Slug, Description, SortOrder, Version | Custom lists. Unique on NormalizedName. |
 | CollectionRecipe | CollectionId, RecipeId, SortOrder |  |
 | NutritionFacts | RecipeId (PK), Calories, FatG, SatFatG, CholesterolMg, SodiumMg, CarbsG, FiberG, SugarG, ProteinG, Source (Manual/Imported/Calculated), CompletenessPct, CalculatedAt | Per serving. |
 | RecipeAllergen | RecipeId, AllergenId, Origin (Auto/Manual), Status (Contains/MayContain/NotPresent) | Manual rows survive re-detection. |
@@ -936,10 +937,10 @@ The repository is public (ADR 0005): GitHub-hosted Actions minutes are free and 
 ### 9.10 Delivery phases
 
 1. **M0 Foundations** — repo, solution, CI, analyzers, Identity, layout/theme, health, installer skeleton.
-2. **M1 Recipes** — model, migrations, manual CRUD, ingredient parser, reading view, search, tags, collections.
+2. **M1 Recipes** — model, migrations, manual CRUD, ingredient parser, reading view, search, tags, collections. Text only: images in M4; "free of" filter (BR-53) in M6 (ADR 0009).
 3. **M2 Measurement** — units, densities, scaling, display planner, vague amounts, yield conversions.
 4. **M3 Kitchen** — inventory, versioning, suggestions.
-5. **M4 Import** — safe fetcher, JSON-LD/heuristic URL import, Markdown, Docx, PDF, review, duplicates.
+5. **M4 Import** — finish and step images (upload, `/media/{id}`), safe fetcher, JSON-LD/heuristic URL import, Markdown, Docx, PDF, review, duplicates.
 6. **M5 Output** — print, Markdown export/import round-trip, cook mode, shopping lists, Export for AI and AI-response import.
 7. **M6 Nutrition and allergens**.
 8. **M7 Operations** — backups, schedule, retention, restore (ad hoc, CLI and at install), audit, health and capacity dashboard, installer upgrade/rollback.
@@ -1177,6 +1178,7 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
+- v0.8 (2026-11-20): M1 scope (ADR 0009) — images move to M4 and the "free of" filter (BR-53) to M6; drafts are not public; 8.2 adds RecipeIngredient.Name, Recipe.DeletedById, RecipeSlugAlias and normalized names for tags and collections. BR-02 — slugs follow the title and old published slugs redirect (ADR 0008).
 - v0.7 (2026-11-20): NFR-02, AC-90 — Ubuntu 26.04 LTS supported (installer, container tests and a systemd test on an Ubuntu 26.04 runner).
 - v0.6 (2026-11-20): 9.5 — one-command `curl | sudo bash` installer with checksum verification, upgrade with automatic rollback, installer-owned `network.json` (ADR 0007).
 - v0.5 (2026-11-20): 9.8 and 9.9 — parallel tests and CI jobs, one aggregate required check `test` (ADR 0006).

@@ -1,6 +1,6 @@
 # RecipeWarden — requirements traceability
 
-Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.7. Keep in step with the spec and the test suite.
+Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.8. Keep in step with the spec and the test suite.
 
 Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and tagged with `[Trait("Req", "FR-SCL-01")]`, so CI can print coverage per requirement and fail if any Must requirement has no test.
 
@@ -13,7 +13,7 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | FR-IMP-04/05 | BR-13; SEC-50–53 | Markdown, Docx, Pdf extractors | Importers.Tests FileImport; Web.Tests UploadValidation | AC-14, AC-15 |
 | FR-IMP-06/07 | BR-04 | Review page, duplicate detector | E2E W3/W4; Core.Tests Duplicates | AC-16 |
 | FR-ORG-01/02 | — | Tag, Collection tables; `/collections` | Web.Tests Tags, Collections | AC-20 |
-| FR-SRCH-01/02 | BR-53; SEC-21 | RecipeSearch FTS5; `/search` | Infra.Tests Search; Web.Tests SearchInjection | AC-21, AC-22 |
+| FR-SRCH-01/02 | SEC-21; BR-53 in M6 (ADR 0009) | RecipeSearch FTS5; `/search` | Infra.Tests Search; Web.Tests SearchInjection | AC-21, AC-22 |
 | FR-VIEW-01/02 | BR-10 | Recipe page anatomy (7.3); cook mode | E2E W1 | AC-23 |
 | FR-EXP-01 | BR-10, BR-28 | Print stylesheet; `/print` | E2E PrintLayout (PDF snapshot) | AC-24 |
 | FR-EXP-02/03 | BR-10 | recipe-md v1 (9.7) | Importers.Tests MarkdownRoundTrip | AC-25 |
@@ -46,7 +46,7 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 
 ## Status by milestone
 
-**Current:** M0 complete and deployed (2026-11-20). **Next:** M1 Recipes (spec 9.10) on `feature/m1-recipes`.
+**Current:** M0 complete and deployed (2026-11-20). **In progress:** M1 Recipes (spec 9.10) on `feature/m1-recipes`.
 
 ### M0 Foundations (built 2026-11-17; deployed and verified 2026-11-20 — DONE)
 
@@ -81,6 +81,33 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | FR-BKP-09 / AC-86 | Done except audit to `AuditEntry` (prints an audit line until FR-ADM-01, M7) | `ApplyConfigRunner`, `BackupFoldersDropIn` | Core.Tests `FR_BKP_09_DropInTests`; Cli.Tests `FR_BKP_09_ApplyConfigTests`, `HostFileSystemTests`, `HostAdapterTests` |
 | FR-INST-01/02/04, AC-90, AC-91 | One-command install done (ADR 0007): download + checksum, user/dirs, unit, network.json, first Admin; firewall rules and `/setup` token in M7 | `deploy/install.sh`, `deploy/recipewarden.service`, `/usr/local/bin/recipewarden` wrapper | `tests/installer/test-install.sh` (Debian 12/13, Ubuntu 22.04/24.04/26.04), `tests/installer/test-install-systemd.sh` |
 | FR-INST-03, AC-92 | Upgrade in place with database copy and automatic rollback done; full pre-upgrade backup in M7 | `deploy/install.sh` | `test-install-systemd.sh` (broken release rolled back) |
+
+### M1 Recipes (started 2026-11-20 — IN PROGRESS)
+
+Scope decisions: ADR 0008 (slugs follow the title, old slugs redirect), ADR 0009 (text only — images in M4;
+"free of" filter BR-53 in M6; model gaps filled; drafts not public).
+
+| ID | Status | Implementation | Tests |
+| --- | --- | --- | --- |
+| FR-REC-01 / BR-01, BR-03, BR-04 | Planned (text fields; images M4, nutrition/allergens M6) | Recipe aggregate (8.2), `PublishRules`, `ServingsRules` | Core `BR_01_PublishRulesTests`, `BR_03_ServingsRulesTests`; Infra `FR_REC_01_RecipePersistenceTests` |
+| FR-REC-02 / AC-01, AC-02 | Planned | `/manage/recipes/new`, `/manage/recipes/{id}/edit` | Web `FR_REC_02_RecipeEditorTests`; E2E `W2_AddRecipeTests` |
+| BR-02 | Planned (ADR 0008) | `SlugRules`, `RecipeSlugAlias` | Core `BR_02_SlugRulesTests`; Infra `BR_02_SlugUniquenessTests` |
+| BR-06 | Planned | `Recipe.Version`, `RecipeDiff` | Core `BR_06_RecipeDiffTests`; Infra `BR_06_ConcurrencyTests`; Web `BR_06_EditConflictTests` |
+| FR-REC-03 / AC-03 | Planned | `IngredientLineParser` (Importers), `UnitCatalog` (Core) | Importers `FR_REC_03_*` (golden, quantity, corpus ≥95% and ≥85% per category, robustness) |
+| FR-REC-04 / BR-05 / AC-04 | Planned | `Recipe.DeletedAt`, `TrashRules`, purge service, `/manage/trash` | Core `BR_05_TrashRulesTests`; Infra `FR_REC_04_SoftDeleteTests`; Web `FR_REC_04_TrashTests` |
+| FR-REC-06 | Column and checkbox only; behaviour in M2 | `Recipe.IsPrecision` | Infra `FR_REC_01_RecipePersistenceTests` |
+| BR-10 / BR-11 | Planned (manual source fields, credit in reading view) | `SourceRules` | Core `BR_10_SourceRulesTests`; Web `FR_VIEW_01_ReadingViewTests` |
+| FR-ORG-01 / AC-20 | Planned | `Tag` (NormalizedName), `TagRules`, `/tags/{slug}`, `/manage/tags` | Core `FR_ORG_01_TagRulesTests`; Infra `FR_ORG_01_TagStoreTests`; Web `FR_ORG_01_TagTests` |
+| FR-ORG-02 / AC-20 | Planned | `Collection`, `/collections`, `/manage/collections` | Infra `FR_ORG_02_CollectionStoreTests`; Web `FR_ORG_02_CollectionTests` |
+| FR-SRCH-01 / AC-21 | Planned | `RecipeSearch` FTS5, `/search` | Infra `FR_SRCH_01_SearchTests`; Web `SEC_21_SearchPageTests` |
+| FR-SRCH-02 | Planned (no allergen filter until M6; no has-image until M4) | `SearchFilterRules`, `/recipes` | Core `FR_SRCH_02_SearchFilterRulesTests`; Infra `FR_SRCH_02_SearchFilterTests` |
+| SEC-21 / AC-22 | Planned | `FtsQueryBuilder` (Core) | Core `SEC_21_FtsQueryBuilderTests`; Infra `SEC_21_SearchInjectionTests`; Web `SEC_21_SearchPageTests` |
+| FR-VIEW-01 / AC-23 | Planned (reading view; AC-23 cook-mode part in M5) | `/recipes/{slug}` | Web `FR_VIEW_01_ReadingViewTests`; E2E `W1_PhoneReadingTests` |
+| AC-72 / SEC-13, SEC-14 | Planned | input DTOs; handler-level policy checks | Web `AC_72_OverpostingTests`, `FR_REC_04_TrashTests` |
+| AC-75 / SEC-30 | Planned (every new unsafe handler) | — | Web `SEC_30_AntiforgeryTests` |
+| AC-76 / SEC-22 | Planned (descriptions, notes) | Markdig + HtmlSanitizer | Web `AC_76_RecipeContentEncodingTests` |
+| SEC-63 | Planned (search, writes) | ASP.NET Core rate limiter | Web `SEC_63_RateLimitTests` |
+| AC-70 | Extended to every M1 route | — | Web `AC_70_AuthMatrixTests` |
 
 #### M0 deployment check (2026-11-20, test host)
 

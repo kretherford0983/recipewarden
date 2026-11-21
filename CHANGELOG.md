@@ -23,3 +23,4 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 
 ### M1 Recipes
 - Traceability synced with the project copy: M0 marked done with its deployment check; AC-72 overposting carried into M1.
+- Scope decisions: recipe slugs follow the title with redirects from old slugs (ADR 0008); M1 is text only, images move to M4 and the "free of" filter to M6 (ADR 0009). Spec v0.8.
