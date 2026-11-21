@@ -20,3 +20,6 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
   `/etc/recipewarden` and network settings in `network.json` (ADR 0007, docs/install.md).
 - Ubuntu 26.04 LTS supported by the installer and tested in CI (NFR-02).
 - Public repository; server downloads and docs use plain `curl`, never the GitHub CLI (ADR 0005).
+
+### M1 Recipes
+- Traceability synced with the project copy: M0 marked done with its deployment check; AC-72 overposting carried into M1.
