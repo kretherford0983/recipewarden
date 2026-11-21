@@ -71,8 +71,12 @@ public sealed class RecipeSearchService(AppDbContext db)
 
         if (criteria.MaxTotalMinutes is { } max)
         {
-            query = query.Where(r => (r.TotalMinutes ?? ((r.PrepMinutes ?? 0) + (r.CookMinutes ?? 0))) > 0
-                && (r.TotalMinutes ?? ((r.PrepMinutes ?? 0) + (r.CookMinutes ?? 0))) <= max);
+            // ADR 0010: the high end must fit, so "30 min or less" never lists a recipe that may take 35.
+            query = query.Where(r =>
+                (r.TotalMinutesMax ?? r.TotalMinutes
+                    ?? ((r.PrepMinutesMax ?? r.PrepMinutes ?? 0) + (r.CookMinutesMax ?? r.CookMinutes ?? 0))) > 0
+                && (r.TotalMinutesMax ?? r.TotalMinutes
+                    ?? ((r.PrepMinutesMax ?? r.PrepMinutes ?? 0) + (r.CookMinutesMax ?? r.CookMinutes ?? 0))) <= max);
         }
 
         if (criteria.MinRating is { } rating)
@@ -107,11 +111,13 @@ public sealed class RecipeSearchService(AppDbContext db)
         }
 
         var rows = await db.Recipes.AsNoTracking().Where(r => pageIds.Contains(r.Id))
-            .Select(r => new { r.Id, r.Slug, r.Title, r.Description, r.TotalMinutes, r.PrepMinutes, r.CookMinutes, r.Rating, r.Status })
+            .Select(r => new { r.Id, r.Slug, r.Title, r.Description, r.TotalMinutes, r.TotalMinutesMax, r.PrepMinutes, r.PrepMinutesMax,
+                r.CookMinutes, r.CookMinutesMax, r.Rating, r.Status })
             .ToListAsync(cancellationToken).ConfigureAwait(false);
         var byId = rows.ToDictionary(r => r.Id);
         var items = pageIds.Where(byId.ContainsKey).Select(id => byId[id])
-            .Select(r => Card(r.Id, r.Slug, r.Title, r.Description, r.TotalMinutes, r.PrepMinutes, r.CookMinutes, r.Rating, r.Status))
+            .Select(r => Card(r.Id, r.Slug, r.Title, r.Description, (r.TotalMinutes, r.TotalMinutesMax), (r.PrepMinutes, r.PrepMinutesMax),
+                (r.CookMinutes, r.CookMinutesMax), r.Rating, r.Status))
             .ToList();
 
         return new SearchPage(items, total, criteria.Page, pageCount);
@@ -150,13 +156,13 @@ public sealed class RecipeSearchService(AppDbContext db)
         return ranking;
     }
 
-    internal static RecipeCard Card(int id, string slug, string title, string? description, int? total, int? prep, int? cook,
-        int? rating, RecipeStatus status)
+    internal static RecipeCard Card(int id, string slug, string title, string? description, (int? Min, int? Max) total,
+        (int? Min, int? Max) prep, (int? Min, int? Max) cook, int? rating, RecipeStatus status)
     {
-        var minutes = total ?? (prep is null && cook is null ? null : (prep ?? 0) + (cook ?? 0));
+        var time = total.Min is not null ? total : TimeText.Sum(prep.Min, prep.Max, cook.Min, cook.Max);
         var summary = description is null ? null
             : description.Length <= SummaryLength ? description
             : description[..SummaryLength].TrimEnd() + "…";
-        return new RecipeCard(id, slug, title, summary, minutes, rating, status);
+        return new RecipeCard(id, slug, title, summary, time.Min, time.Max, rating, status);
     }
 }

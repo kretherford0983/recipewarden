@@ -243,9 +243,13 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
             Title = r.Title,
             Description = r.Description,
             Servings = r.ServingsEstimated ? null : r.Servings,
+            ServingsMax = r.ServingsEstimated ? null : r.ServingsMax,
             PrepMinutes = r.PrepMinutes,
+            PrepMinutesMax = r.PrepMinutesMax,
             CookMinutes = r.CookMinutes,
+            CookMinutesMax = r.CookMinutesMax,
             TotalMinutes = r.TotalMinutes,
+            TotalMinutesMax = r.TotalMinutesMax,
             IsPrecision = r.IsPrecision,
             Notes = r.Notes,
             SourceType = r.SourceType,
@@ -300,10 +304,14 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
         recipe.Title = (edit.Title ?? string.Empty).Trim();
         recipe.Description = Clean(edit.Description);
         recipe.Servings = servings.Servings;
+        recipe.ServingsMax = servings.Estimated ? null : edit.ServingsMax;
         recipe.ServingsEstimated = servings.Estimated;
         recipe.PrepMinutes = edit.PrepMinutes;
+        recipe.PrepMinutesMax = edit.PrepMinutes is null ? null : edit.PrepMinutesMax;
         recipe.CookMinutes = edit.CookMinutes;
+        recipe.CookMinutesMax = edit.CookMinutes is null ? null : edit.CookMinutesMax;
         recipe.TotalMinutes = edit.TotalMinutes;
+        recipe.TotalMinutesMax = edit.TotalMinutes is null ? null : edit.TotalMinutesMax;
         recipe.IsPrecision = edit.IsPrecision;
         recipe.Notes = Clean(edit.Notes);
         recipe.SourceType = edit.SourceType;
@@ -401,9 +409,13 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
         Title = e.Title?.Trim(),
         Description = Clean(e.Description),
         Servings = e.Servings,
+        ServingsMax = e.ServingsMax,
         PrepMinutes = e.PrepMinutes,
+        PrepMinutesMax = e.PrepMinutesMax,
         CookMinutes = e.CookMinutes,
+        CookMinutesMax = e.CookMinutesMax,
         TotalMinutes = e.TotalMinutes,
+        TotalMinutesMax = e.TotalMinutesMax,
         IsPrecision = e.IsPrecision,
         Notes = Clean(e.Notes),
         SourceType = e.SourceType,
@@ -436,6 +448,9 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
             .Select(c => new StepSectionView(c[0].SectionName, c.Select(s => s.Text).ToList()))
             .ToList();
 
+        var total = r.TotalMinutes is not null
+            ? (r.TotalMinutes, r.TotalMinutesMax)
+            : TimeText.Sum(r.PrepMinutes, r.PrepMinutesMax, r.CookMinutes, r.CookMinutesMax);
         return new RecipeView
         {
             Id = r.Id,
@@ -443,10 +458,14 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
             Title = r.Title,
             Description = r.Description,
             Servings = r.Servings,
+            ServingsMax = r.ServingsMax,
             ServingsEstimated = r.ServingsEstimated,
             PrepMinutes = r.PrepMinutes,
+            PrepMinutesMax = r.PrepMinutesMax,
             CookMinutes = r.CookMinutes,
-            TotalMinutes = r.TotalMinutes ?? (r.PrepMinutes is null && r.CookMinutes is null ? null : (r.PrepMinutes ?? 0) + (r.CookMinutes ?? 0)),
+            CookMinutesMax = r.CookMinutesMax,
+            TotalMinutes = total.Item1,
+            TotalMinutesMax = total.Item2,
             IsPrecision = r.IsPrecision,
             Status = r.Status,
             SourceType = r.SourceType,

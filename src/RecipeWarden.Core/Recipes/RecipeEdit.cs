@@ -12,9 +12,14 @@ public sealed record RecipeEdit
     public string? Title { get; init; }
     public string? Description { get; init; }
     public decimal? Servings { get; init; }
+    /// <summary>High end of a servings range ("6-8"), ADR 0010.</summary>
+    public decimal? ServingsMax { get; init; }
     public int? PrepMinutes { get; init; }
+    public int? PrepMinutesMax { get; init; }
     public int? CookMinutes { get; init; }
+    public int? CookMinutesMax { get; init; }
     public int? TotalMinutes { get; init; }
+    public int? TotalMinutesMax { get; init; }
     public bool IsPrecision { get; init; }
     public string? Notes { get; init; }
     public SourceType SourceType { get; init; } = SourceType.Manual;
@@ -33,7 +38,7 @@ public sealed record RecipeEdit
     public const int MaxIngredientLines = 200;
     public const int MaxIngredientLineLength = 500;
     public const int MaxTags = 30;
-    public const int MaxMinutes = 7 * 24 * 60;
+    public const int MaxMinutes = TimeText.MaxMinutes;
 
     /// <summary>Field errors that stop any save (BR-01 problems only stop publishing).</summary>
     public IReadOnlyList<PublishProblem> Validate()
@@ -44,14 +49,14 @@ public sealed record RecipeEdit
             errors.Add(new(RecipeField.Description, "The description is limited to 4000 characters"));
         }
 
-        if (ServingsRules.Resolve(Servings) is { IsValid: false } servings)
+        if (ServingsRules.ValidateRange(Servings, ServingsMax) is { } servingsError)
         {
-            errors.Add(new(RecipeField.Servings, servings.Error!));
+            errors.Add(new(RecipeField.Servings, servingsError));
         }
 
-        AddMinutes(errors, RecipeField.PrepMinutes, PrepMinutes);
-        AddMinutes(errors, RecipeField.CookMinutes, CookMinutes);
-        AddMinutes(errors, RecipeField.TotalMinutes, TotalMinutes);
+        AddTime(errors, RecipeField.PrepMinutes, PrepMinutes, PrepMinutesMax);
+        AddTime(errors, RecipeField.CookMinutes, CookMinutes, CookMinutesMax);
+        AddTime(errors, RecipeField.TotalMinutes, TotalMinutes, TotalMinutesMax);
 
         if ((Notes?.Length ?? 0) > MaxNotesLength)
         {
@@ -90,11 +95,11 @@ public sealed record RecipeEdit
         return errors;
     }
 
-    private static void AddMinutes(List<PublishProblem> errors, RecipeField field, int? minutes)
+    private static void AddTime(List<PublishProblem> errors, RecipeField field, int? minutes, int? max)
     {
-        if (minutes is < 0 or > MaxMinutes)
+        if (TimeText.ValidateRange(minutes, max) is { } error)
         {
-            errors.Add(new(field, "Times must be between 0 and 10080 minutes"));
+            errors.Add(new(field, error));
         }
     }
 }

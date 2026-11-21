@@ -16,11 +16,13 @@ public sealed class FR_ORG_01_TagStoreTests
     public async Task Dinner_and_dinner_make_one_tag()
     {
         await using var s = await RecipeTestScope.CreateAsync();
-        await s.AddAsync("Soup", tags: ["Dinner"]);
-        await s.AddAsync("Stew", tags: ["dinner", " DINNER "]);
+        await s.AddAsync("Soup", tags: ["dinner"]);
+        await s.AddAsync("Stew", tags: ["Dinner", " DINNER "]);
 
-        var tag = (await s.Tags.ListAsync(cancellationToken: Ct)).Single();
+        // "Dinner" is a built-in tag (ADR 0011): both recipes use it, and no second tag is made.
+        var tag = (await s.Tags.ListAsync(cancellationToken: Ct)).Single(t => t.Slug == "dinner");
         tag.Name.ShouldBe("Dinner");
+        (await s.Tags.ListAsync(cancellationToken: Ct)).Count(t => t.Name.Equals("dinner", StringComparison.OrdinalIgnoreCase)).ShouldBe(1);
         tag.Slug.ShouldBe("dinner");
         tag.RecipeCount.ShouldBe(2);
     }
@@ -29,8 +31,8 @@ public sealed class FR_ORG_01_TagStoreTests
     public async Task Database_refuses_a_second_normalized_name()
     {
         await using var s = await RecipeTestScope.CreateAsync();
-        await s.Tags.CreateAsync("Dinner", null, Ct);
-        s.Db.Tags.Add(new Tag { Name = "DINNER", NormalizedName = "dinner", Slug = "dinner-2" });
+        await s.Tags.CreateAsync("Supper", null, Ct);
+        s.Db.Tags.Add(new Tag { Name = "SUPPER", NormalizedName = "supper", Slug = "supper-2" });
         await Should.ThrowAsync<DbUpdateException>(() => s.Db.SaveChangesAsync(Ct));
     }
 
@@ -47,7 +49,8 @@ public sealed class FR_ORG_01_TagStoreTests
         (await s.Tags.GetBySlugAsync("tex-mex", Ct))!.TagType.ShouldBe(TagType.Cuisine);
 
         (await s.Tags.DeleteAsync(created.Id, Ct)).ShouldBeTrue();
-        (await s.Tags.ListAsync(cancellationToken: Ct)).ShouldBeEmpty();
+        (await s.Tags.ListAsync(cancellationToken: Ct)).ShouldNotContain(t => t.Id == created.Id);
+        (await s.Tags.ListAsync(cancellationToken: Ct)).Count.ShouldBe(RecipeWarden.Core.Organization.DefaultTags.All.Count);
         (await s.Tags.UpdateAsync(created.Id, "x", null, Ct)).Status.ShouldBe(SaveStatus.NotFound);
     }
 
@@ -55,10 +58,12 @@ public sealed class FR_ORG_01_TagStoreTests
     public async Task Rename_to_another_tags_name_is_refused()
     {
         await using var s = await RecipeTestScope.CreateAsync();
-        await s.Tags.CreateAsync("Dinner", null, Ct);
-        var lunch = await s.Tags.CreateAsync("Lunch", null, Ct);
-        (await s.Tags.UpdateAsync(lunch.Id, "DINNER", null, Ct)).Errors.Single().Message.ShouldBe(TagService.Duplicate);
-        (await s.Tags.UpdateAsync(lunch.Id, "bad\u0000", null, Ct)).Status.ShouldBe(SaveStatus.Invalid);
+        await s.Tags.CreateAsync("Supper", null, Ct);
+        var nibbles = await s.Tags.CreateAsync("Nibbles", null, Ct);
+        (await s.Tags.UpdateAsync(nibbles.Id, "SUPPER", null, Ct)).Errors.Single().Message.ShouldBe(TagService.Duplicate);
+        (await s.Tags.UpdateAsync(nibbles.Id, "dinner", null, Ct)).Errors.Single().Message.ShouldBe(TagService.Duplicate); // a built-in
+        (await s.Tags.CreateAsync("DINNER", null, Ct)).Errors.Single().Message.ShouldBe(TagService.Duplicate);
+        (await s.Tags.UpdateAsync(nibbles.Id, "bad\u0000", null, Ct)).Status.ShouldBe(SaveStatus.Invalid);
     }
 
     [Fact]
@@ -66,7 +71,7 @@ public sealed class FR_ORG_01_TagStoreTests
     {
         await using var s = await RecipeTestScope.CreateAsync();
         await s.AddAsync("Soup", "1 onion", "Cook.", true, "Weeknight");
-        var tag = (await s.Tags.ListAsync(cancellationToken: Ct)).Single();
+        var tag = (await s.Tags.ListAsync(cancellationToken: Ct)).Single(t => t.Name == "Weeknight");
 
         await s.Tags.UpdateAsync(tag.Id, "Quick", null, Ct);
         (await s.SearchAsync("quick")).Total.ShouldBe(1);
@@ -83,9 +88,13 @@ public sealed class FR_ORG_01_TagStoreTests
         await using var s = await RecipeTestScope.CreateAsync();
         await s.Tags.CreateAsync("zesty", null, Ct);
         await s.Tags.CreateAsync("Thai", TagType.Cuisine, Ct);
-        await s.Tags.CreateAsync("Dinner", TagType.Meal, Ct);
 
-        (await s.Tags.ListAsync(cancellationToken: Ct)).Select(t => t.Name).ShouldBe(["Dinner", "Thai", "zesty"]);
+        // Grouped by type in enum order (Meal, Course, Season, Method, Cuisine, Diet), untyped last.
+        var names = (await s.Tags.ListAsync(cancellationToken: Ct)).Select(t => t.Name).ToList();
+        names.IndexOf("Dinner").ShouldBeLessThan(names.IndexOf("Soup"));        // Meal before Course
+        names.IndexOf("No Cook").ShouldBeLessThan(names.IndexOf("Thai"));       // Method before Cuisine
+        names.IndexOf("Thai").ShouldBeLessThan(names.IndexOf("Vegan"));         // Cuisine before Diet
+        names[^1].ShouldBe("zesty");
         (await s.Tags.GetBySlugAsync("Not A Slug", Ct)).ShouldBeNull();
     }
 

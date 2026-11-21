@@ -84,7 +84,7 @@ else
                 @if (r.Status == RecipeWarden.Core.Recipes.RecipeStatus.Draft) { <span class="badge">Draft</span> }
                 @if (r.Summary is not null) { <p>@r.Summary</p> }
                 <p class="meta">
-                    @if (r.TotalMinutes is int min) { <span>@min min</span> }
+                    @if (r.TotalMinutes is not null) { <span>@r.TimeText</span> }
                     @if (r.Rating is int stars) { <span aria-label="Rated @stars of 5">@(new string('★', stars))</span> }
                 </p>
             </li>

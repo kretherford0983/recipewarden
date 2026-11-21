@@ -23,7 +23,7 @@ public sealed class FR_REC_04_SoftDeleteTests
         (await s.Recipes.GetForReadingAsync("lime-soup", canSeeDrafts: true, Ct)).Recipe.ShouldBeNull();
         (await s.SearchAsync("lime")).Total.ShouldBe(0);
         (await s.SearchAsync()).Total.ShouldBe(0);
-        (await s.Tags.ListAsync(cancellationToken: Ct)).Single().RecipeCount.ShouldBe(0);
+        (await s.Tags.ListAsync(cancellationToken: Ct)).Single(t => t.Slug == "dinner").RecipeCount.ShouldBe(0);
         (await s.Db.Recipes.IgnoreQueryFilters().CountAsync(Ct)).ShouldBe(1);
         (await s.Recipes.DeleteAsync(created.Id, "u", Ct)).ShouldBeFalse(); // already in the trash
     }

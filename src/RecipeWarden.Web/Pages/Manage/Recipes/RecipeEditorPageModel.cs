@@ -58,6 +58,18 @@ public abstract class RecipeEditorPageModel(TagService tags) : PageModel
 
     protected bool WantsPublish => string.Equals(Action, PublishAction, StringComparison.Ordinal);
 
+    /// <summary>Reads the form; text that cannot be read (servings, times) is put on the page instead of saved.</summary>
+    protected RecipeEdit? ReadInput()
+    {
+        var (edit, errors) = Input.ToEdit(WantsPublish);
+        foreach (var e in errors)
+        {
+            ModelState.AddModelError(RecipeInput.FieldName(e.Field), e.Message);
+        }
+
+        return errors.Count == 0 ? edit : null;
+    }
+
     /// <summary>Binding errors (e.g. "abc" in a number field) become the same summary as rule errors.</summary>
     protected bool HasBindingErrors()
     {

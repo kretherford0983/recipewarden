@@ -57,7 +57,7 @@ public sealed class FR_REC_02_RecipeEditorTests(RecipeWardenFactory factory) : I
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.TextAsync();
         html.ShouldContain("Please fix the following");
-        html.ShouldContain("Enter a number");
+        html.ShouldContain(RecipeWarden.Core.Recipes.ServingsRules.Unreadable); // ADR 0010: the hint shows what is accepted
         html.ShouldContain("href=\"#Input_Servings\"");
 
         var second = await editor.CreateRecipeAsync(new string('t', 201));

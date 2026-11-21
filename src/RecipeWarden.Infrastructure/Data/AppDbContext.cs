@@ -51,6 +51,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
             e.Property(r => r.SourceType).HasConversion<string>().HasMaxLength(16);
             e.Property(r => r.YieldSource).HasMaxLength(16);
             Real(e.Property(r => r.Servings));
+            Real(e.Property(r => r.ServingsMax));
             Real(e.Property(r => r.YieldAmount));
             Real(e.Property(r => r.FinishedDensityGPerMl));
             e.Property(r => r.Version).IsConcurrencyToken();

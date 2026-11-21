@@ -1,6 +1,6 @@
-# RecipeWarden — Specification v0.8
+# RecipeWarden — Specification v0.9
 
-Version 0.8 · 2026-11-20
+Version 0.9 · 2026-11-21
 
 ## 1. Overview
 
@@ -92,10 +92,10 @@ Requirements carry stable IDs (FR = functional, NFR = non-functional) used by th
 
 | ID | Requirement | Pri |
 | --- | --- | --- |
-| FR-ORG-01 | Tags are free-form but de-duplicated case-insensitively; tags can be typed (Meal, Course, Season, Method, Cuisine, Diet) for grouped filtering. | M |
+| FR-ORG-01 | Tags are free-form but de-duplicated case-insensitively; tags can be typed (Meal, Course, Season, Method, Cuisine, Diet) for grouped filtering. A built-in set (ADR 0011) is seeded once, including "Homemade Ingredient" for recipes made to be used in other recipes; editors can rename, delete or add tags. | M |
 | FR-ORG-02 | Custom lists (collections) can be created, ordered and populated by editors; visible to all readers. | M |
 | FR-SRCH-01 | Full-text search across title, description, ingredients, steps, tags and notes with ranked results. | M |
-| FR-SRCH-02 | Filters: tags, collection, max total time, "free of" allergens, has image, rating; sort by relevance, newest, title, last cooked. | M |
+| FR-SRCH-02 | Filters: tags, collection, max total time (the high end of a time range must fit, ADR 0010), "free of" allergens, has image, rating; sort by relevance, newest, title, last cooked. | M |
 | FR-SRCH-03 | Search "by ingredients on hand": rank recipes by how many listed ingredients they use. | S |
 
 ### 3.4 Display, print and export (VIEW / EXP)
@@ -241,7 +241,7 @@ These rules are enforced in the domain layer (not only the UI) and each has unit
 | --- | --- |
 | BR-01 | A published recipe needs a title (1–200 chars), at least one ingredient and at least one step. Imports that miss these save as Draft. |
 | BR-02 | Slugs are generated from the title and are unique. A published URL never stops working: when a published recipe's title changes, the slug follows it and every earlier published slug redirects (301) to the current one (ADR 0008). |
-| BR-03 | Servings must be a positive number; if unknown, the recipe defaults to 4 and is flagged "servings estimated". |
+| BR-03 | Servings must be a positive number or a range of them ("6-8", ADR 0010; the high end above the low end); if unknown, the recipe defaults to 4 and is flagged "servings estimated". |
 | BR-04 | The original ingredient text is always kept alongside parsed fields; a parse with confidence below 0.8 is flagged for review. |
 | BR-05 | Deleting sends a recipe to trash; purge after 30 days is automatic; only Admin can purge immediately. |
 | BR-06 | Concurrent edits are detected with a row version; the second save is rejected with a "changed by someone else" message and a diff. |
@@ -639,7 +639,7 @@ SQLite via EF Core 10 with code-first migrations applied at startup. Images live
 
 | Table | Key columns | Notes |
 | --- | --- | --- |
-| Recipe | Id, Slug, Title, Description, Servings, ServingsEstimated, YieldText, YieldAmount, YieldUnitId, YieldSource (Measured/Entered/Estimated), FinishedDensityGPerMl, PrepMinutes, CookMinutes, TotalMinutes, IsPrecision, Status (Draft/Published), SourceType (Manual/Web/File/Personal), SourceUrl, SourceName, SourceAuthor, SourceImportedAt, FinishImageId, ParentRecipeId, Notes, Rating, LastCookedAt, InventoryVersionSeen, Version, DeletedAt, DeletedById | Root entity. FinishImageId arrives with images in M4 (ADR 0009). |
+| Recipe | Id, Slug, Title, Description, Servings, ServingsMax, ServingsEstimated, YieldText, YieldAmount, YieldUnitId, YieldSource (Measured/Entered/Estimated), FinishedDensityGPerMl, PrepMinutes, PrepMinutesMax, CookMinutes, CookMinutesMax, TotalMinutes, TotalMinutesMax, IsPrecision, Status (Draft/Published), SourceType (Manual/Web/File/Personal), SourceUrl, SourceName, SourceAuthor, SourceImportedAt, FinishImageId, ParentRecipeId, Notes, Rating, LastCookedAt, InventoryVersionSeen, Version, DeletedAt, DeletedById | Root entity. FinishImageId arrives with images in M4 (ADR 0009). |
 | IngredientGroup | Id, RecipeId, Name, SortOrder | "For the sauce". Optional. |
 | RecipeIngredient | Id, RecipeId, GroupId, SortOrder, RawText, Quantity, QuantityMax, QuantityText, UnitId, Name, FoodId, Preparation, State (raw/cooked/…), IsOptional, Note, ParseConfidence | RawText always kept (BR-04). Name is the parsed ingredient text, kept whether or not a Food matches (ADR 0009); FoodId arrives in M2. |
 | Step | Id, RecipeId, SortOrder, Text, ImageId, SectionName, TimerSeconds | Timer parsed from text. |
@@ -1178,6 +1178,7 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
+- v0.9 (2026-11-21): servings and times accept ranges, and times accept hours (ADR 0010; BR-03, 8.2 *Max columns, FR-SRCH-02 filter on the high end). Built-in default tags (ADR 0011, FR-ORG-01).
 - v0.8 (2026-11-20): M1 scope (ADR 0009) — images move to M4 and the "free of" filter (BR-53) to M6; drafts are not public; 8.2 adds RecipeIngredient.Name, Recipe.DeletedById, RecipeSlugAlias and normalized names for tags and collections. BR-02 — slugs follow the title and old published slugs redirect (ADR 0008). BR-11 — applies to any change away from Web.
 - v0.7 (2026-11-20): NFR-02, AC-90 — Ubuntu 26.04 LTS supported (installer, container tests and a systemd test on an Ubuntu 26.04 runner).
 - v0.6 (2026-11-20): 9.5 — one-command `curl | sudo bash` installer with checksum verification, upgrade with automatic rollback, installer-owned `network.json` (ADR 0007).

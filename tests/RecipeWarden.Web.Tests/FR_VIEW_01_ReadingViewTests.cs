@@ -17,7 +17,7 @@ public sealed class FR_VIEW_01_ReadingViewTests(RecipeWardenFactory factory) : I
         var response = await editor.CreateRecipeAsync("Lemon Bars", "For the crust:\n1 cup flour\n½ cup butter, softened\nFor the filling:\n2 eggs",
             "Crust:\nPress into pan.\nFilling:\nWhisk and pour.", "publish", "dessert",
             ("Input.Description", "Tart and **sweet**."), ("Input.Notes", "Chill before cutting."), ("Input.Servings", "16"),
-            ("Input.PrepMinutes", "20"), ("Input.CookMinutes", "45"), ("Input.SourceType", "Web"),
+            ("Input.PrepTime", "20"), ("Input.CookTime", "45"), ("Input.SourceType", "Web"),
             ("Input.SourceName", "Example Kitchen"), ("Input.SourceUrl", "https://example.com/lemon-bars"), ("Input.SourceAuthor", "Jane"));
         var slug = response.Headers.Location!.ToString()["/recipes/".Length..];
 
@@ -33,7 +33,7 @@ public sealed class FR_VIEW_01_ReadingViewTests(RecipeWardenFactory factory) : I
         html.ShouldContain("<h3>Filling</h3>");
         html.ShouldContain("Whisk and pour.");
         html.ShouldContain("Chill before cutting.");
-        html.ShouldContain("<dd>65 min</dd>");
+        html.ShouldContain("<dd>1 hr 5 min</dd>"); // prep + cook, shown in hours (ADR 0010)
         html.ShouldContain("<dd>16</dd>");
         html.ShouldContain("href=\"/tags/dessert\"");
         // BR-10: credit with a direct link that does not leak the referrer or the opener.

@@ -259,6 +259,9 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.Property<int?>("CookMinutes")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("CookMinutesMax")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("CreatedAt")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -298,6 +301,9 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.Property<int?>("PrepMinutes")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("PrepMinutesMax")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int?>("Rating")
                         .HasColumnType("INTEGER");
 
@@ -306,6 +312,9 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
 
                     b.Property<bool>("ServingsEstimated")
                         .HasColumnType("INTEGER");
+
+                    b.Property<double?>("ServingsMax")
+                        .HasColumnType("REAL");
 
                     b.Property<string>("Slug")
                         .IsRequired()
@@ -343,6 +352,9 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<int?>("TotalMinutes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("TotalMinutesMax")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("UpdatedAt")

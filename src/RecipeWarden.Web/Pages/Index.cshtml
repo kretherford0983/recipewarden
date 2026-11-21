@@ -30,7 +30,7 @@ else
                 <li class="recipe-card">
                     <a href="/recipes/@r.Slug"><h3>@r.Title</h3></a>
                     @if (r.Summary is not null) { <p>@r.Summary</p> }
-                    @if (r.TotalMinutes is int min) { <p class="meta">@min min</p> }
+                    @if (r.TotalMinutes is not null) { <p class="meta">@r.TimeText</p> }
                 </li>
             }
         </ul>

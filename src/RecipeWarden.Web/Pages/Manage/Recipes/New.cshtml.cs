@@ -14,13 +14,13 @@ public sealed class NewModel(RecipeService recipes, TagService tags) : RecipeEdi
 
     public async Task<IActionResult> OnPostAsync()
     {
-        if (HasBindingErrors())
+        if (HasBindingErrors() || ReadInput() is not { } edit)
         {
             await LoadTagsAsync();
             return Page();
         }
 
-        var outcome = await recipes.CreateAsync(Input.ToEdit(WantsPublish), Permissions.UserId(User), HttpContext.RequestAborted);
+        var outcome = await recipes.CreateAsync(edit, Permissions.UserId(User), HttpContext.RequestAborted);
         if (outcome.Status != SaveStatus.Saved)
         {
             return await ShowAsync(outcome);

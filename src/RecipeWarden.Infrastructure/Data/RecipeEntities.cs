@@ -15,6 +15,7 @@ public sealed class Recipe
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public decimal Servings { get; set; } = ServingsRules.Default;
+    public decimal? ServingsMax { get; set; }
     public bool ServingsEstimated { get; set; }
     public string? YieldText { get; set; }
     public decimal? YieldAmount { get; set; }
@@ -22,8 +23,11 @@ public sealed class Recipe
     public string? YieldSource { get; set; }
     public decimal? FinishedDensityGPerMl { get; set; }
     public int? PrepMinutes { get; set; }
+    public int? PrepMinutesMax { get; set; }
     public int? CookMinutes { get; set; }
+    public int? CookMinutesMax { get; set; }
     public int? TotalMinutes { get; set; }
+    public int? TotalMinutesMax { get; set; }
     public bool IsPrecision { get; set; }
     public RecipeStatus Status { get; set; }
     public SourceType SourceType { get; set; }

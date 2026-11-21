@@ -52,10 +52,16 @@ public sealed record RecipeView
     public required string Title { get; init; }
     public string? Description { get; init; }
     public decimal Servings { get; init; }
+    public decimal? ServingsMax { get; init; }
     public bool ServingsEstimated { get; init; }
     public int? PrepMinutes { get; init; }
+    public int? PrepMinutesMax { get; init; }
     public int? CookMinutes { get; init; }
+    public int? CookMinutesMax { get; init; }
+
+    /// <summary>The total, or prep + cook added end by end when no total was given (ADR 0010).</summary>
     public int? TotalMinutes { get; init; }
+    public int? TotalMinutesMax { get; init; }
     public bool IsPrecision { get; init; }
     public RecipeStatus Status { get; init; }
     public SourceType SourceType { get; init; }
@@ -80,7 +86,12 @@ public sealed record RecipeLookup(RecipeView? Recipe, string? RedirectToSlug)
 }
 
 /// <summary>A recipe in a grid or list.</summary>
-public sealed record RecipeCard(int Id, string Slug, string Title, string? Summary, int? TotalMinutes, int? Rating, RecipeStatus Status);
+public sealed record RecipeCard(int Id, string Slug, string Title, string? Summary, int? TotalMinutes, int? TotalMinutesMax, int? Rating,
+    RecipeStatus Status)
+{
+    /// <summary>"25 min", "20–25 min", "1 hr 15 min"; empty when unknown.</summary>
+    public string TimeText => Core.Recipes.TimeText.Format(TotalMinutes, TotalMinutesMax);
+}
 
 public sealed record SearchPage(IReadOnlyList<RecipeCard> Items, int Total, int Page, int PageCount);
 
