@@ -42,6 +42,15 @@ Tests must stay fast as the suite grows. These rules are set from M0 so they nev
   timeout and may fail without failing the job.
 - E2E runs as **its own CI job** beside build-test. When it passes ~4 minutes, shard it across a matrix
   (`--shard i/n`); the `test` job keeps the ruleset unchanged.
+- Implementation (M1): `tests/RecipeWarden.E2E.Tests`, xUnit + Playwright for .NET. Each test class has its own
+  `BrowserHost` (the app on a random Kestrel port with its own data directory, plus one browser), so classes run
+  in parallel. The browser context sends `X-Forwarded-Proto: https` from loopback, as cloudflared does, so
+  antiforgery and the `__Host-` cookies behave as in production (localhost keeps Secure cookies over HTTP).
+- Run: `build/e2e.sh`. Without Playwright's own browser, point at any Chromium-based browser:
+  `RW_E2E_BROWSER=/usr/bin/google-chrome build/e2e.sh` (add `RW_E2E_NO_SANDBOX=1` when running as root).
+- Not part of `build/test.sh` and has no coverage gate; the browser tests cover workflows, not lines.
+- Lesson from M1: HTTP-level tests that post their own antiforgery token cannot see a form that renders without
+  one. The W2 browser test found that; `SEC_30_FormTokenTests` now checks every post form on every page.
 
 ## Time budget
 Whole `ci` workflow under 8 minutes (section 9.9). Each job's `timeout-minutes` is about 3-4x its normal run and

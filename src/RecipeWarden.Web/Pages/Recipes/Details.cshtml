@@ -109,7 +109,7 @@
 
     @if (Model.CanEdit && Model.AvailableCollections.Count > 0)
     {
-        <form class="inline-form" method="post" action="/manage/collections?handler=AddRecipe">
+        <form class="inline-form" method="post" action="/manage/collections?handler=AddRecipe" asp-antiforgery="true">
             <input type="hidden" name="recipeId" value="@r.Id">
             <input type="hidden" name="returnSlug" value="@r.Slug">
             <label for="add-to-collection">Add to collection</label>

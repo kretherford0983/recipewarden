@@ -8,7 +8,7 @@
 @if (Model.Message is not null) { <p class="notice" role="status">@Model.Message</p> }
 @if (Model.Error is not null) { <p class="error-summary" role="alert">@Model.Error</p> }
 
-<form method="post" action="/manage/tags?handler=Create" class="inline-form">
+<form method="post" action="/manage/tags?handler=Create" class="inline-form" asp-antiforgery="true">
     <label for="new-tag">New tag</label>
     <input id="new-tag" name="name" maxlength="@NameRules.MaxTagLength" required>
     <label for="new-tag-type">Type</label>
@@ -32,7 +32,7 @@ else
         {
             <tr>
                 <td colspan="2">
-                    <form method="post" action="/manage/tags?handler=Update" class="inline-form">
+                    <form method="post" action="/manage/tags?handler=Update" class="inline-form" asp-antiforgery="true">
                         <input type="hidden" name="id" value="@tag.Id">
                         <label class="visually-hidden" for="tag-@tag.Id">Name</label>
                         <input id="tag-@tag.Id" name="name" value="@tag.Name" maxlength="@NameRules.MaxTagLength" required>
@@ -48,7 +48,7 @@ else
                 <td>
                     <details class="confirm">
                         <summary>Delete…</summary>
-                        <form method="post" action="/manage/tags?handler=Delete">
+                        <form method="post" action="/manage/tags?handler=Delete" asp-antiforgery="true">
                             <input type="hidden" name="id" value="@tag.Id">
                             <p>The tag is removed from @tag.RecipeCount recipe(s); the recipes stay.</p>
                             <button type="submit" class="danger">Delete “@tag.Name”</button>

@@ -43,7 +43,7 @@
     </table>
 }
 
-<form method="post" action="@Model.FormAction" class="editor" id="recipe-editor">
+<form method="post" action="@Model.FormAction" class="editor" id="recipe-editor" asp-antiforgery="true">
     <input type="hidden" asp-for="Input.Version">
 
     <div class="field">

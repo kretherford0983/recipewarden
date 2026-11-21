@@ -9,7 +9,7 @@
 <section class="danger-zone" aria-labelledby="delete-heading">
     <h2 id="delete-heading">Delete</h2>
     <p>Deleted recipes go to the trash and can be restored for 30 days.</p>
-    <form method="post" action="/manage/recipes/@Model.Id/edit?handler=Delete">
+    <form method="post" action="/manage/recipes/@Model.Id/edit?handler=Delete" asp-antiforgery="true">
         <button type="submit" class="danger">Move to trash</button>
     </form>
 </section>

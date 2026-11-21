@@ -8,7 +8,7 @@
 @if (Model.Message is not null) { <p class="notice" role="status">@Model.Message</p> }
 @if (Model.Error is not null) { <p class="error-summary" role="alert">@Model.Error</p> }
 
-<form method="post" action="/manage/collections?handler=Create" class="stacked-form">
+<form method="post" action="/manage/collections?handler=Create" class="stacked-form" asp-antiforgery="true">
     <h2>New collection</h2>
     <label for="new-name">Name</label>
     <input id="new-name" name="name" maxlength="@NameRules.MaxCollectionLength" required>
@@ -30,7 +30,7 @@ else
             var c = Model.Collections[i];
             <li>
                 <a href="/manage/collections?c=@c.Slug">@c.Name</a> <span class="meta">(@c.RecipeCount)</span>
-                <form method="post" action="/manage/collections?handler=Move" class="inline-form">
+                <form method="post" action="/manage/collections?handler=Move" class="inline-form" asp-antiforgery="true">
                     <input type="hidden" name="id" value="@c.Id">
                     <button type="submit" name="direction" value="-1" disabled="@(i == 0)" aria-label="Move @c.Name up">↑</button>
                     <button type="submit" name="direction" value="1" disabled="@(i == Model.Collections.Count - 1)" aria-label="Move @c.Name down">↓</button>
@@ -44,7 +44,7 @@ else
 {
     <section class="collection-edit" aria-labelledby="edit-heading">
         <h2 id="edit-heading">Edit “@sel.Name”</h2>
-        <form method="post" action="/manage/collections?handler=Update" class="stacked-form">
+        <form method="post" action="/manage/collections?handler=Update" class="stacked-form" asp-antiforgery="true">
             <input type="hidden" name="id" value="@sel.Id">
             <input type="hidden" name="version" value="@sel.Version">
             <label for="edit-name">Name</label>
@@ -67,13 +67,13 @@ else
                     var r = sel.Recipes[i];
                     <li>
                         <a href="/recipes/@r.Slug">@r.Title</a>
-                        <form method="post" action="/manage/collections?handler=MoveRecipe" class="inline-form">
+                        <form method="post" action="/manage/collections?handler=MoveRecipe" class="inline-form" asp-antiforgery="true">
                             <input type="hidden" name="id" value="@sel.Id">
                             <input type="hidden" name="recipeId" value="@r.Id">
                             <button type="submit" name="direction" value="-1" disabled="@(i == 0)" aria-label="Move @r.Title up">↑</button>
                             <button type="submit" name="direction" value="1" disabled="@(i == sel.Recipes.Count - 1)" aria-label="Move @r.Title down">↓</button>
                         </form>
-                        <form method="post" action="/manage/collections?handler=RemoveRecipe" class="inline-form">
+                        <form method="post" action="/manage/collections?handler=RemoveRecipe" class="inline-form" asp-antiforgery="true">
                             <input type="hidden" name="id" value="@sel.Id">
                             <input type="hidden" name="recipeId" value="@r.Id">
                             <button type="submit">Remove</button>
@@ -85,7 +85,7 @@ else
 
         <details class="confirm">
             <summary>Delete this collection…</summary>
-            <form method="post" action="/manage/collections?handler=Delete">
+            <form method="post" action="/manage/collections?handler=Delete" asp-antiforgery="true">
                 <input type="hidden" name="id" value="@sel.Id">
                 <p>The recipes stay; only the list is removed.</p>
                 <button type="submit" class="danger">Delete “@sel.Name”</button>

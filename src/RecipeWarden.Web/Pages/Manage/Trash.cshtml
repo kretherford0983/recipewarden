@@ -11,7 +11,7 @@
         <p>@Model.Message</p>
         @if (Model.UndoId is int undo)
         {
-            <form method="post" action="/manage/trash?handler=Restore">
+            <form method="post" action="/manage/trash?handler=Restore" asp-antiforgery="true">
                 <input type="hidden" name="id" value="@undo">
                 <button type="submit">Undo</button>
             </form>
@@ -34,7 +34,7 @@ else
                 <td><time datetime="@item.DeletedAt.ToString("O")">@item.DeletedAt.ToString("yyyy-MM-dd")</time></td>
                 <td><time datetime="@item.PurgesOn.ToString("O")">@item.PurgesOn.ToString("yyyy-MM-dd")</time></td>
                 <td class="actions">
-                    <form method="post" action="/manage/trash?handler=Restore">
+                    <form method="post" action="/manage/trash?handler=Restore" asp-antiforgery="true">
                         <input type="hidden" name="id" value="@item.Id">
                         <button type="submit">Restore</button>
                     </form>
@@ -42,7 +42,7 @@ else
                     {
                         <details class="confirm">
                             <summary>Delete for good…</summary>
-                            <form method="post" action="/manage/trash?handler=Purge">
+                            <form method="post" action="/manage/trash?handler=Purge" asp-antiforgery="true">
                                 <input type="hidden" name="id" value="@item.Id">
                                 <p>This cannot be undone.</p>
                                 <button type="submit" class="danger">Delete “@item.Title” for good</button>

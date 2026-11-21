@@ -4,7 +4,7 @@
     ViewData["Title"] = "Sign in";
 }
 <h1>Sign in</h1>
-<form method="post" class="form narrow" novalidate>
+<form method="post" class="form narrow" novalidate asp-antiforgery="true">
     @if (Model.ErrorMessage is not null)
     {
         <div class="form-errors" role="alert">@Model.ErrorMessage</div>
