@@ -32,3 +32,5 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 - Tags and collections, with management pages for editors (FR-ORG-01/02).
 - Security: search and write rate limits (SEC-63); safe Markdown (SEC-22); every form carries an antiforgery token, including sign-out (SEC-30).
 - Browser tests for adding and reading a recipe run in CI (Playwright).
+- Servings and times accept ranges ("6-8", "20-25 min") and hours ("1 hr 15 min", "1-1.5 hours"); "Ready in" filters on the longer end (ADR 0010).
+- Built-in tags for meals, courses, seasons, methods and diets, including "Homemade Ingredient"; your own tags with the same names are kept (ADR 0011).

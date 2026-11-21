@@ -19,6 +19,8 @@ public sealed class W2_AddRecipeTests(BrowserHost host) : IClassFixture<BrowserH
 
         await page.GotoAsync("/manage/recipes/new");
         await page.GetByLabel("Title").FillAsync("Lemon Rice");
+        await page.GetByLabel("Servings").FillAsync("6-8");          // ADR 0010: ranges, as recipes print them
+        await page.GetByLabel("Cook time").FillAsync("1 hr 15 min");
         await page.Locator("#Input_Ingredients").FillAsync("1 ½ cups basmati rice, rinsed\n2 cups water\n1 lemon, zested");
 
         // W2 step 3: each line is parsed live and shown as chips.
@@ -38,6 +40,8 @@ public sealed class W2_AddRecipeTests(BrowserHost host) : IClassFixture<BrowserH
 
         await Assertions.Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Lemon Rice", Level = 1 })).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator(".ingredients li").First).ToHaveTextAsync("1½ cups basmati rice, rinsed");
+        await Assertions.Expect(page.Locator(".facts dd").First).ToHaveTextAsync("6–8");
+        await Assertions.Expect(page.Locator(".facts")).ToContainTextAsync("1 hr 15 min");
         await Assertions.Expect(page.Locator(".steps li")).ToHaveTextAsync(["Rinse.", "Zest the lemon.", "Simmer."]);
 
         // AC-01: found by search straight away.

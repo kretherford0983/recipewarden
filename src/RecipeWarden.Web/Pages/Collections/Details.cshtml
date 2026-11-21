@@ -27,7 +27,7 @@ else
                 <a href="/recipes/@r.Slug"><h2>@r.Title</h2></a>
                 @if (r.Status == RecipeWarden.Core.Recipes.RecipeStatus.Draft) { <span class="badge">Draft</span> }
                 @if (r.Summary is not null) { <p>@r.Summary</p> }
-                @if (r.TotalMinutes is int min) { <p class="meta">@min min</p> }
+                @if (r.TotalMinutes is not null) { <p class="meta">@r.TimeText</p> }
             </li>
         }
     </ol>

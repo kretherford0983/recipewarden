@@ -61,25 +61,26 @@
     <div class="field-row">
         <div class="field">
             <label asp-for="Input.Servings">Servings</label>
-            <input asp-for="Input.Servings" type="text" inputmode="decimal" placeholder="4">
+            <input asp-for="Input.Servings" type="text" placeholder="6 or 6-8" maxlength="40">
             <span asp-validation-for="Input.Servings" class="field-error"></span>
         </div>
         <div class="field">
-            <label asp-for="Input.PrepMinutes">Prep (min)</label>
-            <input asp-for="Input.PrepMinutes" type="number" min="0" max="@RecipeEdit.MaxMinutes">
-            <span asp-validation-for="Input.PrepMinutes" class="field-error"></span>
+            <label asp-for="Input.PrepTime">Prep time</label>
+            <input asp-for="Input.PrepTime" type="text" placeholder="15 or 10-15 min" maxlength="40">
+            <span asp-validation-for="Input.PrepTime" class="field-error"></span>
         </div>
         <div class="field">
-            <label asp-for="Input.CookMinutes">Cook (min)</label>
-            <input asp-for="Input.CookMinutes" type="number" min="0" max="@RecipeEdit.MaxMinutes">
-            <span asp-validation-for="Input.CookMinutes" class="field-error"></span>
+            <label asp-for="Input.CookTime">Cook time</label>
+            <input asp-for="Input.CookTime" type="text" placeholder="1 hr 15 min" maxlength="40">
+            <span asp-validation-for="Input.CookTime" class="field-error"></span>
         </div>
         <div class="field">
-            <label asp-for="Input.TotalMinutes">Total (min)</label>
-            <input asp-for="Input.TotalMinutes" type="number" min="0" max="@RecipeEdit.MaxMinutes">
-            <span asp-validation-for="Input.TotalMinutes" class="field-error"></span>
+            <label asp-for="Input.TotalTime">Total time</label>
+            <input asp-for="Input.TotalTime" type="text" placeholder="1-1.5 hours" maxlength="40">
+            <span asp-validation-for="Input.TotalTime" class="field-error"></span>
         </div>
     </div>
+    <p class="hint">Servings and times can be ranges (6-8, 20-25 min). Times take minutes or hours (1 hr 15 min). Leave total empty to add prep and cook.</p>
 
     <div class="field">
         <label asp-for="Input.Tags">Tags <span class="hint">(comma-separated)</span></label>

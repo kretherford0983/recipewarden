@@ -14,16 +14,18 @@ public sealed class RecipeInput
 
     public string? Description { get; set; }
 
-    public decimal? Servings { get; set; }
+    /// <summary>"6", "6-8", "Serves 6 to 8" (ADR 0010).</summary>
+    public string? Servings { get; set; }
 
-    [Display(Name = "Prep minutes")]
-    public int? PrepMinutes { get; set; }
+    /// <summary>"20", "20-25", "1 hr 15 min", "1-1.5 hours" (ADR 0010).</summary>
+    [Display(Name = "Prep time")]
+    public string? PrepTime { get; set; }
 
-    [Display(Name = "Cook minutes")]
-    public int? CookMinutes { get; set; }
+    [Display(Name = "Cook time")]
+    public string? CookTime { get; set; }
 
-    [Display(Name = "Total minutes")]
-    public int? TotalMinutes { get; set; }
+    [Display(Name = "Total time")]
+    public string? TotalTime { get; set; }
 
     public bool IsPrecision { get; set; }
 
@@ -49,14 +51,49 @@ public sealed class RecipeInput
     /// <summary>BR-06: the version the editor was opened at.</summary>
     public int Version { get; set; }
 
-    public RecipeEdit ToEdit(bool publish) => new()
+    /// <summary>
+    /// The edit for the save pipeline, or the fields whose text could not be read (UX-08: shown at the top and on
+    /// the field, with an example of what is accepted).
+    /// </summary>
+    public (RecipeEdit Edit, IReadOnlyList<PublishProblem> Errors) ToEdit(bool publish)
+    {
+        var errors = new List<PublishProblem>();
+        var servings = ServingsRules.ParseText(Servings);
+        if (servings.Error is not null)
+        {
+            errors.Add(new PublishProblem(RecipeField.Servings, servings.Error));
+        }
+
+        var prep = Time(RecipeField.PrepMinutes, PrepTime, errors);
+        var cook = Time(RecipeField.CookMinutes, CookTime, errors);
+        var total = Time(RecipeField.TotalMinutes, TotalTime, errors);
+
+        return (Build(publish, servings, prep, cook, total), errors);
+    }
+
+    private static TimeValue Time(RecipeField field, string? text, List<PublishProblem> errors)
+    {
+        var value = TimeText.Parse(text);
+        if (value.Error is not null)
+        {
+            errors.Add(new PublishProblem(field, value.Error));
+        }
+
+        return value;
+    }
+
+    private RecipeEdit Build(bool publish, ServingsText servings, TimeValue prep, TimeValue cook, TimeValue total) => new()
     {
         Title = Title,
         Description = Description,
-        Servings = Servings,
-        PrepMinutes = PrepMinutes,
-        CookMinutes = CookMinutes,
-        TotalMinutes = TotalMinutes,
+        Servings = servings.Min,
+        ServingsMax = servings.Max,
+        PrepMinutes = prep.Min,
+        PrepMinutesMax = prep.Max,
+        CookMinutes = cook.Min,
+        CookMinutesMax = cook.Max,
+        TotalMinutes = total.Min,
+        TotalMinutesMax = total.Max,
         IsPrecision = IsPrecision,
         Notes = Notes,
         SourceType = SourceType,
@@ -73,10 +110,10 @@ public sealed class RecipeInput
     {
         Title = e.Title,
         Description = e.Description,
-        Servings = e.Servings,
-        PrepMinutes = e.PrepMinutes,
-        CookMinutes = e.CookMinutes,
-        TotalMinutes = e.TotalMinutes,
+        Servings = e.Servings is { } s ? ServingsRules.Format(s, e.ServingsMax) : null,
+        PrepTime = NullIfEmpty(TimeText.Format(e.PrepMinutes, e.PrepMinutesMax)),
+        CookTime = NullIfEmpty(TimeText.Format(e.CookMinutes, e.CookMinutesMax)),
+        TotalTime = NullIfEmpty(TimeText.Format(e.TotalMinutes, e.TotalMinutesMax)),
         IsPrecision = e.IsPrecision,
         Notes = e.Notes,
         SourceType = e.SourceType,
@@ -94,6 +131,11 @@ public sealed class RecipeInput
     {
         RecipeField.Ingredients => "Input.Ingredients",
         RecipeField.Steps => "Input.Steps",
+        RecipeField.PrepMinutes => "Input.PrepTime",
+        RecipeField.CookMinutes => "Input.CookTime",
+        RecipeField.TotalMinutes => "Input.TotalTime",
         _ => "Input." + field,
     };
+
+    private static string? NullIfEmpty(string text) => text.Length == 0 ? null : text;
 }

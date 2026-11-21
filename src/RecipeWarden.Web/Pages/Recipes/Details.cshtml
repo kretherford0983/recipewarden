@@ -33,10 +33,10 @@
         }
         <dl class="facts">
             <dt>Servings</dt>
-            <dd>@IngredientFormatter.Amount(r.Servings)@(r.ServingsEstimated ? " (estimated)" : "")</dd>
-            @if (r.PrepMinutes is int prep) { <dt>Prep</dt><dd>@prep min</dd> }
-            @if (r.CookMinutes is int cook) { <dt>Cook</dt><dd>@cook min</dd> }
-            @if (r.TotalMinutes is int total) { <dt>Total</dt><dd>@total min</dd> }
+            <dd>@ServingsRules.Format(r.Servings, r.ServingsMax)@(r.ServingsEstimated ? " (estimated)" : "")</dd>
+            @if (r.PrepMinutes is not null) { <dt>Prep</dt><dd>@TimeText.Format(r.PrepMinutes, r.PrepMinutesMax)</dd> }
+            @if (r.CookMinutes is not null) { <dt>Cook</dt><dd>@TimeText.Format(r.CookMinutes, r.CookMinutesMax)</dd> }
+            @if (r.TotalMinutes is not null) { <dt>Total</dt><dd>@TimeText.Format(r.TotalMinutes, r.TotalMinutesMax)</dd> }
             @if (r.IsPrecision) { <dt>Type</dt><dd>Baking / precision</dd> }
         </dl>
         @if (r.SourceName is not null || r.SourceUrl is not null)

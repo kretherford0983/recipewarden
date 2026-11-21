@@ -41,10 +41,12 @@ public sealed class CollectionService(AppDbContext db, TimeProvider clock)
                           join r in recipes on cr.RecipeId equals r.Id
                           where cr.CollectionId == c.Id
                           orderby cr.SortOrder
-                          select new { r.Id, r.Slug, r.Title, r.Description, r.TotalMinutes, r.PrepMinutes, r.CookMinutes, r.Rating, r.Status })
+                          select new { r.Id, r.Slug, r.Title, r.Description, r.TotalMinutes, r.TotalMinutesMax, r.PrepMinutes, r.PrepMinutesMax,
+                              r.CookMinutes, r.CookMinutesMax, r.Rating, r.Status })
             .ToListAsync(cancellationToken).ConfigureAwait(false);
 
-        var cards = rows.Select(r => RecipeSearchService.Card(r.Id, r.Slug, r.Title, r.Description, r.TotalMinutes, r.PrepMinutes, r.CookMinutes, r.Rating, r.Status)).ToList();
+        var cards = rows.Select(r => RecipeSearchService.Card(r.Id, r.Slug, r.Title, r.Description, (r.TotalMinutes, r.TotalMinutesMax),
+            (r.PrepMinutes, r.PrepMinutesMax), (r.CookMinutes, r.CookMinutesMax), r.Rating, r.Status)).ToList();
         return new CollectionView(c.Id, c.Name, c.Slug, c.Description, c.Version, cards);
     }
 

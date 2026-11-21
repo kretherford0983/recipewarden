@@ -1,6 +1,6 @@
 # RecipeWarden — requirements traceability
 
-Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.8. Keep in step with the spec and the test suite.
+Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.9. Keep in step with the spec and the test suite.
 
 Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and tagged with `[Trait("Req", "FR-SCL-01")]`, so CI can print coverage per requirement and fail if any Must requirement has no test.
 
@@ -109,6 +109,8 @@ Scope decisions: ADR 0008 (slugs follow the title, old slugs redirect), ADR 0009
 | AC-76 / SEC-22 | Done (descriptions, notes, collection descriptions) | `MarkdownRenderer` (Markdig, raw HTML off + HtmlSanitizer) | Web `AC_76_RecipeContentEncodingTests` |
 | SEC-63 | Done for search (60/min per IP) and writes (120/min per user); sign-in limit not yet | `RateLimits`, configurable under `RateLimits` | Web `SEC_63_RateLimitTests` |
 | SEC-20 | `SqlQueryRaw` added to the banned list | `BannedSymbols.txt` | build |
+| BR-03, FR-REC-01, FR-SRCH-02 (ADR 0010) | Done 2026-11-21: servings and time ranges, times in hours; "Ready in" uses the high end | `ServingsRules.ParseText`, `TimeText`, `Recipe.*Max`, migration `M1_RangesAndDefaultTags` | Core `BR_03_ServingsRangeTests`, `FR_REC_01_TimeTextTests`; Infra `ADR_0010_RangeTests`; Web `ADR_0010_EditorRangeTests`; E2E `W2_AddRecipeTests` |
+| FR-ORG-01 (ADR 0011) | Done 2026-11-21: 31 built-in typed tags incl. "Homemade Ingredient", seeded once; existing tags kept | `DefaultTags`, migration `M1_RangesAndDefaultTags` | Core `FR_ORG_01_DefaultTagsTests`; Infra `ADR_0011_DefaultTagSeedTests`; Web `ADR_0010_EditorRangeTests.Built_in_tags_are_suggested_in_the_editor` |
 | AC-70 | Extended to every M1 route (sample URLs from seeded data) | — | Web `AC_70_AuthMatrixTests` |
 
 #### M0 deployment check (2026-11-20, test host)
@@ -150,3 +152,5 @@ Scope decisions: ADR 0008 (slugs follow the title, old slugs redirect), ADR 0009
     settings page (M7) will expose them.
   - Not exercised on the host yet: the new pages behind the tunnel. The packaged build was started locally and
     served `/`, `/recipes`, `/search` and `/collections` with the M1 migration applied.
+  - Found on the first deployed M1 build (owner, 2026-11-21): servings and times needed ranges ("serves 6-8",
+    "20-25 min", "1 hr 15 min"). Fixed by ADR 0010; default tags added with ADR 0011.

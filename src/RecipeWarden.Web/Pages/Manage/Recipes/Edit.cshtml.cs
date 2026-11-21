@@ -53,13 +53,13 @@ public sealed class EditModel(RecipeService recipes, TagService tags, Permission
 
         SetCurrent(current);
         IsAdmin = await permissions.IsAdminAsync(User);
-        if (HasBindingErrors())
+        if (HasBindingErrors() || ReadInput() is not { } edit)
         {
             await LoadTagsAsync();
             return Page();
         }
 
-        var outcome = await recipes.UpdateAsync(id, Input.ToEdit(WantsPublish), Input.Version, Permissions.UserId(User), IsAdmin,
+        var outcome = await recipes.UpdateAsync(id, edit, Input.Version, Permissions.UserId(User), IsAdmin,
             HttpContext.RequestAborted);
         return outcome.Status switch
         {

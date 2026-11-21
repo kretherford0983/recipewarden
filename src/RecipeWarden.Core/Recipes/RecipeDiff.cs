@@ -9,9 +9,13 @@ public sealed record RecipeSnapshot
     public string? Title { get; init; }
     public string? Description { get; init; }
     public decimal? Servings { get; init; }
+    public decimal? ServingsMax { get; init; }
     public int? PrepMinutes { get; init; }
+    public int? PrepMinutesMax { get; init; }
     public int? CookMinutes { get; init; }
+    public int? CookMinutesMax { get; init; }
     public int? TotalMinutes { get; init; }
+    public int? TotalMinutesMax { get; init; }
     public bool IsPrecision { get; init; }
     public string? Notes { get; init; }
     public SourceType SourceType { get; init; }
@@ -43,10 +47,10 @@ public static class RecipeDiff
         var diffs = new List<FieldDifference>();
         Add(diffs, RecipeField.Title, mine.Title, theirs.Title);
         Add(diffs, RecipeField.Description, mine.Description, theirs.Description);
-        Add(diffs, RecipeField.Servings, Number(mine.Servings), Number(theirs.Servings));
-        Add(diffs, RecipeField.PrepMinutes, Number(mine.PrepMinutes), Number(theirs.PrepMinutes));
-        Add(diffs, RecipeField.CookMinutes, Number(mine.CookMinutes), Number(theirs.CookMinutes));
-        Add(diffs, RecipeField.TotalMinutes, Number(mine.TotalMinutes), Number(theirs.TotalMinutes));
+        Add(diffs, RecipeField.Servings, Range(mine.Servings, mine.ServingsMax), Range(theirs.Servings, theirs.ServingsMax));
+        Add(diffs, RecipeField.PrepMinutes, Range(mine.PrepMinutes, mine.PrepMinutesMax), Range(theirs.PrepMinutes, theirs.PrepMinutesMax));
+        Add(diffs, RecipeField.CookMinutes, Range(mine.CookMinutes, mine.CookMinutesMax), Range(theirs.CookMinutes, theirs.CookMinutesMax));
+        Add(diffs, RecipeField.TotalMinutes, Range(mine.TotalMinutes, mine.TotalMinutesMax), Range(theirs.TotalMinutes, theirs.TotalMinutesMax));
         Add(diffs, RecipeField.IsPrecision, YesNo(mine.IsPrecision), YesNo(theirs.IsPrecision));
         Add(diffs, RecipeField.Notes, mine.Notes, theirs.Notes);
         Add(diffs, RecipeField.SourceType, mine.SourceType.ToString(), theirs.SourceType.ToString());
@@ -77,6 +81,11 @@ public static class RecipeDiff
     private static string Number(decimal? value) => value?.ToString("G29", CultureInfo.InvariantCulture) ?? string.Empty;
 
     private static string Number(int? value) => value?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+
+    // ADR 0010: a range shows as "6–8"; a single value as before.
+    private static string Range(decimal? min, decimal? max) => max is null ? Number(min) : Number(min) + "–" + Number(max);
+
+    private static string Range(int? min, int? max) => max is null ? Number(min) : Number(min) + "–" + Number(max);
 
     private static string YesNo(bool value) => value ? "Yes" : "No";
 
