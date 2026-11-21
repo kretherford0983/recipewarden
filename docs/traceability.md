@@ -142,6 +142,15 @@ Scope decisions: ADR 0008 (slugs follow the title, old slugs redirect), ADR 0009
   (c) export the key ring separately, e.g. with the restore kit. Tentative recommendation: (a).
   Not discussed yet — owner wants to revisit later.
 
+- **Deferred to M2 by owner (2026-11-21), found while testing M1 on the host:**
+  - **Tag picker.** Tags are typed as one comma-separated text box, which works poorly with the built-in typed
+    tags (ADR 0011). Needs a picker that shows tags grouped by type with multi-select, plus typing a new tag.
+  - **Step headings.** A pasted list such as `1. **Preheat oven**` followed by an indented line
+    `Preheat oven to **375°F**.` becomes two steps per item, and the `**` shows literally, because the paste
+    splitter makes one step per line and step text is plain. Needs: numbered items with continuation lines kept as
+    one step, an optional step heading, and a decision on bold in step text (restricted Markdown per SEC-22, or
+    strip it). Spec is silent on step headings; raise options (e.g. a `Step.Title` column vs. Markdown) at M2 start.
+
 - **M1 notes (2026-11-21):**
   - Two bugs found by the M1 tests and fixed: MVC binds form values before route values, so a posted `id`
     could retarget a recipe edit (route ids now bind with `[FromRoute]`); and Razor adds no antiforgery token
