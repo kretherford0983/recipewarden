@@ -14,6 +14,8 @@
     <!-- Apache-2.0 --><PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <!-- Apache-2.0 --><PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
     <!-- MIT --><PackageVersion Include="System.CommandLine" Version="2.0.15" />
+    <!-- BSD-2-Clause --><PackageVersion Include="Markdig" Version="1.6.0" />
+    <!-- MIT (AngleSharp: MIT) --><PackageVersion Include="HtmlSanitizer" Version="11.0.26" />
   </ItemGroup>
 
   <ItemGroup Label="Analyzers">

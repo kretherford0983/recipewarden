@@ -125,3 +125,71 @@ button.primary, .button-link.primary { background: var(--accent); color: var(--a
   .site-header, .primary-nav, .site-footer, .skip-link { display: none; }
   body { background: #fff; color: #000; }
 }
+
+/* ---- M1: recipes, lists, editor (UX-01, UX-02, UX-04, UX-05) ---- */
+.toolbar { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; }
+.breadcrumb { font-size: .9rem; margin: 0 0 .25rem; }
+.badge { display: inline-block; font-size: .8rem; padding: .1rem .5rem; border-radius: 999px; border: 1px solid currentColor; }
+.badge.warn, .chip.warn { color: var(--warn, #9a5b00); }
+.notice { border-left: 4px solid var(--accent, #2b6cb0); padding: .5rem .75rem; margin: 1rem 0; }
+.error-summary { border: 2px solid var(--error, #b42318); padding: .5rem 1rem; margin: 1rem 0; }
+.field-error { color: var(--error, #b42318); display: block; font-size: .9rem; }
+.hint { font-weight: normal; font-size: .85rem; opacity: .8; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.filters { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: end; margin: 1rem 0; }
+.filters label { display: block; font-size: .85rem; }
+.result-count { margin: .5rem 0; }
+.recipe-grid { list-style: none; padding: 0; display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
+.recipe-card { border: 1px solid var(--border, #d0d5dd); border-radius: .5rem; padding: 1rem; }
+.recipe-card h2, .recipe-card h3 { font-size: 1.1rem; margin: 0 0 .5rem; }
+.recipe-card .meta, .meta { font-size: .9rem; opacity: .85; display: flex; gap: .75rem; }
+.pager { display: flex; gap: 1rem; align-items: center; justify-content: center; margin: 1.5rem 0; }
+.tags { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem; }
+.tags a { display: inline-block; padding: .25rem .6rem; border-radius: 999px; border: 1px solid var(--border, #d0d5dd); min-height: 44px; line-height: 2.2; }
+.link-list { padding-left: 1.25rem; }
+.home-search { display: flex; gap: .5rem; margin: 1rem 0 2rem; }
+.home-search input { flex: 1; min-height: 44px; }
+
+.recipe { font-size: 18px; line-height: 1.6; }
+.recipe .steps li { max-width: 70ch; margin-bottom: .75rem; }
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: .25rem 1rem; }
+.facts dt { font-weight: 600; }
+.facts dd { margin: 0; }
+.source-credit { font-size: .95rem; }
+.recipe-columns { display: block; }
+@media (min-width: 1024px) {
+  .recipe-columns { display: grid; grid-template-columns: minmax(16rem, 1fr) 2fr; gap: 2rem; }
+}
+
+.editor .field { margin-bottom: 1rem; }
+.editor label { display: block; font-weight: 600; margin-bottom: .25rem; }
+.editor input:not([type=checkbox]), .editor textarea, .editor select { width: 100%; min-height: 44px; font: inherit; }
+.editor textarea.lines { font-family: ui-monospace, monospace; }
+.editor .checkbox { display: flex; gap: .5rem; align-items: center; }
+.editor .checkbox label { display: inline; font-weight: normal; }
+.field-row { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); }
+.actions { display: flex; gap: 1rem; margin-top: 1.5rem; }
+button, .button-link { min-height: 44px; min-width: 44px; }
+button.primary, .button-link.primary { font-weight: 600; }
+button.danger { color: var(--error, #b42318); }
+.danger-zone { margin-top: 3rem; border-top: 1px solid var(--border, #d0d5dd); padding-top: 1rem; }
+
+.chips { list-style: none; padding: 0; margin: .5rem 0; }
+.chip-line { display: flex; flex-wrap: wrap; gap: .25rem; margin-bottom: .25rem; }
+.chip-line.review { outline: 1px dashed var(--warn, #9a5b00); }
+.chip-heading { font-weight: 600; margin-top: .5rem; }
+.chip { font-size: .85rem; padding: 0 .4rem; border-radius: .25rem; border: 1px solid var(--border, #d0d5dd); }
+.reorder-toggle { margin-top: .25rem; }
+.reorder-list { padding-left: 1.5rem; }
+.reorder-list li { display: flex; gap: .5rem; align-items: center; margin-bottom: .25rem; }
+.reorder-list .reorder-text { flex: 1; }
+.reorder-list .inline-form { display: inline-flex; gap: .25rem; }
+
+.inline-form { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.stacked-form { display: grid; gap: .5rem; max-width: 40rem; margin: 1rem 0; }
+table.list, table.diff { border-collapse: collapse; width: 100%; }
+table.list td, table.list th, table.diff td, table.diff th { border-bottom: 1px solid var(--border, #d0d5dd); padding: .5rem; text-align: left; vertical-align: top; }
+.pre { white-space: pre-wrap; }
+details.confirm summary { cursor: pointer; min-height: 44px; line-height: 44px; }
+.manage-links { list-style: none; padding: 0; display: grid; gap: .75rem; }

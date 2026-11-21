@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Text.Encodings.Web;
+using System.Text.Unicode;
 using RecipeWarden.Core.Security;
 using RecipeWarden.Infrastructure;
 using RecipeWarden.Infrastructure.Data;
@@ -67,6 +70,9 @@ public static class RecipeWardenHost
             o.HeaderName = AntiforgeryHeaderName; // htmx and fetch send the token in this header
         });
 
+        // UX-05: fractions and accented names are sent as text (½, crème), not &#xBD; entities.
+        // The encoder still escapes < > & " ' everywhere (SEC-22).
+        services.AddWebEncoders(o => o.TextEncoderSettings = new TextEncoderSettings(UnicodeRanges.All));
         services.AddRouting(o => o.LowercaseUrls = true);
         services.AddRazorPages(o =>
         {
@@ -74,11 +80,23 @@ public static class RecipeWardenHost
             o.Conventions.AllowAnonymousToPage("/Index");
             o.Conventions.AllowAnonymousToPage("/Error");
             o.Conventions.AllowAnonymousToPage("/Account/Login");
+            o.Conventions.AllowAnonymousToPage("/Recipes/Index");
+            o.Conventions.AllowAnonymousToPage("/Recipes/Details");
+            o.Conventions.AllowAnonymousToPage("/Search");
+            o.Conventions.AllowAnonymousToPage("/Tags/Details");
+            o.Conventions.AllowAnonymousToPage("/Collections/Index");
+            o.Conventions.AllowAnonymousToPage("/Collections/Details");
+            // SEC-63: search and browse are limited per IP.
+            o.Conventions.AddPageApplicationModelConvention("/Search", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.SearchPolicy)));
+            o.Conventions.AddPageApplicationModelConvention("/Recipes/Index", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.SearchPolicy)));
             o.Conventions.AuthorizeFolder("/Manage", AppPolicies.CanEditRecipes);
             o.Conventions.AuthorizeFolder("/Admin", AppPolicies.CanAdminister);
         });
 
         services.AddScoped<ThemeResolver>();
+        services.AddScoped<Permissions>();
+        services.AddRecipeWardenRateLimits(builder.Configuration);
+        services.AddHostedService<TrashPurgeService>(); // BR-05
 
         var network = new NetworkOptions();
         builder.Configuration.GetSection(NetworkOptions.SectionName).Bind(network);
@@ -194,6 +212,7 @@ public static class RecipeWardenHost
         app.UseRouting();
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseRateLimiter(); // after authentication: the write limit is per user (SEC-63)
 
         // FR-OPS-01: liveness only; says "ok" and nothing else (section 7.2).
         app.MapGet("/health", () => Results.Text("ok", "text/plain"))

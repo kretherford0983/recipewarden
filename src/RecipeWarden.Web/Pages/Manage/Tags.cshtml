@@ -1,0 +1,62 @@
+@page "/manage/tags"
+@model RecipeWarden.Web.Pages.Manage.TagsModel
+@using RecipeWarden.Core.Organization
+@{
+    ViewData["Title"] = "Tags";
+}
+<h1>Tags</h1>
+@if (Model.Message is not null) { <p class="notice" role="status">@Model.Message</p> }
+@if (Model.Error is not null) { <p class="error-summary" role="alert">@Model.Error</p> }
+
+<form method="post" action="/manage/tags?handler=Create" class="inline-form">
+    <label for="new-tag">New tag</label>
+    <input id="new-tag" name="name" maxlength="@NameRules.MaxTagLength" required>
+    <label for="new-tag-type">Type</label>
+    <select id="new-tag-type" name="type">
+        <option value="">None</option>
+        @foreach (var t in Enum.GetNames<TagType>()) { <option value="@t">@t</option> }
+    </select>
+    <button type="submit">Add</button>
+</form>
+
+@if (Model.Tags.Count == 0)
+{
+    <p class="empty-state">No tags yet. Tags are also created when you type them on a recipe.</p>
+}
+else
+{
+    <table class="list">
+        <thead><tr><th scope="col">Name</th><th scope="col">Type</th><th scope="col">Recipes</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+        <tbody>
+        @foreach (var tag in Model.Tags)
+        {
+            <tr>
+                <td colspan="2">
+                    <form method="post" action="/manage/tags?handler=Update" class="inline-form">
+                        <input type="hidden" name="id" value="@tag.Id">
+                        <label class="visually-hidden" for="tag-@tag.Id">Name</label>
+                        <input id="tag-@tag.Id" name="name" value="@tag.Name" maxlength="@NameRules.MaxTagLength" required>
+                        <label class="visually-hidden" for="tag-type-@tag.Id">Type</label>
+                        <select id="tag-type-@tag.Id" name="type">
+                            <option value="">None</option>
+                            @foreach (var t in Enum.GetValues<TagType>()) { <option value="@t" selected="@(tag.TagType == t)">@t</option> }
+                        </select>
+                        <button type="submit">Save</button>
+                    </form>
+                </td>
+                <td><a href="/tags/@tag.Slug">@tag.RecipeCount</a></td>
+                <td>
+                    <details class="confirm">
+                        <summary>Delete…</summary>
+                        <form method="post" action="/manage/tags?handler=Delete">
+                            <input type="hidden" name="id" value="@tag.Id">
+                            <p>The tag is removed from @tag.RecipeCount recipe(s); the recipes stay.</p>
+                            <button type="submit" class="danger">Delete “@tag.Name”</button>
+                        </form>
+                    </details>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}

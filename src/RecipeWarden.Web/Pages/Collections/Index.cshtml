@@ -1,0 +1,30 @@
+@page "/collections"
+@model RecipeWarden.Web.Pages.Collections.IndexModel
+@{
+    ViewData["Title"] = "Collections";
+}
+<h1>Collections</h1>
+@if (Model.CanEdit)
+{
+    <p class="toolbar"><a class="button-link" href="/manage/collections">Manage collections</a></p>
+}
+@if (Model.Collections.Count == 0)
+{
+    <section class="empty-state">
+        <p>No collections yet.</p>
+        @if (Model.CanEdit) { <p><a class="button-link" href="/manage/collections">Create one</a></p> }
+    </section>
+}
+else
+{
+    <ul class="recipe-grid">
+        @foreach (var c in Model.Collections)
+        {
+            <li class="recipe-card">
+                <a href="/collections/@c.Slug"><h2>@c.Name</h2></a>
+                @if (c.Description is not null) { <p>@c.Description</p> }
+                <p class="meta">@c.RecipeCount @(c.RecipeCount == 1 ? "recipe" : "recipes")</p>
+            </li>
+        }
+    </ul>
+}

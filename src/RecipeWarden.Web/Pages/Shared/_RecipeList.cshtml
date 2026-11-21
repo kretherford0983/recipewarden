@@ -1,0 +1,107 @@
+@model RecipeWarden.Web.Pages.Listing.RecipeListPageModel
+@using RecipeWarden.Core.Search
+@* FR-SRCH-02 filters and the results grid, shared by browse, search, tag and collection pages. *@
+<form class="filters" method="get" action="@Model.ListPath" aria-label="Filter recipes">
+    @if (Model.ListPath == "/search")
+    {
+        <label for="q">Search</label>
+        <input id="q" name="q" type="search" value="@Model.Q" maxlength="@FtsQuery.MaxInputLength">
+    }
+    else if (!string.IsNullOrEmpty(Model.Q))
+    {
+        <input type="hidden" name="q" value="@Model.Q">
+    }
+    @if (Model.AllTags.Count > 0 && !Model.ListPath.StartsWith("/tags/", StringComparison.Ordinal))
+    {
+        <label for="tag">Tag</label>
+        <select id="tag" name="tag">
+            <option value="">Any tag</option>
+            @foreach (var t in Model.AllTags)
+            {
+                <option value="@t.Slug" selected="@(Model.Criteria.TagSlugs.Contains(t.Slug))">@t.Name (@t.RecipeCount)</option>
+            }
+        </select>
+    }
+    @if (Model.AllCollections.Count > 0 && !Model.ListPath.StartsWith("/collections/", StringComparison.Ordinal))
+    {
+        <label for="collection">Collection</label>
+        <select id="collection" name="collection">
+            <option value="">Any collection</option>
+            @foreach (var c in Model.AllCollections)
+            {
+                <option value="@c.Slug" selected="@(Model.Criteria.CollectionSlug == c.Slug)">@c.Name</option>
+            }
+        </select>
+    }
+    <label for="time">Ready in</label>
+    <select id="time" name="time">
+        <option value="">Any time</option>
+        @foreach (var m in new[] { 15, 30, 45, 60, 90, 120 })
+        {
+            <option value="@m" selected="@(Model.Criteria.MaxTotalMinutes == m)">@m min or less</option>
+        }
+    </select>
+    <label for="sort">Sort</label>
+    <select id="sort" name="sort">
+        @if (!Model.Criteria.Query.IsEmpty)
+        {
+            <option value="relevance" selected="@(Model.Criteria.Sort == SearchSort.Relevance)">Best match</option>
+        }
+        <option value="newest" selected="@(Model.Criteria.Sort == SearchSort.Newest)">Newest</option>
+        <option value="title" selected="@(Model.Criteria.Sort == SearchSort.Title)">Title</option>
+        <option value="lastcooked" selected="@(Model.Criteria.Sort == SearchSort.LastCooked)">Last cooked</option>
+    </select>
+    @if (Model.ShowingDrafts)
+    {
+        <input type="hidden" name="status" value="draft">
+    }
+    <button type="submit">Apply</button>
+</form>
+
+<p class="result-count" role="status">
+    @if (Model.ShowingDrafts) { <span class="badge">Drafts</span> }
+    @Model.Results.Total @(Model.Results.Total == 1 ? "recipe" : "recipes")
+    @if (!Model.Criteria.Query.IsEmpty) { <text>for “@Model.Q”</text> }
+</p>
+
+@if (Model.Results.Items.Count == 0)
+{
+    <section class="empty-state">
+        <p>No recipes match. Try fewer words or remove a filter.</p>
+        @if (Model.CanEdit)
+        {
+            <p><a class="button-link" href="/manage/recipes/new">Add a recipe</a></p>
+        }
+    </section>
+}
+else
+{
+    <ul class="recipe-grid">
+        @foreach (var r in Model.Results.Items)
+        {
+            <li class="recipe-card">
+                <a href="/recipes/@r.Slug"><h2>@r.Title</h2></a>
+                @if (r.Status == RecipeWarden.Core.Recipes.RecipeStatus.Draft) { <span class="badge">Draft</span> }
+                @if (r.Summary is not null) { <p>@r.Summary</p> }
+                <p class="meta">
+                    @if (r.TotalMinutes is int min) { <span>@min min</span> }
+                    @if (r.Rating is int stars) { <span aria-label="Rated @stars of 5">@(new string('★', stars))</span> }
+                </p>
+            </li>
+        }
+    </ul>
+    @if (Model.Results.PageCount > 1)
+    {
+        <nav class="pager" aria-label="Pages">
+            @if (Model.Results.Page > 1)
+            {
+                <a href="@Model.LinkWith("page", (Model.Results.Page - 1).ToString(System.Globalization.CultureInfo.InvariantCulture))" rel="prev">Previous</a>
+            }
+            <span>Page @Model.Results.Page of @Model.Results.PageCount</span>
+            @if (Model.Results.Page < Model.Results.PageCount)
+            {
+                <a href="@Model.LinkWith("page", (Model.Results.Page + 1).ToString(System.Globalization.CultureInfo.InvariantCulture))" rel="next">Next</a>
+            }
+        </nav>
+    }
+}

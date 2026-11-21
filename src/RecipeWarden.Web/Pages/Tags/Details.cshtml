@@ -1,0 +1,8 @@
+@page "/tags/{slug}"
+@model RecipeWarden.Web.Pages.Tags.DetailsModel
+@{
+    ViewData["Title"] = Model.TagName;
+}
+<p class="breadcrumb"><a href="/recipes">Browse</a> › Tag</p>
+<h1>@Model.TagName</h1>
+<partial name="_RecipeList" model="Model" />
