@@ -29,6 +29,11 @@ public sealed class EditModel(RecipeService recipes, TagService tags, Permission
 
         SetCurrent(current);
         Input = RecipeInput.From(current.Edit, current.Version);
+        if (string.IsNullOrEmpty(Input.Pan) && Core.Kitchen.PanRules.FromSteps(current.Edit.StepsText) is { } pan)
+        {
+            Input.Pan = Core.Kitchen.PanRules.Describe(pan); // ADR 0020: prefilled, saved only if the editor saves the form
+            PanFromSteps = true;
+        }
         if (current.Status == RecipeStatus.Draft)
         {
             // AC-02: say what is missing before it can be published.

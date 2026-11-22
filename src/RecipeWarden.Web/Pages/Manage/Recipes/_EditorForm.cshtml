@@ -127,6 +127,25 @@
         <span asp-validation-for="Input.Notes" class="field-error"></span>
     </div>
 
+    <div class="field-row">
+        <div class="field">
+            <label asp-for="Input.Yield">Makes <span class="hint">(for fitting containers, e.g. 12 fl oz)</span></label>
+            <input asp-for="Input.Yield" maxlength="40">
+            <span asp-validation-for="Input.Yield" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Input.FinishedDensity">Finished density <span class="hint">(g/ml, only for a yield in weight)</span></label>
+            <input asp-for="Input.FinishedDensity" inputmode="decimal" maxlength="12">
+            <span asp-validation-for="Input.FinishedDensity" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Input.Pan">Pan <span class="hint">(e.g. 9x13, 9-inch round)</span></label>
+            <input asp-for="Input.Pan" maxlength="40">
+            <span asp-validation-for="Input.Pan" class="field-error"></span>
+            @if (Model.PanFromSteps) { <span class="hint">Found in the steps; change or clear it if that's not the pan.</span> }
+        </div>
+    </div>
+
     <div class="field checkbox">
         <input asp-for="Input.IsPrecision">
         <label asp-for="Input.IsPrecision">Baking / precision recipe <span class="hint">(tighter rounding when scaling)</span></label>

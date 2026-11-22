@@ -38,14 +38,20 @@ public sealed class ConversionsModel(FoodCatalogService foods) : PageModel
         return await ResultAsync(await foods.AddFoodAsync(name, d, aliases, UserId, HttpContext.RequestAborted), "added");
     }
 
-    public async Task<IActionResult> OnPostUpdateFoodAsync(int id, string? density, string? aliases, string? q)
+    public async Task<IActionResult> OnPostUpdateFoodAsync(int id, string? density, string? aliases, string? form, string? q)
     {
         if (!TryNumber(density, out var d))
         {
             return await FailAsync(BadNumber, q);
         }
 
-        return await ResultAsync(await foods.UpdateFoodAsync(id, d, aliases, UserId, HttpContext.RequestAborted), "saved", q);
+        FoodForm? parsedForm = Enum.TryParse<FoodForm>(form, ignoreCase: false, out var f) && Enum.IsDefined(f) ? f : null;
+        if (!string.IsNullOrEmpty(form) && parsedForm is null)
+        {
+            return BadRequest();
+        }
+
+        return await ResultAsync(await foods.UpdateFoodAsync(id, d, aliases, parsedForm, UserId, HttpContext.RequestAborted), "saved", q);
     }
 
     public async Task<IActionResult> OnPostDeleteFoodAsync(int id)

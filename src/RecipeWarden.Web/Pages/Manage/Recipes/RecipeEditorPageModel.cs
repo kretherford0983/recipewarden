@@ -32,6 +32,9 @@ public abstract class RecipeEditorPageModel(TagService tags) : PageModel
     public string? Message { get; protected set; }
     public bool IsAdmin { get; protected set; }
 
+    /// <summary>ADR 0020: the pan field was prefilled from the steps.</summary>
+    public bool PanFromSteps { get; protected set; }
+
     public abstract string FormAction { get; }
 
     /// <summary>W2 step 3: live parse of the ingredient lines, shown as chips (htmx partial; POST with antiforgery).</summary>

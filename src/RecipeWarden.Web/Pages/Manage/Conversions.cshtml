@@ -42,7 +42,7 @@
     {
         <table class="list conversions">
             <caption class="visually-hidden">Foods</caption>
-            <thead><tr><th scope="col">Food</th><th scope="col">Density and other names</th><th scope="col">Recipes</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+            <thead><tr><th scope="col">Food</th><th scope="col">Density, other names and form</th><th scope="col">Recipes</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
             <tbody>
             @foreach (var f in Model.Foods)
             {
@@ -60,6 +60,10 @@
                             <span aria-hidden="true">g/ml</span>
                             <label class="visually-hidden" for="aliases-@f.Id">Other names for @f.Name</label>
                             <input id="aliases-@f.Id" name="aliases" value="@string.Join(", ", f.Aliases)" size="30">
+                            <label class="visually-hidden" for="form-@f.Id">Form of @f.Name</label>
+                            <select id="form-@f.Id" name="form" title="Dry foods are weighed first when a scale is in My Kitchen">
+                                @foreach (var form in Enum.GetValues<FoodForm>()) { <option value="@form" selected="@(f.Form == form)">@form</option> }
+                            </select>
                             <button type="submit">Save</button>
                         </form>
                     </td>

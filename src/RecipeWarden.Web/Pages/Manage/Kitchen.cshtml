@@ -1,0 +1,144 @@
+@page "/manage/kitchen"
+@model RecipeWarden.Web.Pages.Manage.KitchenModel
+@using RecipeWarden.Core.Kitchen
+@{
+    ViewData["Title"] = "My Kitchen";
+    var active = Model.Tools.Where(t => t.Tool.IsActive).ToList();
+    var retired = Model.Tools.Where(t => !t.Tool.IsActive).ToList();
+}
+<h1>My Kitchen</h1>
+<p class="hint">The spoons, cups and scale here decide how scaled amounts are shown. Containers and pans are offered when
+    you fit a recipe to a container or scale a baked recipe. Appliances and thermometers are kept for your records.
+    Inventory version @Model.Version.</p>
+@if (Model.Message is not null) { <p class="notice" role="status">@Model.Message</p> }
+@if (Model.Errors.Count > 0)
+{
+    <div class="error-summary" role="alert">
+        <ul>@foreach (var e in Model.Errors) { <li>@e</li> }</ul>
+    </div>
+}
+
+<section aria-labelledby="presets-heading">
+    <h2 id="presets-heading">Quick add</h2>
+    <ul class="presets">
+        @foreach (var p in KitchenRules.Presets)
+        {
+            <li>
+                <form method="post" action="/manage/kitchen?handler=Preset" class="inline-form" asp-antiforgery="true">
+                    <input type="hidden" name="key" value="@p.Key">
+                    <button type="submit">Add: @p.Label</button>
+                </form>
+            </li>
+        }
+    </ul>
+</section>
+
+<section aria-labelledby="add-heading">
+    <h2 id="add-heading">Add a tool</h2>
+    <form method="post" action="/manage/kitchen?handler=Add" class="kitchen-form" asp-antiforgery="true">
+        <div class="field-row">
+            <div class="field">
+                <label for="add-type">Type</label>
+                <select id="add-type" name="Input.Type">
+                    @foreach (var t in Enum.GetValues<ToolType>()) { <option value="@t" selected="@(Model.Input.Type == t)">@KitchenModel.Label(t)</option> }
+                </select>
+            </div>
+            <div class="field">
+                <label for="add-name">Name</label>
+                <input id="add-name" name="Input.Name" value="@Model.Input.Name" maxlength="@KitchenRules.MaxNameLength" placeholder="optional for spoons and cups">
+            </div>
+            <div class="field">
+                <label for="add-size">Size</label>
+                <input id="add-size" name="Input.Size" value="@Model.Input.Size" maxlength="40" placeholder="1/8 tsp, 16 fl oz, 1 g, 9x13">
+            </div>
+            <div class="field">
+                <label for="add-qty">How many</label>
+                <input id="add-qty" name="Input.Quantity" type="number" min="1" max="@KitchenRules.MaxQuantity" value="@Model.Input.Quantity">
+            </div>
+            <div class="field">
+                <label for="add-fill">Fill %</label>
+                <input id="add-fill" name="Input.FillPct" inputmode="decimal" size="4" value="@Model.Input.FillPct" placeholder="containers: 90">
+            </div>
+        </div>
+        <fieldset class="field">
+            <legend>A scale shows</legend>
+            <label><input type="checkbox" name="Input.Shows" value="g" checked> g</label>
+            <label><input type="checkbox" name="Input.Shows" value="oz" checked> oz</label>
+        </fieldset>
+        <p class="hint">Size: a capacity for spoons, cups and containers (1/8 tsp, 2/3 cup, 16 fl oz, 1 quart); the step for a
+            scale (1 g, 0.05 oz); width x length for a pan (9x13, 8x8 square, 9-inch round, 9x5 loaf).</p>
+        <button type="submit" class="primary">Add</button>
+    </form>
+</section>
+
+<section aria-labelledby="tools-heading">
+    <h2 id="tools-heading">In use</h2>
+    @if (active.Count == 0)
+    {
+        <p class="empty-state">@KitchenTools.AssumedNote</p>
+    }
+    else
+    {
+        <table class="list kitchen">
+            <thead><tr><th scope="col">Tool</th><th scope="col">Type</th><th scope="col">Size</th><th scope="col">Owned</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+            <tbody>
+            @foreach (var row in active)
+            {
+                var t = row.Tool;
+                <tr>
+                    <th scope="row">@t.Name</th>
+                    <td>@KitchenModel.Label(t.Type)</td>
+                    <td>@row.Description@(t.Type == ToolType.Container ? " at " + KitchenModel.Fill(t.DefaultFillPct) + "%" : "")</td>
+                    <td>@t.QuantityOwned</td>
+                    <td>
+                        <details class="edit-tool">
+                            <summary>Edit…</summary>
+                            <form method="post" action="/manage/kitchen?handler=Update" class="inline-form" asp-antiforgery="true">
+                                <input type="hidden" name="id" value="@t.Id">
+                                <input type="hidden" name="Input.Type" value="@t.Type">
+                                <label for="name-@t.Id">Name</label>
+                                <input id="name-@t.Id" name="Input.Name" value="@t.Name" maxlength="@KitchenRules.MaxNameLength" required>
+                                <label for="size-@t.Id">Size</label>
+                                <input id="size-@t.Id" name="Input.Size" value="@KitchenRules.SizeText(t)" maxlength="40" size="10">
+                                <label for="qty-@t.Id">How many</label>
+                                <input id="qty-@t.Id" name="Input.Quantity" type="number" min="1" max="@KitchenRules.MaxQuantity" value="@t.QuantityOwned">
+                                <label for="fill-@t.Id">Fill %</label>
+                                <input id="fill-@t.Id" name="Input.FillPct" value="@KitchenModel.Fill(t.DefaultFillPct)" size="4">
+                                @if (t.Type == ToolType.Scale)
+                                {
+                                    <label><input type="checkbox" name="Input.Shows" value="g" checked="@t.Supports("g")"> g</label>
+                                    <label><input type="checkbox" name="Input.Shows" value="oz" checked="@t.Supports("oz")"> oz</label>
+                                }
+                                <button type="submit">Save</button>
+                            </form>
+                        </details>
+                        <form method="post" action="/manage/kitchen?handler=Retire" class="inline-form" asp-antiforgery="true">
+                            <input type="hidden" name="id" value="@t.Id">
+                            <button type="submit">Retire</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+</section>
+
+@if (retired.Count > 0)
+{
+    <section aria-labelledby="retired-heading">
+        <h2 id="retired-heading">Retired</h2>
+        <ul class="retired-tools">
+            @foreach (var row in retired)
+            {
+                <li>
+                    @row.Tool.Name (@row.Description), retired @row.RetiredAt?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)
+                    <form method="post" action="/manage/kitchen?handler=Restore" class="inline-form" asp-antiforgery="true">
+                        <input type="hidden" name="id" value="@row.Tool.Id">
+                        <button type="submit">Use again</button>
+                    </form>
+                </li>
+            }
+        </ul>
+    </section>
+}

@@ -8,6 +8,12 @@
     var r = Model.Recipe!;
     var sc = Model.Scaled!;
     var scalable = sc.Ingredients.SelectMany(g => g.Lines).Where(l => l.CanScaleFrom).ToList();
+    var containers = Model.Containers?.Containers ?? (IReadOnlyList<RecipeWarden.Core.Kitchen.KitchenToolInfo>)[];
+    var unitsForYield = r.YieldUnitCode is { } yc ? UnitCatalog.FindByCode(yc) : null;
+    var yieldNow = r.YieldAmount is { } ya && unitsForYield is not null ? AmountText.Format(ya, unitsForYield) : null;
+    var yieldShown = Model.Containers?.Yield is { } fy
+        ? (fy.IsEstimate ? "about " : "") + AmountText.Format(fy.Ml / UnitCatalog.FindByCode("floz")!.ToBase, UnitCatalog.FindByCode("floz")!)
+        : "";
     ViewData["Title"] = r.Title;
 }
 <article class="recipe" aria-labelledby="recipe-title">
@@ -124,6 +130,53 @@
                     </form>
                 </details>
             }
+            <details class="fit-container" open="@Model.FitRequested">
+                <summary>Fit to container</summary>
+                @* FR-SCL-04/05, ADR 0019: a GET like any scale (BR-114); the yield typed here is not saved. *@
+                <form method="get" action="/recipes/@r.Slug" class="inline-form" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
+                      hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
+                    <input type="hidden" name="units" value="@DisplayUnitsRules.ToValue(sc.Units)">
+                    @if (containers.Count > 0)
+                    {
+                        <label for="fit-tool">Container</label>
+                        <select id="fit-tool" name="fit">
+                            <option value="">Type a capacity →</option>
+                            @foreach (var c in containers)
+                            {
+                                <option value="@c.Id" selected="@(Model.FitToolId == c.Id)">@c.Name</option>
+                            }
+                        </select>
+                    }
+                    <label for="fit-capacity">Capacity</label>
+                    <input id="fit-capacity" name="capacity" size="8" maxlength="40" placeholder="16 fl oz" value="@Model.FitCapacity">
+                    <label for="fit-count">How many</label>
+                    <input id="fit-count" name="count" type="number" min="1" max="20" value="@(Model.FitCount ?? 1)">
+                    <label for="fit-fill">Fill %</label>
+                    <input id="fit-fill" name="fill" size="4" inputmode="decimal" placeholder="90" value="@Model.FitFill">
+                    <label for="fit-yield">It makes</label>
+                    <input id="fit-yield" name="yield" size="8" maxlength="40" value="@Model.TypedYield"
+                           placeholder="@(yieldNow ?? "e.g. 12 fl oz")">
+                    <button type="submit">Fit</button>
+                </form>
+                @if (containers.Count > 0)
+                {
+                    <form method="get" action="/recipes/@r.Slug" class="inline-form" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
+                          hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
+                        @if (sc.Factor != 1m && !Model.FitRequested) { <input type="hidden" name="scale" value="@ScaleRules.ToQuery(sc.Factor)"> }
+                        <input type="hidden" name="units" value="@DisplayUnitsRules.ToValue(sc.Units)">
+                        <label for="howmany">How many</label>
+                        <select id="howmany" name="howmany">
+                            @foreach (var c in containers) { <option value="@c.Id" selected="@(Model.HowManyToolId == c.Id)">@c.Name</option> }
+                        </select>
+                        <span>will this make?</span>
+                        <button type="submit">Show</button>
+                    </form>
+                }
+            </details>
+            @if (Model.CanEdit)
+            {
+                <a class="button-link" href="/manage/recipes/@r.Id/cooked">I made this</a>
+            }
             <button type="button" class="save-default" hidden data-units="@DisplayUnitsRules.ToValue(sc.Units)"
                     data-scale="@ScaleRules.ToQuery(sc.Factor)" data-signed-in="@(User.Identity?.IsAuthenticated == true ? "true" : "false")">
                 Make this my default
@@ -141,7 +194,51 @@
                 </p>
             }
             @if (sc.TimeNote is not null) { <p class="notice">@sc.TimeNote</p> }
+            @if (Model.JustCooked) { <p class="notice">Saved: marked as made today.</p> }
+            @if (sc.AssumedToolsNote is not null) { <p class="hint">@sc.AssumedToolsNote</p> }
+            @if (Model.FitMessage is not null) { <p class="notice">@Model.FitMessage</p> }
+            @if (Model.Fit?.Fill is { } fill)
+            {
+                <p class="scaled-note">
+                    Makes @(yieldShown) → @fill.
+                    @if (Model.Containers?.Yield is { IsEstimate: true } est)
+                    {
+                        <span>(The yield is an estimate@(est.Excluded.Count > 0 ? "; not counted: " + string.Join(", ", est.Excluded) : "").)</span>
+                    }
+                </p>
+                @if (Model.Fit.Note is not null) { <p class="notice">@Model.Fit.Note</p> }
+                @if (sc.RoundingWarning is not null) { <p class="notice">@sc.RoundingWarning</p> }
+            }
+            @if (Model.HowMany is { Length: > 0 } howMany) { <p class="scaled-note">This makes @howMany.</p> }
+            @if (Model.HowManyToolId is not null && Model.HowMany is null && Model.Containers?.Error is { } howError) { <p class="notice">@howError</p> }
         </div>
+
+        @foreach (var offer in sc.Suggestions)
+        {
+            @* FR-TOOL-04, ADR 0017: worked out on this view; nothing is saved by reading it. *@
+            <section class="suggestion-banner" role="region" aria-label="Suggestion">
+                <p>@offer.Message</p>
+                <ul>@foreach (var l in offer.Lines) { <li>@l.Before → @l.After</li> }</ul>
+                <a class="button-link" href="@Model.ShowMeLink()">Show me</a>
+                @if (Model.CanEdit)
+                {
+                    @await Html.PartialAsync("/Pages/Manage/Recipes/_SuggestionActions.cshtml", (r.Id, offer.Key))
+                }
+            </section>
+        }
+        @if (sc.ShowingWeights)
+        {
+            <p class="notice">Showing weights for this view. @(Model.CanEdit ? "Save to recipe to keep them." : "")</p>
+        }
+
+        @if (sc.Pan is { } pan && sc.PanOptions.Count > 0)
+        {
+            @* FR-MEAS-07, ADR 0020 *@
+            <section class="pan-options" aria-label="Pan sizes">
+                <p>Pan: @RecipeWarden.Core.Kitchen.PanRules.Describe(pan)@(sc.PanFromSteps ? " (from the steps)" : ""). At @ScaleRules.Label(sc.Factor), these hold about the same:</p>
+                <ul>@foreach (var o in sc.PanOptions) { <li>@o.Text</li> }</ul>
+            </section>
+        }
 
         <div class="recipe-columns">
             <section class="ingredients" aria-labelledby="ingredients-heading">
@@ -152,7 +249,7 @@
                     <ul>
                         @foreach (var line in g.Lines)
                         {
-                            <li>
+                            <li class="@(line.Changed ? "converted" : null)" title="@(line.Changed ? "Written: " + line.RawText + (line.Explanation is null ? "" : ". " + line.Explanation) : null)">
                                 @line.Text
                                 @if (line.NeedsReview && Model.CanEdit)
                                 {

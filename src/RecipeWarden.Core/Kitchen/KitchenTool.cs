@@ -161,6 +161,82 @@ public static class KitchenRules
         return errors;
     }
 
+    /// <summary>
+    /// /manage/kitchen: a tool from the form. <paramref name="size"/> is a capacity ("⅛ tsp", "16 fl oz") for
+    /// spoons, cups, jugs and containers, a step ("1 g", "0.05 oz") for a scale, or a pan ("9x13", "9-inch round").
+    /// </summary>
+    public static (KitchenToolInfo Tool, IReadOnlyList<string> Errors) FromInput(ToolType type, string? name, string? size,
+        IReadOnlyList<string>? shows, int quantity, decimal fillPct)
+    {
+        var tool = new KitchenToolInfo(0, (name ?? string.Empty).Trim(), type, QuantityOwned: quantity, DefaultFillPct: fillPct);
+        var sizeErrors = new List<string>();
+        switch (type)
+        {
+            case ToolType.MeasuringSpoon or ToolType.MeasuringCup or ToolType.LiquidMeasure or ToolType.Container:
+                if (AmountText.TryParse(Normalize(size), out var capacity) && capacity!.Unit.Kind == UnitKind.Volume)
+                {
+                    tool = tool with { CapacityAmount = capacity.Value, CapacityUnit = capacity.Unit.Code };
+                }
+
+                break;
+            case ToolType.Scale:
+                if (AmountText.TryParse(Normalize(size), out var step) && step!.Unit.Code is "g" or "oz")
+                {
+                    tool = tool with { Resolution = step.Value, ResolutionUnit = step.Unit.Code, SupportedUnits = shows ?? [] };
+                }
+                else
+                {
+                    tool = tool with { SupportedUnits = shows ?? [] };
+                }
+
+                break;
+            case ToolType.Pan:
+                if (PanRules.Parse(size) is { } pan)
+                {
+                    tool = tool with { PanShape = pan.Shape, PanWidth = pan.Width, PanLength = pan.Length };
+                }
+
+                break;
+        }
+
+        if (string.IsNullOrWhiteSpace(tool.Name) && Describe(tool) is { Length: > 0 } described)
+        {
+            tool = tool with { Name = type is ToolType.MeasuringSpoon or ToolType.MeasuringCup ? described : described + " " + type.ToString().ToLowerInvariant() };
+        }
+
+        return (tool, Validate(tool).Concat(sizeErrors).ToList());
+    }
+
+    /// <summary>The size text for an edit form: "⅛ tsp", "16 fl oz", "1 g", "9x13".</summary>
+    public static string SizeText(KitchenToolInfo tool)
+    {
+        ArgumentNullException.ThrowIfNull(tool);
+        return tool.Type switch
+        {
+            ToolType.Scale when tool.Resolution is { } r => r.ToString("0.###", CultureInfo.InvariantCulture) + " " + tool.ResolutionUnit,
+            ToolType.Pan when tool.PanWidth is { } w => PanRules.Describe(new Pan(tool.PanShape ?? Kitchen.PanShape.Other, w, tool.PanLength ?? w)),
+            _ when tool.CapacityAmount is { } a && UnitCatalog.FindByCode(tool.CapacityUnit) is { } u => AmountText.Format(a, u),
+            _ => string.Empty,
+        };
+    }
+
+    // "⅛ tsp" → "1/8 tsp" so the amount reader takes glyphs too.
+    private static string? Normalize(string? size)
+    {
+        if (size is null)
+        {
+            return null;
+        }
+
+        var text = size;
+        foreach (var (glyph, fraction) in new[] { ("⅛", "1/8"), ("¼", "1/4"), ("⅓", "1/3"), ("½", "1/2"), ("⅔", "2/3"), ("¾", "3/4") })
+        {
+            text = text.Replace(glyph, (text.Length > 0 && char.IsDigit(text[0]) && !text.StartsWith(glyph, StringComparison.Ordinal) ? " " : string.Empty) + fraction, StringComparison.Ordinal);
+        }
+
+        return text.Trim();
+    }
+
     /// <summary>"16 fl oz", "⅛ tsp", "1 g", "9x13 in", or empty.</summary>
     public static string Describe(KitchenToolInfo tool)
     {
