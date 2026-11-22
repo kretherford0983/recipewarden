@@ -46,7 +46,7 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 
 ## Status by milestone
 
-**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** built on `feature/m2-measurement` (0.2.0, 2026-11-22); merge, deploy and host test pending. **Next:** M3 Kitchen (now also the display planner, container scaling and pan sizes, ADR 0012).
+**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** merged into `develop` (PR #10, 2026-11-22; dev build v0.2.0-dev.9). **In progress:** M3 Kitchen on `feature/m3-kitchen` (0.3.0), including the display planner, container scaling and pan sizes moved from M2 (ADR 0012).
 
 ### M0 Foundations (built 2026-11-17; deployed and verified 2026-11-20 — DONE)
 
@@ -113,7 +113,7 @@ Scope decisions: ADR 0008 (slugs follow the title, old slugs redirect), ADR 0009
 | FR-ORG-01 (ADR 0011) | Done 2026-11-21: 31 built-in typed tags incl. "Homemade Ingredient", seeded once; existing tags kept | `DefaultTags`, migration `M1_RangesAndDefaultTags` | Core `FR_ORG_01_DefaultTagsTests`; Infra `ADR_0011_DefaultTagSeedTests`; Web `ADR_0010_EditorRangeTests.Built_in_tags_are_suggested_in_the_editor` |
 | AC-70 | Extended to every M1 route (sample URLs from seeded data) | — | Web `AC_70_AuthMatrixTests` |
 
-### M2 Measurement (built 2026-11-22 — DONE, awaiting merge and host test)
+### M2 Measurement (built 2026-11-22; merged into `develop` 2026-11-22 — DONE, host test pending)
 
 Scope decisions: ADR 0012 (display planner, container scaling and pan sizes move to M3; egg wording), ADR 0013
 (USDA seed, food linking), ADR 0014 (scale and units in the URL), ADR 0015 (step headings), ADR 0016 (tag picker).
