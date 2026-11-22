@@ -6,6 +6,18 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 ## 0.2.0 — unreleased
 
 ### M2 Measurement
+- Recipe toolbar: scale presets (0.5x–3x), custom factor (0.1x–100x), target servings, scale from what you have
+  ("3 lb chicken"), and units (as written, US, metric, weight). Scaling is in the URL, so a scaled view can be shared;
+  the saved recipe never changes (FR-SCL-01 to 03, ADR 0014).
+- Measurement engine in Core: unit choice with escalation (16 Tbsp → 1 cup), kitchen fractions, volume↔weight with
+  densities (no density, no guess), pinch/dash counts, cooked-to-raw estimates as a range with their basis, eggs to
+  the nearest half (yolk or beaten egg by the baking/precision flag), cans as "+ about ⅓ more", °F/°C in steps.
+- Ingredient catalogue seeded from USDA public-domain data (166 foods, 7 cooking yields); ingredients linked to
+  foods on save and at startup (ADR 0013). `/manage/conversions` edits densities, aliases, vague amounts and yields.
+- Default units and scale per reader (cookie) or per account (`/account/preferences`) (FR-UI-02).
+- Editor: tag picker grouped by type (ADR 0016); numbered steps keep their continuation lines and can have a heading
+  (`1. **Preheat oven**`), with no literal asterisks (ADR 0015).
+- Moved to M3 with the kitchen inventory: display planner tool combinations, container scaling, pan sizes (ADR 0012).
 - Version bumped to 0.2.0 (docs/branching.md).
 
 ## 0.1.0 — unreleased

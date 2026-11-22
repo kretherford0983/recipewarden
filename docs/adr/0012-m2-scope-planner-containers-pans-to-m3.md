@@ -16,16 +16,22 @@ inventory. Options considered for the planner: (a) BR-33's standard US set plus 
    the 3-fill cap and tolerances (BR-21), weight preference when a scale exists (BR-22), the standard-set fallback
    (BR-33) and the baking/precision behaviour of FR-REC-06. AC-32 and AC-33 move to M3.
 2. **M2 shows scaled amounts as plain amounts**: the nearest allowed fraction (BR-28: denominators 2, 3, 4, 8, and
-   16 for tsp; metric decimals) in the recipe's own unit, or in the unit system the reader picks. Simple unit
-   escalation (BR-24, e.g. 16 Tbsp → 1 cup) applies, since it does not depend on owned tools. This is the planner's
-   documented fallback ("nearest fraction", 9.4), so M3 adds to it rather than replacing it.
+   16 for tsp; tablespoons in halves and quarters; metric decimals) in the recipe's own unit, or in the unit system
+   the reader picks. Unit escalation (BR-24, e.g. 16 Tbsp → 1 cup) applies, since it does not depend on owned tools:
+   a larger unit is used when the amount lands on one of its common measures within BR-21's tolerance (±2% for
+   baking/precision recipes, ±8% otherwise), so 10 Tbsp shows as ⅔ cup in an ordinary recipe. This is the
+   planner's documented fallback ("nearest fraction", 9.4), so M3 adds to it rather than replacing it.
 3. Volume↔weight conversion with densities (FR-MEAS-01, BR-23) ships in M2 when the reader picks weight or metric
    units; it is not chosen automatically until the M3 scale rule (BR-22).
 4. **Container scaling** (FR-SCL-04/05/06, BR-110–114, AC-37–39) moves to M3.
 5. **Pan-size alternatives** (FR-MEAS-07, second half) move to M3. °F/°C display stays in M2.
 
+6. **Eggs (BR-27, AC-36; owner 2026-11-22):** half eggs are written "4½ eggs (4 eggs + 2 Tbsp beaten egg)" in
+   baking/precision recipes (half a large egg is about 25 g) and "4 eggs + 1 yolk" in other recipes. So FR-REC-06's
+   flag already affects eggs and rounding tolerance in M2.
+
 ## Consequences
 - M2 ACs: AC-30, AC-31, AC-34, AC-35 (the shopping-list half needs M5), AC-36.
 - Spec 9.10 is updated: M3 becomes "Kitchen — inventory, versioning, suggestions, display planner, container
   scaling, pan sizes".
-- `Recipe.IsPrecision` keeps its checkbox; it has no effect until the planner arrives.
+- `Recipe.IsPrecision` sets the rounding tolerance and the egg wording in M2; the planner uses it again in M3.

@@ -46,7 +46,7 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 
 ## Status by milestone
 
-**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **In progress:** M2 Measurement on `feature/m2-measurement` (0.2.0).
+**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** built on `feature/m2-measurement` (0.2.0, 2026-11-22); merge, deploy and host test pending. **Next:** M3 Kitchen (now also the display planner, container scaling and pan sizes, ADR 0012).
 
 ### M0 Foundations (built 2026-11-17; deployed and verified 2026-11-20 — DONE)
 
@@ -113,6 +113,32 @@ Scope decisions: ADR 0008 (slugs follow the title, old slugs redirect), ADR 0009
 | FR-ORG-01 (ADR 0011) | Done 2026-11-21: 31 built-in typed tags incl. "Homemade Ingredient", seeded once; existing tags kept | `DefaultTags`, migration `M1_RangesAndDefaultTags` | Core `FR_ORG_01_DefaultTagsTests`; Infra `ADR_0011_DefaultTagSeedTests`; Web `ADR_0010_EditorRangeTests.Built_in_tags_are_suggested_in_the_editor` |
 | AC-70 | Extended to every M1 route (sample URLs from seeded data) | — | Web `AC_70_AuthMatrixTests` |
 
+### M2 Measurement (built 2026-11-22 — DONE, awaiting merge and host test)
+
+Scope decisions: ADR 0012 (display planner, container scaling and pan sizes move to M3; egg wording), ADR 0013
+(USDA seed, food linking), ADR 0014 (scale and units in the URL), ADR 0015 (step headings), ADR 0016 (tag picker).
+
+| ID | Status | Implementation | Tests |
+| --- | --- | --- | --- |
+| FR-SCL-01 / BR-20 / AC-30 | Done: presets, custom 0.1x–100x, target servings; bad values fall back to 1x with a message | `ScaleRules` (Core), `RecipeScaler`, `/recipes/{slug}?scale=&servings=` toolbar | Core `FR_SCL_01_ScaleRulesTests`; Infra `FR_SCL_01_RecipeScalerTests`; Web `FR_SCL_01_ScalingPageTests`; E2E `FR_SCL_01_ScaleToolbarTests` |
+| FR-SCL-02 / AC-31 | Done (counts, same kind, or volume↔weight with a density) | `IngredientFactor` (Core), `RecipeScaler.FactorFromAsync`, `?from=&have=` | Core `FR_SCL_02_IngredientFactorTests`; Infra/Web scaler and page tests |
+| FR-SCL-03 | Done: GET only, nothing stored; old-slug redirects keep the query | `DetailsModel` | Core `Scaling_leaves_the_input_unchanged`; Infra/Web "stored recipe unchanged" tests |
+| BR-29 | Done (above 2x) | `ScaleRules.NoteFor` | Core, Web |
+| FR-MEAS-01 / BR-23, BR-24, BR-28 | Done in M2 form: unit choice with escalation, fractions, US/metric/weight; no density = no guess | `MeasureDisplay`, `Fractions`, `IngredientScaler` (Core) | Core `FR_MEAS_01_MeasureDisplayTests`; Infra/Web weight-view tests |
+| FR-MEAS-02, BR-21 (tools), BR-22 (auto weight), BR-33 / AC-32, AC-33 | **Moved to M3** (ADR 0012). M2 uses BR-21 tolerances for unit choice and shows AC-32's exact amount (1⅛ cups) | — | Core `Three_quarter_cup_at_1_5x_is_one_and_an_eighth_cups` |
+| FR-MEAS-03 / BR-25 / AC-34 | Done | `IngredientScaler` (vague) | Core `FR_MEAS_03_VagueAmountTests`; Web `Pinch_at_10x_and_to_taste_unchanged` |
+| FR-MEAS-04 / BR-26 / AC-35 | Done; purchase grams kept for shopping lists. AC-35 shopping-list half in M5 | `YieldRules`, `IngredientScaler`, `YieldConversion` | Core `FR_MEAS_04_YieldConversionTests`; Infra, Web |
+| FR-MEAS-05 | Done: densities, aliases, household foods, vague values (in tsp), yields (in %) | `FoodRules` (Core), `FoodCatalogService`, `/manage/conversions` | Core `FR_MEAS_05_FoodRulesTests`; Infra `FR_MEAS_05_ConversionEditTests`; Web `FR_MEAS_05_ConversionsPageTests` |
+| FR-MEAS-06 / BR-27 / AC-36 | Done (eggs by precision flag, cans, counts, sticks) | `EggRules`, `IngredientScaler` | Core `FR_MEAS_06_CountItemTests`; Infra, Web |
+| FR-MEAS-07 | °F/°C done; pan sizes **moved to M3** | `TemperatureText` | Core `FR_MEAS_07_TemperatureTextTests`; Infra, Web, E2E |
+| FR-REC-06 | Tolerance (±2%/±8%) and egg wording in M2; planner use in M3 | `MeasureDisplay.Tolerance`, `EggRules` | Core precision tests |
+| FR-UI-02 | Done: query > profile > cookie; "Make this my default" (recipe.js) | `DisplayUnitsRules`, `UserPreferenceStore`, `/account/preferences` | Core `FR_UI_02_DisplayUnitsRulesTests`; Infra profile test; Web cookie and profile tests |
+| ADR 0013 seed and linking | Done: 166 foods (149 with density), 7 yields, seeded once; lines linked on save and at startup | `tools/seed/`, `MeasurementSeeder`, `FoodMatcher`, `FoodCatalogService.LinkUnmatchedAsync`, migration `M2_Measurement` | Core `FR_MEAS_01_FoodMatcherTests`; Infra `FR_MEAS_01_MeasurementSeedTests`, `FR_MEAS_01_FoodLinkTests` |
+| ADR 0015 step headings | Done | `StepTextRules`, `RecipeStep.Title`, reading view | Core `FR_REC_02_StepHeadingTests`; Infra `Step_temperatures_follow…`; Web `ADR_0015_StepHeadingPageTests` |
+| ADR 0016 tag picker | Done | `_EditorForm` picker, `RecipeInput.TagIds`, `editor.js` filter | Web `ADR_0016_TagPickerTests` |
+| FR-SCL-04/05/06, AC-37–39 | **Moved to M3** (ADR 0012) | — | — |
+| AC-70 / SEC-30 | Extended to `/manage/conversions`, `/account/preferences` and the scaled recipe page | — | Web `AC_70_AuthMatrixTests`, `SEC_30_FormTokenTests` |
+
 #### M0 deployment check (2026-11-20, test host)
 
 - `recipewarden.service` enabled and active; runs from `/opt/recipewarden/current` (release folder under `releases/`); ~60 MB RAM.
@@ -142,6 +168,7 @@ Scope decisions: ADR 0008 (slugs follow the title, old slugs redirect), ADR 0009
   (c) export the key ring separately, e.g. with the restore kit. Tentative recommendation: (a).
   Not discussed yet — owner wants to revisit later.
 
+- **Done in M2 (2026-11-22):** the two items below (tag picker, ADR 0016; step headings, ADR 0015).
 - **Deferred to M2 by owner (2026-11-21), found while testing M1 on the host:**
   - **Tag picker.** Tags are typed as one comma-separated text box, which works poorly with the built-in typed
     tags (ADR 0011). Needs a picker that shows tags grouped by type with multi-select, plus typing a new tag.
@@ -163,3 +190,17 @@ Scope decisions: ADR 0008 (slugs follow the title, old slugs redirect), ADR 0009
     served `/`, `/recipes`, `/search` and `/collections` with the M1 migration applied.
   - Found on the first deployed M1 build (owner, 2026-11-21): servings and times needed ranges ("serves 6-8",
     "20-25 min", "1 hr 15 min"). Fixed by ADR 0010; default tags added with ADR 0011.
+
+- **M2 notes (2026-11-22):**
+  - Two M1 editor tests checked the old comma-separated tag box and its datalist; they now check the same thing in
+    the picker (tags shown as ticked; built-in tags offered as checkboxes). `Input.Tags` keeps its name for new tags.
+  - Two M1 persistence tests compared step text as strings; steps now carry an optional heading (`StepView`), and
+    the tests compare the same text with an empty heading.
+  - Core branch coverage is 91.9% (gate 85%); M1 ended at 95.4%. The new engine adds many small branches.
+  - Seed: the USDA cooking-yield table gives a min–max range for only some cuts, so 7 yield conversions are seeded
+    (not ~15); turkey, fish and shrimp have no ranged data. Households can add their own on `/manage/conversions`
+    later (adding yields from the page is not in M2; editing is).
+  - The display uses BR-21 tolerances to pick a unit, so an ordinary recipe may show "⅔ cup" for 10 Tbsp (6.7% off);
+    baking/precision recipes keep 10 Tbsp.
+  - Not exercised on the host yet: the seed on a real M1 database (covered by the M1→M2 upgrade test) and the
+    toolbar behind the tunnel.
