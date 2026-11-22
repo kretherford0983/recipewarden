@@ -25,7 +25,7 @@ public sealed class FR_MEAS_01_MeasurementSeedTests
 
         (await db.Foods.CountAsync(Ct)).ShouldBe(doc.Foods.Count);
         (await db.YieldConversions.CountAsync(Ct)).ShouldBe(doc.Yields.Count);
-        (await db.SeedRuns.SingleAsync(Ct)).Name.ShouldBe(MeasurementSeeder.SeedName);
+        (await db.SeedRuns.Select(r => r.Name).ToListAsync(Ct)).ShouldContain(MeasurementSeeder.SeedName); // M3 adds kitchen-v1 and food-form-v1
 
         var flour = await db.Foods.Include(f => f.Aliases).SingleAsync(f => f.Name == "all-purpose flour", Ct);
         flour.DensityGPerMl.ShouldBe(0.5283m);

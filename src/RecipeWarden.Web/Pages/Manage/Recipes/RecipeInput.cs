@@ -51,6 +51,17 @@ public sealed class RecipeInput
     /// <summary>ADR 0016: the tags ticked in the picker. Ids that do not exist are refused (SEC-13).</summary>
     public int[] TagIds { get; set; } = [];
 
+    /// <summary>ADR 0019: what the recipe makes, e.g. "12 fl oz".</summary>
+    [Display(Name = "Makes")]
+    public string? Yield { get; set; }
+
+    /// <summary>BR-112: finished density in g/ml, for weight yields.</summary>
+    [Display(Name = "Finished density")]
+    public string? FinishedDensity { get; set; }
+
+    /// <summary>ADR 0020: "9x13", "9-inch round".</summary>
+    public string? Pan { get; set; }
+
     /// <summary>BR-06: the version the editor was opened at.</summary>
     public int Version { get; set; }
 
@@ -67,11 +78,25 @@ public sealed class RecipeInput
             errors.Add(new PublishProblem(RecipeField.Servings, servings.Error));
         }
 
+        decimal? density = null;
+        if (!string.IsNullOrWhiteSpace(FinishedDensity))
+        {
+            if (decimal.TryParse(FinishedDensity.Trim(), System.Globalization.NumberStyles.AllowDecimalPoint,
+                    System.Globalization.CultureInfo.InvariantCulture, out var d))
+            {
+                density = d;
+            }
+            else
+            {
+                errors.Add(new PublishProblem(RecipeField.FinishedDensity, "Enter the density as a number of g/ml, e.g. 1.1"));
+            }
+        }
+
         var prep = Time(RecipeField.PrepMinutes, PrepTime, errors);
         var cook = Time(RecipeField.CookMinutes, CookTime, errors);
         var total = Time(RecipeField.TotalMinutes, TotalTime, errors);
 
-        return (Build(publish, servings, prep, cook, total), errors);
+        return (Build(publish, servings, prep, cook, total) with { FinishedDensityGPerMl = density }, errors);
     }
 
     private static TimeValue Time(RecipeField field, string? text, List<PublishProblem> errors)
@@ -107,6 +132,8 @@ public sealed class RecipeInput
         StepsText = Steps,
         Tags = (Tags ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
         WantsPublish = publish,
+        YieldText = Yield,
+        PanText = Pan,
     };
 
     public static RecipeInput From(RecipeEdit e, int version) => new()
@@ -127,6 +154,9 @@ public sealed class RecipeInput
         Steps = e.StepsText,
         Tags = string.Join(", ", e.Tags),
         Version = version,
+        Yield = e.YieldText,
+        FinishedDensity = e.FinishedDensityGPerMl?.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture),
+        Pan = e.PanText,
     };
 
     /// <summary>The form field a Core problem belongs to (UX-08: errors link to their fields).</summary>
@@ -137,6 +167,7 @@ public sealed class RecipeInput
         RecipeField.PrepMinutes => "Input.PrepTime",
         RecipeField.CookMinutes => "Input.CookTime",
         RecipeField.TotalMinutes => "Input.TotalTime",
+        RecipeField.FinishedDensity => "Input.FinishedDensity",
         _ => "Input." + field,
     };
 

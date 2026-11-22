@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using RecipeWarden.Core.Kitchen;
 using RecipeWarden.Core.Measurement;
 using RecipeWarden.Core.Organization;
 using RecipeWarden.Core.Recipes;
@@ -25,6 +26,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
     public DbSet<FoodAlias> FoodAliases => Set<FoodAlias>();
     public DbSet<YieldConversion> YieldConversions => Set<YieldConversion>();
     public DbSet<SeedRun> SeedRuns => Set<SeedRun>();
+    public DbSet<KitchenTool> KitchenTools => Set<KitchenTool>();
+    public DbSet<InventoryVersion> InventoryVersions => Set<InventoryVersion>();
+    public DbSet<InventorySnapshot> InventorySnapshots => Set<InventorySnapshot>();
+    public DbSet<RecipeSuggestionState> RecipeSuggestionStates => Set<RecipeSuggestionState>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -60,6 +65,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
             Real(e.Property(r => r.ServingsMax));
             Real(e.Property(r => r.YieldAmount));
             Real(e.Property(r => r.FinishedDensityGPerMl));
+            e.Property(r => r.PanShape).HasConversion<string>().HasMaxLength(16);
+            Real(e.Property(r => r.PanWidth));
+            Real(e.Property(r => r.PanLength));
             e.Property(r => r.Version).IsConcurrencyToken();
             e.HasQueryFilter(r => r.DeletedAt == null); // BR-05: trash is hidden everywhere unless asked for
             e.HasOne<Unit>().WithMany().HasForeignKey(r => r.YieldUnitId).OnDelete(DeleteBehavior.Restrict);
@@ -175,6 +183,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
             e.Property(f => f.SourceNote).HasMaxLength(500);
             e.Property(f => f.StoreSection).HasMaxLength(40);
             Real(e.Property(f => f.DensityGPerMl));
+            e.Property(f => f.Form).HasConversion<string>().HasMaxLength(16);
             Real(e.Property(f => f.PackageSize));
             e.HasMany(f => f.Aliases).WithOne().HasForeignKey(a => a.FoodId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne<Unit>().WithMany().HasForeignKey(f => f.DefaultPurchaseUnitId).OnDelete(DeleteBehavior.Restrict);
@@ -202,6 +211,38 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
             Real(e.Property(y => y.RatioMax));
             Real(e.Property(y => y.PreparedDensityGPerMl));
             e.HasOne(y => y.Food).WithMany().HasForeignKey(y => y.FoodId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<KitchenTool>(e =>
+        {
+            e.HasIndex(t => new { t.IsActive, t.ToolType });
+            e.Property(t => t.Name).HasMaxLength(KitchenRules.MaxNameLength);
+            e.Property(t => t.ToolType).HasConversion<string>().HasMaxLength(16);
+            e.Property(t => t.PanShape).HasConversion<string>().HasMaxLength(16);
+            e.Property(t => t.SupportedUnits).HasMaxLength(32);
+            Real(e.Property(t => t.DefaultFillPct));
+            Real(e.Property(t => t.CapacityAmount));
+            Real(e.Property(t => t.ResolutionAmount));
+            Real(e.Property(t => t.PanWidth));
+            Real(e.Property(t => t.PanLength));
+            e.HasOne(t => t.CapacityUnit).WithMany().HasForeignKey(t => t.CapacityUnitId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(t => t.ResolutionUnit).WithMany().HasForeignKey(t => t.ResolutionUnitId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<InventoryVersion>(e => e.Property(v => v.Id).ValueGeneratedNever());
+
+        builder.Entity<InventorySnapshot>(e =>
+        {
+            e.HasKey(s => s.Version);
+            e.Property(s => s.Version).ValueGeneratedNever();
+        });
+
+        builder.Entity<RecipeSuggestionState>(e =>
+        {
+            e.HasKey(s => new { s.RecipeId, s.SuggestionKey });
+            e.Property(s => s.SuggestionKey).HasMaxLength(100);
+            e.Property(s => s.Status).HasConversion<string>().HasMaxLength(16);
+            e.HasOne<Recipe>().WithMany().HasForeignKey(s => s.RecipeId).OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<SeedRun>(e =>

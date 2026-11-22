@@ -34,4 +34,7 @@ public enum RecipeField
     Ingredients,
     Steps,
     Tags,
+    Yield,
+    FinishedDensity,
+    Pan,
 }

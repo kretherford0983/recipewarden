@@ -1,0 +1,17 @@
+@page "/manage/recipes/{id:int}/cooked"
+@model RecipeWarden.Web.Pages.Manage.Recipes.CookedModel
+@{
+    var r = Model.Recipe!;
+    ViewData["Title"] = "I made this";
+}
+<h1>I made “@r.Edit.Title”</h1>
+@if (Model.Error is not null) { <p class="error-summary" role="alert">@Model.Error</p> }
+<form method="post" action="/manage/recipes/@r.Id/cooked" class="editor" asp-antiforgery="true">
+    <div class="field">
+        <label for="made">How much did it make? <span class="hint">(optional, e.g. 12 fl oz or 2 quarts)</span></label>
+        <input id="made" name="Made" maxlength="40" value="@Model.Made">
+    </div>
+    <p class="hint">A measured amount is used when fitting this recipe to containers, ahead of an entered or estimated one.</p>
+    <button type="submit" class="primary">Save</button>
+    <a href="/recipes/@r.Slug">Cancel</a>
+</form>

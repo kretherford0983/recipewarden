@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using RecipeWarden.Core.Security;
 using RecipeWarden.Infrastructure.Data;
 using RecipeWarden.Infrastructure.Identity;
+using RecipeWarden.Infrastructure.Kitchen;
 using RecipeWarden.Infrastructure.Measurement;
 using RecipeWarden.Infrastructure.Recipes;
 
@@ -41,6 +42,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<FoodCatalogService>();
         services.AddScoped<MeasurementSeeder>();
         services.AddScoped<RecipeScaler>();
+        services.AddScoped<KitchenService>();
+        services.AddScoped<KitchenSeeder>();
+        services.AddScoped<SuggestionService>();
         return services;
     }
 

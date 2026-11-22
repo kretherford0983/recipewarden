@@ -1,6 +1,6 @@
-# RecipeWarden — Specification v0.11
+# RecipeWarden — Specification v0.12
 
-Version 0.11 · 2026-11-22
+Version 0.12 · 2026-11-22
 
 ## 1. Overview
 
@@ -280,7 +280,7 @@ These rules are enforced in the domain layer (not only the UI) and each has unit
 | ID | Rule |
 | --- | --- |
 | BR-30 | Any add, retire or edit of a tool increments the inventory version. |
-| BR-31 | Each recipe stores the inventory version at which suggestions were last evaluated. On view, if the stored version is lower, suggestions are re-evaluated and the stored version updated (no sign-in needed for evaluation; applying to the saved recipe needs Editor). |
+| BR-31 | Each recipe stores the inventory version at which suggestions were last accepted (`InventoryVersionSeen`). On view, suggestions are re-evaluated in memory against the snapshot at that version; viewing never writes (SEC-31, ADR 0017). Measures (spoons, cups) apply at once; a new scale is offered as weights. Dismissing or applying needs Editor and moves the stored version. |
 | BR-32 | A suggestion is shown only if it changes at least one displayed amount, tool or method, and it is keyed (e.g. `scale:flour`) so a dismissal is remembered per recipe. |
 | BR-33 | If no measuring tools are in the inventory, the planner assumes a standard US set (1/4, 1/2 and 1 tsp; 1 Tbsp; 1/4, 1/3, 1/2 and 1 cup) and says so. |
 
@@ -592,7 +592,9 @@ Three zones: public reading pages, `/manage` for editors, `/admin` for admins. T
 | `/shopping/new`, delete | Create or delete a list | Editor |
 | `/manage/recipes/new`, `/manage/recipes/{id}/edit` | Recipe editor | Editor |
 | `/manage/import`, `/manage/import/{jobId}/review` | Import (URL, file) and review | Editor |
-| `/manage/kitchen` | Kitchen inventory | Editor |
+| `/manage/kitchen` | Kitchen inventory: add, presets, retire, restore (W5) | Editor |
+| `/manage/recipes/{id}/suggestions` | Dismiss or save a suggestion to the recipe (ADR 0017) | Editor |
+| `/manage/recipes/{id}/cooked` | "I made this": last cooked and a measured yield (ADR 0019) | Editor |
 | `/manage/tags`, `/manage/collections` | Tag and collection management | Editor |
 | `/manage/conversions` | Densities, vague amounts, yield conversions | Editor |
 | `/manage/trash` | Trash | Editor |
@@ -640,7 +642,7 @@ SQLite via EF Core 10 with code-first migrations applied at startup. Images live
 
 | Table | Key columns | Notes |
 | --- | --- | --- |
-| Recipe | Id, Slug, Title, Description, Servings, ServingsMax, ServingsEstimated, YieldText, YieldAmount, YieldUnitId, YieldSource (Measured/Entered/Estimated), FinishedDensityGPerMl, PrepMinutes, PrepMinutesMax, CookMinutes, CookMinutesMax, TotalMinutes, TotalMinutesMax, IsPrecision, Status (Draft/Published), SourceType (Manual/Web/File/Personal), SourceUrl, SourceName, SourceAuthor, SourceImportedAt, FinishImageId, ParentRecipeId, Notes, Rating, LastCookedAt, InventoryVersionSeen, Version, DeletedAt, DeletedById | Root entity. FinishImageId arrives with images in M4 (ADR 0009). |
+| Recipe | Id, Slug, Title, Description, Servings, ServingsMax, ServingsEstimated, YieldText, YieldAmount, YieldUnitId, YieldSource (Measured/Entered/Estimated), FinishedDensityGPerMl, PanShape, PanWidth, PanLength, PrepMinutes, PrepMinutesMax, CookMinutes, CookMinutesMax, TotalMinutes, TotalMinutesMax, IsPrecision, Status (Draft/Published), SourceType (Manual/Web/File/Personal), SourceUrl, SourceName, SourceAuthor, SourceImportedAt, FinishImageId, ParentRecipeId, Notes, Rating, LastCookedAt, InventoryVersionSeen, Version, DeletedAt, DeletedById | Root entity. FinishImageId arrives with images in M4 (ADR 0009). Pan is one field, prefilled from the steps (ADR 0020). |
 | IngredientGroup | Id, RecipeId, Name, SortOrder | "For the sauce". Optional. |
 | RecipeIngredient | Id, RecipeId, GroupId, SortOrder, RawText, Quantity, QuantityMax, QuantityText, UnitId, Name, FoodId, Preparation, State (raw/cooked/…), IsOptional, Note, ParseConfidence | RawText always kept (BR-04). Name is the parsed ingredient text, kept whether or not a Food matches (ADR 0009). FoodId is set on save by exact name or alias, and by a startup pass for unlinked lines; null when nothing matches (ADR 0013). |
 | Step | Id, RecipeId, SortOrder, Title, Text, ImageId, SectionName, TimerSeconds | Title is an optional step heading (ADR 0015). Timer parsed from text. |
@@ -660,7 +662,7 @@ SQLite via EF Core 10 with code-first migrations applied at startup. Images live
 | Table | Key columns | Notes |
 | --- | --- | --- |
 | Unit | Id, Code, Name, PluralName, Aliases, Kind (Volume/Mass/Count/Vague/Temperature/Length), System (US/Metric/Either), ToBase (ml or g), IsVague | Seeded; editable for Vague only. |
-| Food | Id, Name, NormalizedName, PluralName, Category, DensityGPerMl, DefaultPurchaseUnitId, PackageSize, PackageUnitId, StoreSection, FdcId, IsPantryStaple, Source (Usda/Custom), SourceNote | Ingredient catalogue. Seeded once from USDA public-domain data (ADR 0013); unique on NormalizedName. |
+| Food | Id, Name, NormalizedName, PluralName, Category, Form (Dry/Liquid/Fat/Other), DensityGPerMl, DefaultPurchaseUnitId, PackageSize, PackageUnitId, StoreSection, FdcId, IsPantryStaple, Source (Usda/Custom), SourceNote | Ingredient catalogue. Seeded once from USDA public-domain data (ADR 0013); unique on NormalizedName. Form decides weight-first for non-precision recipes (BR-22, ADR 0018). |
 | FoodAlias | Id, FoodId, Alias, NormalizedAlias | "AP flour" → all-purpose flour. Unique on NormalizedAlias. |
 | FoodAllergen | FoodId, AllergenId |  |
 | Allergen | Id, Code, Name | Seeded: 9 US majors + gluten. |
@@ -674,6 +676,7 @@ SQLite via EF Core 10 with code-first migrations applied at startup. Images live
 | --- | --- | --- |
 | KitchenTool | Id, Name, ToolType (MeasuringSpoon/MeasuringCup/LiquidMeasure/Scale/Thermometer/Appliance/Pan/Container), QuantityOwned, DefaultFillPct, CapacityAmount, CapacityUnitId, ResolutionAmount, ResolutionUnitId, SupportedUnits, PanShape, PanWidth, PanLength, IsActive, AddedAt, RetiredAt | Scale stores supported units and resolution. |
 | InventoryVersion | Id (single row), Version, ChangedAt | BR-30. |
+| InventorySnapshot | Version (PK), ToolsJson, CreatedAt | Active tools at each version; suggestions diff against it (ADR 0017). |
 
 ### 8.5 Shopping, imports, admin
 
@@ -784,7 +787,7 @@ Pure, deterministic code in Core, and the most heavily tested part of the system
 - **Convert** state if a yield conversion applies (BR-26) and kind if density and preference allow (BR-22, BR-23).
 - **Plan** the display: search combinations of active tools (greedy by largest tool, max 3 fills, within tolerance BR-21); prefer fewer fills, then smaller error; fall back to the nearest fraction if nothing fits.
 - **Explain**: every plan carries the original amount, the error %, and the reason, used for tooltips and suggestions.
-- Suggestions (FR-TOOL-04) are generated by diffing the plan made with the inventory at `InventoryVersionSeen` against the current inventory.
+- Suggestions (FR-TOOL-04) are generated by diffing the plan made with the inventory snapshot at `InventoryVersionSeen` against the current inventory, in memory on each view (ADR 0017).
 
 ### 9.5 Deployment and installer
 
@@ -966,12 +969,12 @@ This matrix seeds `docs/traceability.md` in the repo. Test classes are named aft
 | FR-EXP-01 | BR-10, BR-28 | Print stylesheet; `/print` | E2E PrintLayout (PDF snapshot) | AC-24 |
 | FR-EXP-02/03 | BR-10 | recipe-md v1 (9.7) | Importers.Tests MarkdownRoundTrip | AC-25 |
 | FR-SCL-01/02/03 | BR-20, BR-29 | ScaleRules, IngredientFactor, RecipeScaler; recipe toolbar | Core.Tests ScaleRules, IngredientFactor; Infra.Tests RecipeScaler; Web.Tests ScalingPage; E2E ScaleToolbar | AC-30, AC-31 |
-| FR-MEAS-01/02 | BR-21–24, BR-28 | MeasureDisplay (M2), DisplayPlanner (M3), Unit, Food.Density | Core.Tests MeasureDisplay; DisplayPlanner (M3) | AC-32, AC-33 (M3) |
+| FR-MEAS-01/02 | BR-21–24, BR-28 | MeasureDisplay, DisplayPlanner, Unit, Food.Density, Food.Form | Core.Tests MeasureDisplay, DisplayPlanner, WeightFirst | AC-32, AC-33 |
 | FR-MEAS-03 | BR-25 | Vague units | Core.Tests VagueQuantities | AC-34 |
 | FR-MEAS-04 | BR-26 | YieldConversion | Core.Tests YieldConversion | AC-35 |
 | FR-MEAS-06 | BR-27 | Count rounding | Core.Tests CountItems | AC-36 |
-| FR-TOOL-01/02/03 | BR-30, BR-33 | KitchenTool, InventoryVersion; `/manage/kitchen` | Core.Tests Inventory; E2E W5 | AC-40 |
-| FR-TOOL-04/05 | BR-31, BR-32 | Suggestion engine, RecipeSuggestionState | Core.Tests Suggestions; E2E W5 | AC-41, AC-42 |
+| FR-TOOL-01/02/03 | BR-30, BR-33 | KitchenTool, InventoryVersion, InventorySnapshot; `/manage/kitchen` | Core.Tests KitchenRules; Infra.Tests KitchenStore; Web.Tests KitchenPage; E2E W5 | AC-40 |
+| FR-TOOL-04/05 | BR-31, BR-32 | SuggestionEngine, RecipeSuggestionState; `/manage/recipes/{id}/suggestions` | Core.Tests SuggestionEngine; Web.Tests SuggestionPage; E2E W5 | AC-41, AC-42 |
 | FR-SHOP-01–04 | BR-40–42 | ShoppingList tables; `/shopping` | Core.Tests ListMerge; E2E W6 | AC-50, AC-51 |
 | FR-NUT-01/02 | BR-50, BR-51 | NutritionFacts, NutrientRef | Core.Tests Nutrition | AC-55 |
 | FR-ALG-01/02/03 | BR-52, BR-53 | Allergen, FoodAllergen, RecipeAllergen | Core.Tests Allergens | AC-56 |
@@ -987,7 +990,7 @@ This matrix seeds `docs/traceability.md` in the repo. Test classes are named aft
 | FR-EXP-04 to 08 | BR-90–97; BR-10 | AiExportBuilder, AI-response importer, recipe-md schema; /export-ai, /manage/import/ai-response | Importers.Tests AiExport, AiResponseImport; E2E W10 | AC-26 to AC-29 |
 | FR-BKP-06/07 | BR-62, BR-64–66; SEC-15, SEC-54 | install.sh --restore, /setup, CLI restore | Installer container tests (migration A to B); Web.Tests Setup; Cli.Tests Restore | AC-83, AC-84, AC-85 |
 | FR-OPS-02–05 | BR-80–85 | HealthMonitor service, StorageSnapshot, HealthCheckResult; /admin/health, /health/ready | Core.Tests HealthRules, Projection; Infra.Tests StorageProbe; E2E W9 | AC-98, AC-99 |
-| FR-SCL-04/05/06 | BR-110–114; BR-20, BR-21, BR-27 | ContainerScaler; Recipe.Yield\*; KitchenTool (Container); recipe toolbar | Core.Tests ContainerScaling, YieldEstimate; E2E W1 | AC-37, AC-38, AC-39 |
+| FR-SCL-04/05/06 | BR-110–114; BR-20, BR-21, BR-27 | ContainerRules; Recipe.Yield\*; KitchenTool (Container); recipe page; `/manage/recipes/{id}/cooked` | Core.Tests ContainerRules; Infra.Tests YieldAndPanStore; Web.Tests ContainerPage | AC-37, AC-38, AC-39 |
 | FR-IMP-09/10 | BR-13, BR-93; SEC-44–47 | IAiRecipeParser, AI settings, AiCallLog; /admin/ai | Importers.Tests AiParser (stubbed provider); Web.Tests AiSettings, AiSsrfException | AC-17, AC-18 |
 | FR-NUT-03 to 06 | BR-50, BR-54 | Unmatched report, NutrientRef (Custom), dataset importer; /manage/nutrition, /admin/nutrition-data | Core.Tests NutritionMapping; Infra.Tests DatasetRefresh | AC-57, AC-58 |
 | FR-BKP-08 to 15 | BR-60–62; SEC-70, SEC-74, SEC-75 | Backup:AllowedFolders, apply-config, systemd drop-in, BackupSchedule, marker check, encryption (9.6.1) | Cli.Tests ApplyConfig; Infra.Tests BackupDestination, Retention, Encryption; installer container tests | AC-86, AC-87, AC-88, AC-89 |
@@ -1181,6 +1184,7 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
+- v0.12 (2026-11-22): M3 Kitchen. BR-31 reworded — suggestions are evaluated on view without writes; measures apply at once and a new scale is an offer (ADR 0017 and amendment). ADR 0018 — planner uses spoons and cups only, weight first by Food.Form or precision. ADR 0019 — yields and container scaling. ADR 0020 — recipe pan field. ADR 0021 — inventory scope and standard-set seed. 7.2 adds `/manage/recipes/{id}/suggestions` and `/cooked`; 8.2 Recipe pan columns; 8.3 Food.Form; 8.4 InventorySnapshot.
 - v0.11 (2026-11-22): M2 decisions. ADR 0012 — display planner (FR-MEAS-02, AC-32, AC-33), container scaling (FR-SCL-04 to 06) and pan sizes move to M3 (9.10); BR-27 egg wording by baking/precision. ADR 0013 — measurement seed from USDA public-domain data, foods linked on save; 8.2 FoodId note, 8.3 Food, FoodAlias, YieldConversion columns and SeedRun. ADR 0014 — scale and units in the query string; 7.2 `/account/theme` and `/account/preferences`; 8.5 UserPreference.Units. ADR 0015 — 8.2 Step.Title. ADR 0016 — tag picker. Traceability rows for FR-SCL and FR-MEAS updated.
 - v0.10 (2026-11-21): AC-100 — account emails are checked (format, then duplicates) before a password is asked for, by the CLI, the account service and the installer.
 - v0.9 (2026-11-21): servings and times accept ranges, and times accept hours (ADR 0010; BR-03, 8.2 *Max columns, FR-SRCH-02 filter on the high end). Built-in default tags (ADR 0011, FR-ORG-01).

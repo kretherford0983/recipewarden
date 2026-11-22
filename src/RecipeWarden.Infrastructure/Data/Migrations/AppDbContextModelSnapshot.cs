@@ -249,6 +249,11 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.Property<int?>("FdcId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Form")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("IsPantryStaple")
                         .HasColumnType("INTEGER");
 
@@ -358,6 +363,117 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.ToTable("IngredientGroups");
                 });
 
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.InventorySnapshot", b =>
+                {
+                    b.Property<int>("Version")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ToolsJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Version");
+
+                    b.ToTable("InventorySnapshots");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.InventoryVersion", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ChangedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("InventoryVersions");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.KitchenTool", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AddedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("CapacityAmount")
+                        .HasColumnType("REAL");
+
+                    b.Property<int?>("CapacityUnitId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double>("DefaultFillPct")
+                        .HasColumnType("REAL");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("PanLength")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("PanShape")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("PanWidth")
+                        .HasColumnType("REAL");
+
+                    b.Property<int>("QuantityOwned")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("ResolutionAmount")
+                        .HasColumnType("REAL");
+
+                    b.Property<int?>("ResolutionUnitId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("RetiredAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SupportedUnits")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ToolType")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedById")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CapacityUnitId");
+
+                    b.HasIndex("ResolutionUnitId");
+
+                    b.HasIndex("IsActive", "ToolType");
+
+                    b.ToTable("KitchenTools");
+                });
+
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Recipe", b =>
                 {
                     b.Property<int>("Id")
@@ -402,6 +518,16 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.Property<string>("Notes")
                         .HasMaxLength(10000)
                         .HasColumnType("TEXT");
+
+                    b.Property<double?>("PanLength")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("PanShape")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("PanWidth")
+                        .HasColumnType("REAL");
 
                     b.Property<int?>("ParentRecipeId")
                         .HasColumnType("INTEGER");
@@ -693,6 +819,35 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.HasIndex("RecipeId", "SortOrder");
 
                     b.ToTable("Steps");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeSuggestionState", b =>
+                {
+                    b.Property<int>("RecipeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SuggestionKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("At")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ById")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("InventoryVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("RecipeId", "SuggestionKey");
+
+                    b.ToTable("RecipeSuggestionStates");
                 });
 
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeTag", b =>
@@ -1418,6 +1573,23 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.KitchenTool", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Unit", "CapacityUnit")
+                        .WithMany()
+                        .HasForeignKey("CapacityUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Unit", "ResolutionUnit")
+                        .WithMany()
+                        .HasForeignKey("ResolutionUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CapacityUnit");
+
+                    b.Navigation("ResolutionUnit");
+                });
+
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Recipe", b =>
                 {
                     b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
@@ -1472,6 +1644,15 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                 {
                     b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
                         .WithMany("Steps")
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeSuggestionState", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
+                        .WithMany()
                         .HasForeignKey("RecipeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

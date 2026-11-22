@@ -1,0 +1,19 @@
+@page "/manage/recipes/{id:int}/suggestions"
+@model RecipeWarden.Web.Pages.Manage.Recipes.SuggestionsModel
+@{
+    var r = Model.Recipe!;
+    ViewData["Title"] = "Suggestions";
+}
+<h1>Suggestions for “@r.Title”</h1>
+@if (Model.Offers.Count == 0)
+{
+    <p class="empty-state">Nothing to suggest: this recipe already uses everything in My Kitchen. <a href="/recipes/@r.Slug">Back to the recipe</a></p>
+}
+@foreach (var s in Model.Offers)
+{
+    <section class="suggestion">
+        <p>@s.Message</p>
+        <ul>@foreach (var l in s.Lines) { <li>@l.Before → @l.After</li> }</ul>
+        @await Html.PartialAsync("_SuggestionActions", (r.Id, s.Key))
+    </section>
+}

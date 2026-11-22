@@ -53,3 +53,28 @@ public sealed class FR_MEAS_05_FoodRulesTests
         (FoodRules.ValidateName(name) is null).ShouldBe(ok);
     }
 }
+
+/// <summary>ADR 0018: starting food forms for BR-22's "dry solid".</summary>
+[Trait("Req", "BR-22")]
+public sealed class BR_22_FoodFormTests
+{
+    [Theory]
+    [InlineData("all-purpose flour", "Baking", FoodForm.Dry)]
+    [InlineData("granulated sugar", "Baking", FoodForm.Dry)]
+    [InlineData("vanilla extract", "Baking", FoodForm.Liquid)]
+    [InlineData("maple syrup", "Sweeteners", FoodForm.Liquid)]
+    [InlineData("whole milk", "Dairy", FoodForm.Liquid)]
+    [InlineData("buttermilk", "Dairy", FoodForm.Liquid)]
+    [InlineData("butter", "Dairy", FoodForm.Fat)]
+    [InlineData("olive oil", "Oils", FoodForm.Fat)]
+    [InlineData("peanut butter", "Condiments", FoodForm.Other)]
+    [InlineData("salt", "Spices", FoodForm.Dry)]
+    [InlineData("long-grain white rice", "Grains", FoodForm.Dry)]
+    [InlineData("onion", "Produce", FoodForm.Other)]
+    [InlineData("chicken broth", "Canned", FoodForm.Liquid)]
+    [InlineData(null, null, FoodForm.Other)]
+    public void Default_forms(string? name, string? category, FoodForm expected)
+    {
+        FoodRules.DefaultForm(name, category).ShouldBe(expected);
+    }
+}

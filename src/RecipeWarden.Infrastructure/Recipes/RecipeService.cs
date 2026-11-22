@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RecipeWarden.Core.Kitchen;
 using RecipeWarden.Core.Measurement;
 using RecipeWarden.Core.Recipes;
 using RecipeWarden.Importers.Ingredients;
@@ -16,6 +17,8 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
 {
     public const string SourceChangeNeedsAdmin = "Only an Admin can change the source of a web recipe";
 
+    private Dictionary<string, int> unitIds = new(StringComparer.Ordinal);
+
     public async Task<SaveOutcome> CreateAsync(RecipeEdit edit, string userId, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(edit);
@@ -26,7 +29,10 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
         }
 
         var now = clock.GetUtcNow();
-        var recipe = new Recipe { CreatedAt = now, CreatedById = userId, Version = 0 };
+        // ADR 0017: a new recipe accepts the kitchen as it is now (a scale already there weighs at once, AC-33).
+        var inventory = await db.InventoryVersions.AsNoTracking().Where(v => v.Id == 1).Select(v => v.Version)
+            .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+        var recipe = new Recipe { CreatedAt = now, CreatedById = userId, Version = 0, InventoryVersionSeen = inventory };
         var taken = await TakenSlugsAsync(SlugRules.FromText(edit.Title), null, cancellationToken).ConfigureAwait(false);
         recipe.Slug = SlugRules.MakeUnique(SlugRules.FromText(edit.Title), taken.Contains);
 
@@ -262,6 +268,9 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
             StepsText = StepTextRules.Join(r.Steps.OrderBy(s => s.SortOrder).Select(s => new StepText(s.SectionName, s.Text, s.Title))),
             Tags = r.Tags.Select(t => t.Tag!.Name).Order(StringComparer.OrdinalIgnoreCase).ToArray(),
             WantsPublish = r.Status == RecipeStatus.Published,
+            YieldText = r.YieldText,
+            FinishedDensityGPerMl = r.FinishedDensityGPerMl,
+            PanText = r.PanShape is { } shape && r.PanWidth is { } w ? PanRules.Describe(new Pan(shape, w, r.PanLength ?? w)) : null,
         };
     }
 
@@ -303,6 +312,7 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
         CancellationToken cancellationToken)
     {
         var servings = ServingsRules.Resolve(edit.Servings);
+        unitIds = await db.Units.AsNoTracking().ToDictionaryAsync(u => u.Code, u => u.Id, StringComparer.Ordinal, cancellationToken).ConfigureAwait(false);
         recipe.Title = (edit.Title ?? string.Empty).Trim();
         recipe.Description = Clean(edit.Description);
         recipe.Servings = servings.Servings;
@@ -320,6 +330,7 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
         recipe.SourceName = Clean(edit.SourceName);
         recipe.SourceUrl = Clean(edit.SourceUrl);
         recipe.SourceAuthor = Clean(edit.SourceAuthor);
+        ApplyYieldAndPan(recipe, edit);
         recipe.Status = PublishRules.Decide(edit.WantsPublish, parsed.Check);
         recipe.UpdatedAt = now;
         recipe.UpdatedById = userId;
@@ -373,6 +384,75 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
         {
             recipe.Tags.Add(new RecipeTag { TagId = tag.Id, Tag = tag });
         }
+    }
+
+    /// <summary>
+    /// ADR 0019, ADR 0020: the editor's yield is an entered yield. Unchanged text keeps the stored source, so a
+    /// measured yield is not downgraded by saving the form; cleared text clears the yield.
+    /// </summary>
+    private void ApplyYieldAndPan(Recipe recipe, RecipeEdit edit)
+    {
+        var text = Clean(edit.YieldText);
+        if (!string.Equals(text, recipe.YieldText, StringComparison.Ordinal))
+        {
+            if (text is not null && AmountText.TryParse(text, out var amount))
+            {
+                recipe.YieldAmount = amount!.Value;
+                recipe.YieldUnitId = unitIds.TryGetValue(amount.Unit.Code, out var unitId) ? unitId : null;
+                recipe.YieldSource = YieldSource.Entered.ToString();
+            }
+            else
+            {
+                recipe.YieldAmount = null;
+                recipe.YieldUnitId = null;
+                recipe.YieldSource = null;
+            }
+
+            recipe.YieldText = text;
+        }
+
+        recipe.FinishedDensityGPerMl = edit.FinishedDensityGPerMl;
+        var pan = PanRules.Parse(edit.PanText);
+        recipe.PanShape = pan?.Shape;
+        recipe.PanWidth = pan?.Width;
+        recipe.PanLength = pan?.Length;
+    }
+
+    /// <summary>
+    /// FR-SCL-06, ADR 0019 ("I made this", Editor): records the cook date and, optionally, the measured yield, which
+    /// takes precedence over an entered or estimated one (BR-111). A yield change bumps the version (BR-06).
+    /// </summary>
+    public async Task<SaveOutcome> MarkCookedAsync(int id, string? measuredYield, string userId, CancellationToken cancellationToken = default)
+    {
+        var recipe = await db.Recipes.FirstOrDefaultAsync(r => r.Id == id, cancellationToken).ConfigureAwait(false);
+        if (recipe is null)
+        {
+            return SaveOutcome.NotFound;
+        }
+
+        var text = Clean(measuredYield);
+        Amount? amount = null;
+        if (text is not null && !AmountText.TryParse(text, out amount))
+        {
+            return SaveOutcome.Invalid([new PublishProblem(RecipeField.Yield, "Enter what it made as an amount and unit, e.g. 12 fl oz or 2 quarts")]);
+        }
+
+        var now = clock.GetUtcNow();
+        recipe.LastCookedAt = now;
+        if (amount is not null)
+        {
+            var unitIdsNow = await db.Units.AsNoTracking().ToDictionaryAsync(u => u.Code, u => u.Id, StringComparer.Ordinal, cancellationToken).ConfigureAwait(false);
+            recipe.YieldAmount = amount.Value;
+            recipe.YieldUnitId = unitIdsNow[amount.Unit.Code];
+            recipe.YieldSource = YieldSource.Measured.ToString();
+            recipe.YieldText = AmountText.Format(amount.Value, amount.Unit);
+            recipe.UpdatedAt = now;
+            recipe.UpdatedById = userId;
+            recipe.Version++;
+        }
+
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return Saved(recipe, new PublishCheck([], []));
     }
 
     private async Task<HashSet<string>> TakenSlugsAsync(string baseSlug, int? exceptRecipeId, CancellationToken cancellationToken)
@@ -490,8 +570,19 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
                 .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase).ToList(),
             Collections = collections,
             UpdatedAt = r.UpdatedAt,
+            YieldAmount = r.YieldAmount,
+            YieldUnitCode = r.YieldUnitId is { } yu ? UnitCatalogCodes.GetValueOrDefault(yu) : null,
+            YieldSource = Enum.TryParse<YieldSource>(r.YieldSource, out var ys) ? ys : null,
+            FinishedDensityGPerMl = r.FinishedDensityGPerMl,
+            Pan = r.PanShape is { } shape && r.PanWidth is { } pw ? new Pan(shape, pw, r.PanLength ?? pw) : null,
+            LastCookedAt = r.LastCookedAt,
+            InventoryVersionSeen = r.InventoryVersionSeen,
         };
     }
+
+    /// <summary>Unit ids of the seeded units (8.3; ids follow <see cref="UnitCatalog.All"/>, M1 migration).</summary>
+    private static readonly Dictionary<int, string> UnitCatalogCodes =
+        UnitCatalog.All.Select((u, i) => (Id: i + 1, u.Code)).ToDictionary(x => x.Id, x => x.Code);
 
     private static IngredientLineView ToLine(RecipeIngredient i)
     {

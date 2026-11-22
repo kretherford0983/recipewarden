@@ -4,6 +4,7 @@ using RecipeWarden.Core.Recipes;
 using RecipeWarden.Core.Search;
 using RecipeWarden.Infrastructure.Data;
 using RecipeWarden.Infrastructure.Identity;
+using RecipeWarden.Infrastructure.Kitchen;
 using RecipeWarden.Infrastructure.Measurement;
 using RecipeWarden.Infrastructure.Recipes;
 
@@ -31,6 +32,9 @@ internal sealed class RecipeTestScope : IAsyncDisposable
     public FoodCatalogService Foods => scope.ServiceProvider.GetRequiredService<FoodCatalogService>();
     public RecipeScaler Scaler => scope.ServiceProvider.GetRequiredService<RecipeScaler>();
     public UserPreferenceStore Preferences => scope.ServiceProvider.GetRequiredService<UserPreferenceStore>();
+    public KitchenService Kitchen => scope.ServiceProvider.GetRequiredService<KitchenService>();
+    public SuggestionService Suggestions => scope.ServiceProvider.GetRequiredService<SuggestionService>();
+    public DatabaseInitializer Initializer => scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
 
     public static async Task<RecipeTestScope> CreateAsync(TimeProvider? clock = null) =>
         new(await TestDatabase.CreateAsync(clock: clock));

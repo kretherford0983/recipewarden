@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using RecipeWarden.Core.Kitchen;
 using RecipeWarden.Core.Measurement;
 using RecipeWarden.Infrastructure.Identity;
 using RecipeWarden.Infrastructure.Measurement;
@@ -34,8 +35,41 @@ public sealed class DetailsModel(RecipeService recipes, CollectionService collec
 
     public decimal? TargetServings { get; private set; }
 
+    /// <summary>FR-SCL-04/05, ADR 0019: the container form's state and results.</summary>
+    public ContainerSetup? Containers { get; private set; }
+    public ContainerFit? Fit { get; private set; }
+    public string? HowMany { get; private set; }
+    public string? FitMessage { get; private set; }
+    public bool JustCooked { get; private set; }
+
+    [FromQuery(Name = "fit")]
+    public int? FitToolId { get; set; }
+
+    [FromQuery(Name = "capacity")]
+    public string? FitCapacity { get; set; }
+
+    [FromQuery(Name = "count")]
+    public int? FitCount { get; set; }
+
+    [FromQuery(Name = "fill")]
+    public string? FitFill { get; set; }
+
+    [FromQuery(Name = "yield")]
+    public string? TypedYield { get; set; }
+
+    [FromQuery(Name = "howmany")]
+    public int? HowManyToolId { get; set; }
+
+    /// <summary>ADR 0017: a reader's "Show me" — weights for this view only.</summary>
+    [FromQuery(Name = "weights")]
+    public string? Weights { get; set; }
+
+    public bool ShowWeights => string.Equals(Weights, "show", StringComparison.Ordinal);
+
+    public bool FitRequested => FitToolId is not null || !string.IsNullOrWhiteSpace(FitCapacity);
+
     public async Task<IActionResult> OnGetAsync([FromRoute] string slug, string? scale, string? servings, string? units,
-        int? from, string? have)
+        int? from, string? have, string? made)
     {
         var ct = HttpContext.RequestAborted;
         CanEdit = await permissions.CanEditAsync(User);
@@ -55,8 +89,37 @@ public sealed class DetailsModel(RecipeService recipes, CollectionService collec
         Request.Cookies.TryGetValue(DisplayUnitsRules.CookieName, out var unitsCookie);
         var display = DisplayUnitsRules.Resolve(units, profileUnits, unitsCookie);
 
+        JustCooked = made == "1" && CanEdit;
         var factor = 1m;
-        if (from is { } line && !string.IsNullOrWhiteSpace(have))
+        var ct2 = HttpContext.RequestAborted;
+        Containers = await scaler.ContainersAsync(Recipe, TypedYield, ct2);
+
+        if (FitRequested)
+        {
+            if (Containers!.Error is { } yieldError)
+            {
+                FitMessage = yieldError;
+            }
+            else if (Choice(FitToolId, FitCapacity) is not { } choice)
+            {
+                FitMessage = "Choose a container from My Kitchen or type a capacity, e.g. 16 fl oz.";
+            }
+            else
+            {
+                Fit = ContainerRules.Fit(Containers.Yield!, choice);
+                if (Fit.Factor is { } fitFactor)
+                {
+                    factor = fitFactor;
+                    ScaleSource = "fit to " + (choice.Count > 1 ? choice.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " " : string.Empty)
+                                  + (choice.Count > 1 ? FoodMatcher.Plural(choice.Noun) : choice.Noun);
+                }
+                else
+                {
+                    FitMessage = Fit.Error;
+                }
+            }
+        }
+        else if (from is { } line && !string.IsNullOrWhiteSpace(have))
         {
             var result = await scaler.FactorFromAsync(Recipe, line, have, ct);
             if (result.Factor is { } f)
@@ -83,7 +146,11 @@ public sealed class DetailsModel(RecipeService recipes, CollectionService collec
             ScaleSource = "your default";
         }
 
-        Scaled = await scaler.ScaleAsync(Recipe, factor, display, ct);
+        Scaled = await scaler.ScaleAsync(Recipe, factor, display, ShowWeights, ct);
+        if (HowManyToolId is { } howManyTool && Containers?.Yield is { } yield && Choice(howManyTool, null) is { } bottle)
+        {
+            HowMany = ContainerRules.HowMany(yield.Ml * factor, bottle);
+        }
         if (CanEdit)
         {
             var inThese = Recipe.Collections.Select(c => c.Id).ToHashSet();
@@ -113,6 +180,32 @@ public sealed class DetailsModel(RecipeService recipes, CollectionService collec
     }
 
     public static string Number(decimal value) => Math.Round(value, 2).ToString("0.##", CultureInfo.InvariantCulture);
+
+    /// <summary>The current URL with <c>weights=show</c> added (ADR 0017 "Show me").</summary>
+    public string ShowMeLink()
+    {
+        var query = Request.Query.Where(q => q.Key != "weights").Select(q => q.Key + "=" + Uri.EscapeDataString(q.Value.ToString()));
+        return "/recipes/" + Recipe!.Slug + "?" + string.Join('&', query.Append("weights=show"));
+    }
+
+    /// <summary>A container from My Kitchen (by id) or a typed capacity, with count and fill % (BR-110).</summary>
+    private ContainerChoice? Choice(int? toolId, string? capacity)
+    {
+        var count = Math.Clamp(FitCount ?? 1, 1, 20);
+        decimal? fill = decimal.TryParse(FitFill?.Trim().TrimEnd('%'), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var f) ? f : null;
+        if (toolId is { } id && Containers?.Containers.FirstOrDefault(c => c.Id == id) is { CapacityMl: { } ml } tool)
+        {
+            return new ContainerChoice(ContainerRules.Noun(tool.Name), ml, UnitCatalog.FindByCode(tool.CapacityUnit)!, fill ?? tool.DefaultFillPct,
+                count, tool.QuantityOwned);
+        }
+
+        if (AmountText.TryParse(capacity, out var typed) && typed!.Unit.Kind == UnitKind.Volume)
+        {
+            return new ContainerChoice("container", typed.Base, typed.Unit, fill ?? 90m, count, null);
+        }
+
+        return null;
+    }
 
     private async Task<(DisplayUnits? Units, decimal? Scale)> ProfileAsync(CancellationToken ct)
     {

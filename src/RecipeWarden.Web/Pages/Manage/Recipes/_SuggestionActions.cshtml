@@ -1,0 +1,10 @@
+@model (int RecipeId, string Key)
+@* FR-TOOL-05, ADR 0017: editors only; the recipe page shows these to editors and "Show me" to everyone. *@
+<form method="post" action="/manage/recipes/@Model.RecipeId/suggestions?handler=Apply" class="inline-form" asp-antiforgery="true">
+    <input type="hidden" name="key" value="@Model.Key">
+    <button type="submit" class="primary">Save to recipe</button>
+</form>
+<form method="post" action="/manage/recipes/@Model.RecipeId/suggestions?handler=Dismiss" class="inline-form" asp-antiforgery="true">
+    <input type="hidden" name="key" value="@Model.Key">
+    <button type="submit">Dismiss</button>
+</form>

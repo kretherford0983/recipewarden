@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Text;
+using RecipeWarden.Core.Kitchen;
 using RecipeWarden.Core.Recipes;
 
 namespace RecipeWarden.Core.Measurement;
@@ -9,8 +11,13 @@ namespace RecipeWarden.Core.Measurement;
 /// </summary>
 public sealed record ScaleInput(ParsedIngredient Ingredient, int? FoodId = null, ParsedIngredient? Plus = null);
 
-/// <summary>How a recipe is being shown: factor (BR-20), units (ADR 0014) and whether it is baking/precision (FR-REC-06).</summary>
-public sealed record ScaleContext(decimal Factor, DisplayUnits Units, bool IsPrecision, MeasurementCatalog Catalog)
+/// <summary>
+/// How a recipe is being shown: factor (BR-20), units (ADR 0014) and whether it is baking/precision (FR-REC-06).
+/// <see cref="Tools"/> are the active tools in My Kitchen (null: no planner, the M2 display); <see cref="PreferWeight"/>
+/// turns on BR-22's automatic weight when a scale is among them (ADR 0017, ADR 0018).
+/// </summary>
+public sealed record ScaleContext(decimal Factor, DisplayUnits Units, bool IsPrecision, MeasurementCatalog Catalog,
+    KitchenTools? Tools = null, bool PreferWeight = false)
 {
     public static ScaleContext AsWritten { get; } = new(1m, DisplayUnits.AsWritten, false, MeasurementCatalog.Default);
 
@@ -23,7 +30,20 @@ public sealed record ScaleContext(decimal Factor, DisplayUnits Units, bool IsPre
 /// <see cref="YieldNote"/> the purchase-state estimate (BR-26), whose grams are kept for shopping lists (M5).
 /// </summary>
 public sealed record ScaledIngredient(string Text, string? Secondary = null, string? Hint = null, string? YieldNote = null,
-    decimal? PurchaseGrams = null, decimal? PurchaseGramsMax = null);
+    decimal? PurchaseGrams = null, decimal? PurchaseGramsMax = null)
+{
+    /// <summary>The scaled amount as a volume, when it can be one (BR-113 rounding check).</summary>
+    public decimal? ExactMl { get; init; }
+
+    /// <summary>The volume the shown amount measures after rounding (BR-113).</summary>
+    public decimal? ShownMl { get; init; }
+
+    /// <summary>The plan's explanation for the tooltip (9.4, UX-06), when a tool plan was used.</summary>
+    public string? Explanation { get; init; }
+
+    /// <summary>True when BR-22 put the weight first.</summary>
+    public bool ByWeight { get; init; }
+}
 
 /// <summary>
 /// Section 9.4 measurement engine (M2 part, ADR 0012): normalize to ml, g, count or vague; scale (BR-20); convert
@@ -89,10 +109,23 @@ public static class IngredientScaler
         }
 
         var yieldNote = YieldEstimate(input, unit, low, context);
+        var exactMl = unit.Kind == UnitKind.Volume ? low : density is > 0m ? low / density.Value : (decimal?)null;
+        if (WeightFirst(unit, food, high, context) is { } weighed)
+        {
+            var volume = AmountText(low, high, UnitKind.Volume, UnitSystem.US, unit, context, out _, out _);
+            var grams = low * density!.Value;
+            return new ScaledIngredient(Compose(weighed.Text(grams), p, note), volume, null, yieldNote.Note, yieldNote.Low, yieldNote.High)
+            {
+                ExactMl = exactMl,
+                ShownMl = weighed.RoundedGrams(grams) / density.Value,
+                ByWeight = true,
+            };
+        }
+
         if (context.Factor == 1m && context.Units == DisplayUnits.AsWritten)
         {
             return new ScaledIngredient(IngredientFormatter.Format(p), YieldNote: yieldNote.Note,
-                PurchaseGrams: yieldNote.Low, PurchaseGramsMax: yieldNote.High);
+                PurchaseGrams: yieldNote.Low, PurchaseGramsMax: yieldNote.High) { ExactMl = exactMl, ShownMl = exactMl };
         }
 
         var kind = unit.Kind;
@@ -108,7 +141,7 @@ public static class IngredientScaler
                 system = UnitSystem.Metric;
                 break;
             case DisplayUnits.Weight when kind == UnitKind.Volume && density is { } d && d > 0m:
-                secondary = AmountText(low, high, kind, system, unit, context);
+                secondary = AmountText(low, high, kind, system, unit, context, out _, out _);
                 low *= d;
                 high *= d;
                 kind = UnitKind.Mass;
@@ -123,18 +156,86 @@ public static class IngredientScaler
         }
 
         var source = unit.Kind == kind && (unit.System == system || (unit.System == UnitSystem.Either && system == UnitSystem.US)) ? unit : null;
-        var amount = AmountText(low, high, kind, system, source, context);
+        var amount = AmountText(low, high, kind, system, source, context, out var shownBase, out var plan);
         var text = Compose(amount, p, note);
-        return new ScaledIngredient(text, secondary, hint, yieldNote.Note, yieldNote.Low, yieldNote.High);
+        var shownMl = kind == UnitKind.Volume ? shownBase : density is > 0m ? shownBase / density.Value : null;
+        return new ScaledIngredient(text, secondary, hint, yieldNote.Note, yieldNote.Low, yieldNote.High)
+        {
+            ExactMl = exactMl,
+            ShownMl = shownMl,
+            Explanation = plan?.Explain(),
+        };
     }
 
-    private static string AmountText(decimal low, decimal? high, UnitKind kind, UnitSystem system, UnitDefinition? source, ScaleContext context)
+    /// <summary>
+    /// BR-22, ADR 0018: weight first when a scale is in My Kitchen (and accepted for this recipe, ADR 0017), a
+    /// density is known, and the recipe is baking/precision or the food is dry. Grams when the scale shows g.
+    /// </summary>
+    private static WeightDisplay? WeightFirst(UnitDefinition unit, FoodFacts? food, decimal? high, ScaleContext context)
     {
+        if (!context.PreferWeight || context.Tools?.Scale is not { } scale || unit.Kind != UnitKind.Volume || high is not null
+            || food?.DensityGPerMl is not > 0m || context.Units is not (DisplayUnits.AsWritten or DisplayUnits.US)
+            || !(context.IsPrecision || food.Form == FoodForm.Dry))
+        {
+            return null;
+        }
+
+        return new WeightDisplay(scale);
+    }
+
+    private sealed class WeightDisplay(KitchenToolInfo scale)
+    {
+        private readonly bool grams = scale.Supports("g") || !scale.Supports("oz");
+        private readonly decimal stepGrams = KitchenTools.GramsPerStep(scale);
+
+        public decimal RoundedGrams(decimal g)
+        {
+            if (grams)
+            {
+                var step = scale.ResolutionUnit == "g" ? scale.Resolution!.Value : Math.Max(1m, decimal.Round(stepGrams));
+                return Math.Max(step, Math.Round(g / step, MidpointRounding.AwayFromZero) * step);
+            }
+
+            var oz = UnitCatalog.FindByCode("oz")!.ToBase;
+            var ozStep = scale.ResolutionUnit == "oz" ? scale.Resolution!.Value : 0.05m;
+            return Math.Max(ozStep, Math.Round(g / oz / ozStep, MidpointRounding.AwayFromZero) * ozStep) * oz;
+        }
+
+        public string Text(decimal g)
+        {
+            var rounded = RoundedGrams(g);
+            if (grams)
+            {
+                return rounded.ToString("0.###", CultureInfo.InvariantCulture) + " g";
+            }
+
+            var oz = rounded / UnitCatalog.FindByCode("oz")!.ToBase;
+            return Math.Round(oz, 2).ToString("0.##", CultureInfo.InvariantCulture) + " oz";
+        }
+    }
+
+    private static string AmountText(decimal low, decimal? high, UnitKind kind, UnitSystem system, UnitDefinition? source, ScaleContext context,
+        out decimal? shownBase, out ToolPlan? plan)
+    {
+        plan = null;
         if (high is not { } h || h <= low)
         {
+            // FR-MEAS-02, ADR 0018: US volume is made with the tools in My Kitchen when a plan fits.
+            if (context.Tools is { } tools && kind == UnitKind.Volume && system == UnitSystem.US
+                && (source is null || source.Code is "tsp" or "tbsp" or "cup")
+                && DisplayPlanner.Plan(low, tools, context.Tolerance) is { } p)
+            {
+                plan = p;
+                shownBase = p.PlannedMl;
+                return p.Text;
+            }
+
             var single = MeasureDisplay.Show(low, kind, system, source, context.Tolerance, context.Catalog);
+            shownBase = single.Value * single.Unit.ToBase;
             return single.Text + " " + MeasureDisplay.UnitName(single.Unit, single.Value);
         }
+
+        shownBase = null;
 
         // A range takes its unit from the high end, so "4–6 Tbsp" does not become "¼–⅜ cup".
         var hi = MeasureDisplay.Show(h, kind, system, source, context.Tolerance, context.Catalog);

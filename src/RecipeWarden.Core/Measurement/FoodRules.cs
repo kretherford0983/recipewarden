@@ -76,4 +76,43 @@ public static class FoodRules
             .Take(MaxAliases)
             .ToList();
     }
+
+    private static readonly string[] LiquidWords =
+    [
+        "milk", "juice", "broth", "stock", "water", "coffee", "vinegar", "syrup", "honey", "molasses", "extract", "half-and-half",
+        "heavy cream", "buttermilk", "sauce", "salsa", "ketchup", "wine", "beer",
+    ];
+
+    private static readonly string[] FatWords = ["oil", "butter", "shortening", "lard", "margarine", "mayonnaise"];
+
+    /// <summary>
+    /// ADR 0018: the starting form for a food from its name and category; editors can change it. Liquids by name
+    /// first ("buttermilk", "maple syrup"), then fats ("olive oil", "butter" but not "peanut butter", a dry-ish
+    /// paste left as Other), then dry categories (baking, spices, nuts, grains).
+    /// </summary>
+    public static FoodForm DefaultForm(string? name, string? category)
+    {
+        var n = FoodMatcher.Normalize(name);
+        if (n.Length == 0)
+        {
+            return FoodForm.Other;
+        }
+
+        if (n is "peanut butter" or "cream cheese" or "sour cream" or "cocoa butter")
+        {
+            return FoodForm.Other;
+        }
+
+        if (LiquidWords.Any(w => n.Contains(w, StringComparison.Ordinal)))
+        {
+            return FoodForm.Liquid;
+        }
+
+        if (FatWords.Any(w => n.Split(' ').Contains(w, StringComparer.Ordinal)))
+        {
+            return FoodForm.Fat;
+        }
+
+        return category is "Baking" or "Spices" or "Nuts" or "Grains" ? FoodForm.Dry : FoodForm.Other;
+    }
 }
