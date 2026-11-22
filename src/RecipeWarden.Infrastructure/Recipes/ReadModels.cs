@@ -39,10 +39,20 @@ public sealed record TagLink(string Name, string Slug, TagType? TagType);
 
 public sealed record IngredientGroupView(string? Name, IReadOnlyList<IngredientLineView> Lines);
 
-/// <summary>One ingredient for reading: the formatted text (UX-05), plus whether it still needs review (BR-04).</summary>
-public sealed record IngredientLineView(string Text, string RawText, bool NeedsReview, bool IsOptional);
+/// <summary>
+/// One ingredient for reading: the formatted text (UX-05), whether it still needs review (BR-04), and the parsed
+/// parts and linked food the measurement engine scales from (ADR 0013).
+/// </summary>
+public sealed record IngredientLineView(string Text, string RawText, bool NeedsReview, bool IsOptional)
+{
+    public ParsedIngredient? Parsed { get; init; }
+    public int? FoodId { get; init; }
+}
 
-public sealed record StepSectionView(string? Name, IReadOnlyList<string> Steps);
+/// <summary>A step with its optional heading (ADR 0015).</summary>
+public sealed record StepView(string? Title, string Text);
+
+public sealed record StepSectionView(string? Name, IReadOnlyList<StepView> Steps);
 
 /// <summary>FR-VIEW-01 reading view (images, allergens and nutrition arrive in M4 and M6).</summary>
 public sealed record RecipeView

@@ -51,7 +51,7 @@ public sealed class FR_REC_01_RecipePersistenceTests
         view.Ingredients.Select(g => g.Name).ShouldBe(["For the soup", "To serve"]);
         view.Ingredients[0].Lines.Select(l => l.Text).ShouldBe(["1½ lb boneless chicken breast", "2 cups yellow onion, diced"]);
         view.Ingredients[1].Lines.Single().IsOptional.ShouldBeTrue();
-        view.Steps.Single().Steps.ShouldBe(["Brown the chicken.", "Add the onion."]);
+        view.Steps.Single().Steps.ShouldBe([new StepView(null, "Brown the chicken."), new StepView(null, "Add the onion.")]);
         view.Tags.Select(t => t.Name).ShouldBe(["Dinner", "Soup"]);
     }
 
@@ -137,7 +137,7 @@ public sealed class FR_REC_01_RecipePersistenceTests
         updated.Version.ShouldBe(2);
         var view = (await s.Recipes.GetForReadingAsync("soup", false, Ct)).Recipe!;
         view.Ingredients.Single().Lines.Select(l => l.RawText).ShouldBe(["2 carrots", "1 onion"]);
-        view.Steps.Single().Steps.ShouldBe(["Cook.", "Chop."]);
+        view.Steps.Single().Steps.ShouldBe([new StepView(null, "Cook."), new StepView(null, "Chop.")]);
         (await s.Db.RecipeIngredients.CountAsync(Ct)).ShouldBe(2); // old rows replaced, not added to
     }
 

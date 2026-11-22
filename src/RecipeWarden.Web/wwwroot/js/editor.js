@@ -83,3 +83,35 @@
     textarea.after(toggle, list);
   });
 })();
+
+// ADR 0016: tag picker filter. Hides tags that do not match and opens groups with matches; the checkboxes
+// themselves work without this script.
+(function () {
+  "use strict";
+
+  function init() {
+    var filter = document.querySelector("[data-tag-filter]");
+    if (!filter) { return; }
+    var picker = filter.closest(".tag-picker");
+    filter.hidden = false;
+    filter.addEventListener("input", function () {
+      var term = filter.value.trim().toLowerCase();
+      picker.querySelectorAll("details").forEach(function (group) {
+        var any = false;
+        group.querySelectorAll(".tag-options label").forEach(function (label) {
+          var match = term.length === 0 || label.textContent.toLowerCase().indexOf(term) >= 0;
+          label.hidden = !match;
+          any = any || match;
+        });
+        group.hidden = !any;
+        if (term.length > 0 && any) { group.open = true; }
+      });
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();

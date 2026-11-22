@@ -1,0 +1,2023 @@
+{
+ "version": 1,
+ "sources": [
+  {
+   "name": "USDA FoodData Central, SR Legacy (2018-04)",
+   "licence": "CC0 1.0 (public domain)",
+   "url": "https://fdc.nal.usda.gov/",
+   "sha256": {
+    "food.csv": "de8b0390058db4f102368c9fbdfde144790b480ff4cb0507c0e060ef99805dee",
+    "food_portion.csv": "6332e29da61e13f7bd950b759461af73303c76e8b0e64dc9df4e41d5347cf3d1"
+   }
+  },
+  {
+   "name": "USDA Table of Cooking Yields for Meat and Poultry, Release 2",
+   "licence": "US government work (public domain)",
+   "url": "https://www.ars.usda.gov/",
+   "sha256": {
+    "yields.xlsx": "13bd2cec633841867bf8532ed57114c81f3791b9bcd35a396dec6a1b960773ff"
+   }
+  }
+ ],
+ "foods": [
+  {
+   "name": "all-purpose flour",
+   "pluralName": "all-purpose flour",
+   "category": "Baking",
+   "aliases": [
+    "a.p. flour",
+    "all purpose flour",
+    "ap flour",
+    "flour",
+    "plain flour",
+    "unbleached all-purpose flour",
+    "unbleached flour",
+    "white flour"
+   ],
+   "fdcId": 168894,
+   "densityGPerMl": 0.5283,
+   "sourceNote": "USDA FoodData Central SR Legacy 168894 (Wheat flour, white, all-purpose, enriched, bleached); 1 cup = 125 g"
+  },
+  {
+   "name": "bread flour",
+   "pluralName": "bread flour",
+   "category": "Baking",
+   "aliases": [],
+   "fdcId": 168896,
+   "densityGPerMl": 0.5791,
+   "sourceNote": "USDA FoodData Central SR Legacy 168896 (Wheat flour, white, bread, enriched); 1 cup = 137 g"
+  },
+  {
+   "name": "cake flour",
+   "pluralName": "cake flour",
+   "category": "Baking",
+   "aliases": [],
+   "fdcId": 169723,
+   "densityGPerMl": 0.5791,
+   "sourceNote": "USDA FoodData Central SR Legacy 169723 (Wheat flour, white, cake, enriched); 1 cup unsifted, dipped = 137 g"
+  },
+  {
+   "name": "self-rising flour",
+   "pluralName": "self-rising flour",
+   "category": "Baking",
+   "aliases": [
+    "self rising flour",
+    "self-raising flour"
+   ],
+   "fdcId": 168895,
+   "densityGPerMl": 0.5283,
+   "sourceNote": "USDA FoodData Central SR Legacy 168895 (Wheat flour, white, all-purpose, self-rising, enriched); 1 cup = 125 g"
+  },
+  {
+   "name": "whole wheat flour",
+   "pluralName": "whole wheat flour",
+   "category": "Baking",
+   "aliases": [
+    "whole-wheat flour",
+    "wholemeal flour"
+   ],
+   "fdcId": 168893,
+   "densityGPerMl": 0.5072,
+   "sourceNote": "USDA FoodData Central SR Legacy 168893 (Wheat flour, whole-grain (Includes foods for USDA's Food Distribution Program)); 1 cup = 120 g"
+  },
+  {
+   "name": "cornmeal",
+   "pluralName": "cornmeal",
+   "category": "Baking",
+   "aliases": [
+    "corn meal",
+    "yellow cornmeal"
+   ],
+   "fdcId": 168867,
+   "densityGPerMl": 0.6636,
+   "sourceNote": "USDA FoodData Central SR Legacy 168867 (Cornmeal, degermed, enriched, yellow); 1 cup = 157 g"
+  },
+  {
+   "name": "cornstarch",
+   "pluralName": "cornstarch",
+   "category": "Baking",
+   "aliases": [
+    "corn starch",
+    "cornflour"
+   ],
+   "fdcId": 169698,
+   "densityGPerMl": 0.541,
+   "sourceNote": "USDA FoodData Central SR Legacy 169698 (Cornstarch); 1 cup = 128 g"
+  },
+  {
+   "name": "granulated sugar",
+   "pluralName": "granulated sugar",
+   "category": "Baking",
+   "aliases": [
+    "cane sugar",
+    "caster sugar",
+    "sugar",
+    "white sugar"
+   ],
+   "fdcId": 169655,
+   "densityGPerMl": 0.8454,
+   "sourceNote": "USDA FoodData Central SR Legacy 169655 (Sugars, granulated); 1 cup = 200 g"
+  },
+  {
+   "name": "brown sugar",
+   "pluralName": "brown sugar",
+   "category": "Baking",
+   "aliases": [
+    "dark brown sugar",
+    "light brown sugar",
+    "packed brown sugar"
+   ],
+   "fdcId": 168833,
+   "densityGPerMl": 0.9299,
+   "sourceNote": "USDA FoodData Central SR Legacy 168833 (Sugars, brown); 1 cup packed = 220 g"
+  },
+  {
+   "name": "powdered sugar",
+   "pluralName": "powdered sugar",
+   "category": "Baking",
+   "aliases": [
+    "confectioners sugar",
+    "confectioners' sugar",
+    "icing sugar"
+   ],
+   "fdcId": 169656,
+   "densityGPerMl": 0.5072,
+   "sourceNote": "USDA FoodData Central SR Legacy 169656 (Sugars, powdered); 1 cup unsifted = 120 g"
+  },
+  {
+   "name": "baking powder",
+   "pluralName": "baking powder",
+   "category": "Baking",
+   "aliases": [],
+   "fdcId": 172803,
+   "densityGPerMl": 0.9333,
+   "sourceNote": "USDA FoodData Central SR Legacy 172803 (Leavening agents, baking powder, double-acting, sodium aluminum sulfate); 1 tsp = 4.6 g"
+  },
+  {
+   "name": "baking soda",
+   "pluralName": "baking soda",
+   "category": "Baking",
+   "aliases": [
+    "bicarb",
+    "bicarbonate of soda"
+   ],
+   "fdcId": 175040,
+   "densityGPerMl": 0.9333,
+   "sourceNote": "USDA FoodData Central SR Legacy 175040 (Leavening agents, baking soda); 1 tsp = 4.6 g"
+  },
+  {
+   "name": "cream of tartar",
+   "pluralName": "cream of tartar",
+   "category": "Baking",
+   "aliases": [],
+   "fdcId": 175041,
+   "densityGPerMl": 0.6087,
+   "sourceNote": "USDA FoodData Central SR Legacy 175041 (Leavening agents, cream of tartar); 1 tsp = 3 g"
+  },
+  {
+   "name": "active dry yeast",
+   "pluralName": "active dry yeast",
+   "category": "Baking",
+   "aliases": [
+    "dry yeast",
+    "instant yeast",
+    "rapid rise yeast",
+    "yeast"
+   ],
+   "fdcId": 175043,
+   "densityGPerMl": 0.8115,
+   "sourceNote": "USDA FoodData Central SR Legacy 175043 (Leavening agents, yeast, baker's, active dry); 1 tsp = 4 g"
+  },
+  {
+   "name": "unsweetened cocoa powder",
+   "pluralName": "unsweetened cocoa powder",
+   "category": "Baking",
+   "aliases": [
+    "cocoa",
+    "cocoa powder",
+    "unsweetened cocoa"
+   ],
+   "fdcId": 169593,
+   "densityGPerMl": 0.3635,
+   "sourceNote": "USDA FoodData Central SR Legacy 169593 (Cocoa, dry powder, unsweetened); 1 cup = 86 g"
+  },
+  {
+   "name": "chocolate chips",
+   "pluralName": "chocolate chips",
+   "category": "Baking",
+   "aliases": [
+    "chocolate chip",
+    "semi-sweet chocolate chips",
+    "semisweet chocolate chips"
+   ],
+   "fdcId": 167976,
+   "densityGPerMl": 0.7693,
+   "sourceNote": "USDA FoodData Central SR Legacy 167976 (Candies, semisweet chocolate); 1 cup large chips = 182 g"
+  },
+  {
+   "name": "vanilla extract",
+   "pluralName": "vanilla extract",
+   "category": "Baking",
+   "aliases": [
+    "pure vanilla extract",
+    "vanilla"
+   ],
+   "fdcId": 173471,
+   "densityGPerMl": 0.8521,
+   "sourceNote": "USDA FoodData Central SR Legacy 173471 (Vanilla extract); 1 tsp = 4.2 g"
+  },
+  {
+   "name": "old-fashioned oats",
+   "pluralName": "old-fashioned oats",
+   "category": "Baking",
+   "aliases": [
+    "oatmeal",
+    "oats",
+    "old fashioned oats",
+    "quick oats",
+    "quick-cooking oats",
+    "rolled oats"
+   ],
+   "fdcId": 173904,
+   "densityGPerMl": 0.3424,
+   "sourceNote": "USDA FoodData Central SR Legacy 173904 (Cereals, oats, regular and quick, not fortified, dry); 1 cup = 81 g"
+  },
+  {
+   "name": "shredded coconut",
+   "pluralName": "shredded coconut",
+   "category": "Baking",
+   "aliases": [
+    "coconut",
+    "flaked coconut",
+    "sweetened coconut",
+    "sweetened shredded coconut"
+   ],
+   "fdcId": 168586,
+   "densityGPerMl": 0.3931,
+   "sourceNote": "USDA FoodData Central SR Legacy 168586 (Nuts, coconut meat, dried (desiccated), sweetened, shredded); 1 cup, shredded = 93 g"
+  },
+  {
+   "name": "graham cracker crumbs",
+   "pluralName": "graham cracker crumbs",
+   "category": "Baking",
+   "aliases": [],
+   "fdcId": 174957,
+   "densityGPerMl": 0.355,
+   "sourceNote": "USDA FoodData Central SR Legacy 174957 (Cookies, graham crackers, plain or honey (includes cinnamon)); 1 cup, crushed = 84 g"
+  },
+  {
+   "name": "bread crumbs",
+   "pluralName": "bread crumbs",
+   "category": "Baking",
+   "aliases": [
+    "breadcrumbs",
+    "dry bread crumbs",
+    "plain bread crumbs"
+   ],
+   "fdcId": 174928,
+   "densityGPerMl": 0.4565,
+   "sourceNote": "USDA FoodData Central SR Legacy 174928 (Bread, crumbs, dry, grated, plain); 1 cup = 108 g"
+  },
+  {
+   "name": "panko",
+   "pluralName": "panko",
+   "category": "Baking",
+   "aliases": [
+    "panko bread crumbs",
+    "panko breadcrumbs"
+   ],
+   "fdcId": 172806,
+   "densityGPerMl": 0.5072,
+   "sourceNote": "USDA FoodData Central SR Legacy 172806 (Bread, crumbs, dry, grated, seasoned); 1 cup = 120 g"
+  },
+  {
+   "name": "honey",
+   "pluralName": "honey",
+   "category": "Sweeteners",
+   "aliases": [],
+   "fdcId": 169640,
+   "densityGPerMl": 1.4329,
+   "sourceNote": "USDA FoodData Central SR Legacy 169640 (Honey); 1 cup = 339 g"
+  },
+  {
+   "name": "maple syrup",
+   "pluralName": "maple syrup",
+   "category": "Sweeteners",
+   "aliases": [
+    "pure maple syrup"
+   ],
+   "fdcId": 169661,
+   "densityGPerMl": 1.3314,
+   "sourceNote": "USDA FoodData Central SR Legacy 169661 (Syrups, maple); 1 cup = 315 g"
+  },
+  {
+   "name": "light corn syrup",
+   "pluralName": "light corn syrup",
+   "category": "Sweeteners",
+   "aliases": [
+    "corn syrup"
+   ],
+   "fdcId": 168837,
+   "densityGPerMl": 1.4413,
+   "sourceNote": "USDA FoodData Central SR Legacy 168837 (Syrups, corn, light); 1 cup = 341 g"
+  },
+  {
+   "name": "molasses",
+   "pluralName": "molasses",
+   "category": "Sweeteners",
+   "aliases": [],
+   "fdcId": 168820,
+   "densityGPerMl": 1.4244,
+   "sourceNote": "USDA FoodData Central SR Legacy 168820 (Molasses); 1 cup = 337 g"
+  },
+  {
+   "name": "egg",
+   "pluralName": "eggs",
+   "category": "Dairy",
+   "aliases": [
+    "extra large egg",
+    "extra-large egg",
+    "jumbo egg",
+    "large egg",
+    "medium egg",
+    "whole egg"
+   ],
+   "fdcId": 171287,
+   "densityGPerMl": 1.0271,
+   "sourceNote": "USDA FoodData Central SR Legacy 171287 (Egg, whole, raw, fresh); 1 cup (4.86 large eggs) = 243 g"
+  },
+  {
+   "name": "butter",
+   "pluralName": "butter",
+   "category": "Dairy",
+   "aliases": [
+    "salted butter",
+    "sweet cream butter",
+    "unsalted butter"
+   ],
+   "fdcId": 173430,
+   "densityGPerMl": 0.9595,
+   "sourceNote": "USDA FoodData Central SR Legacy 173430 (Butter, without salt); 1 cup = 227 g"
+  },
+  {
+   "name": "whole milk",
+   "pluralName": "whole milk",
+   "category": "Dairy",
+   "aliases": [
+    "milk"
+   ],
+   "fdcId": 171265,
+   "densityGPerMl": 1.0313,
+   "sourceNote": "USDA FoodData Central SR Legacy 171265 (Milk, whole, 3.25% milkfat, with added vitamin D); 1 cup = 244 g"
+  },
+  {
+   "name": "2% milk",
+   "pluralName": "2% milk",
+   "category": "Dairy",
+   "aliases": [
+    "2 percent milk",
+    "low-fat milk",
+    "reduced-fat milk"
+   ],
+   "fdcId": 171267,
+   "densityGPerMl": 1.0313,
+   "sourceNote": "USDA FoodData Central SR Legacy 171267 (Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D); 1 cup = 244 g"
+  },
+  {
+   "name": "skim milk",
+   "pluralName": "skim milk",
+   "category": "Dairy",
+   "aliases": [
+    "fat-free milk",
+    "nonfat milk"
+   ],
+   "fdcId": 171269,
+   "densityGPerMl": 1.0356,
+   "sourceNote": "USDA FoodData Central SR Legacy 171269 (Milk, nonfat, fluid, with added vitamin A and vitamin D (fat free or skim)); 1 cup = 245 g"
+  },
+  {
+   "name": "buttermilk",
+   "pluralName": "buttermilk",
+   "category": "Dairy",
+   "aliases": [],
+   "fdcId": 170874,
+   "densityGPerMl": 1.0356,
+   "sourceNote": "USDA FoodData Central SR Legacy 170874 (Milk, buttermilk, fluid, cultured, lowfat); 1 cup = 245 g"
+  },
+  {
+   "name": "heavy cream",
+   "pluralName": "heavy cream",
+   "category": "Dairy",
+   "aliases": [
+    "double cream",
+    "heavy whipping cream",
+    "whipping cream"
+   ],
+   "fdcId": 170859,
+   "densityGPerMl": 1.006,
+   "sourceNote": "USDA FoodData Central SR Legacy 170859 (Cream, fluid, heavy whipping); 1 cup, fluid (yields 2 cups whipped) = 238 g"
+  },
+  {
+   "name": "half-and-half",
+   "pluralName": "half-and-half",
+   "category": "Dairy",
+   "aliases": [
+    "half and half"
+   ],
+   "fdcId": 171255,
+   "densityGPerMl": 1.0229,
+   "sourceNote": "USDA FoodData Central SR Legacy 171255 (Cream, fluid, half and half); 1 cup = 242 g"
+  },
+  {
+   "name": "sour cream",
+   "pluralName": "sour cream",
+   "category": "Dairy",
+   "aliases": [],
+   "fdcId": 171257,
+   "densityGPerMl": 0.9722,
+   "sourceNote": "USDA FoodData Central SR Legacy 171257 (Cream, sour, cultured); 1 cup = 230 g"
+  },
+  {
+   "name": "plain yogurt",
+   "pluralName": "plain yogurt",
+   "category": "Dairy",
+   "aliases": [
+    "greek yogurt",
+    "plain greek yogurt",
+    "yogurt"
+   ],
+   "fdcId": 171284,
+   "densityGPerMl": 1.0356,
+   "sourceNote": "USDA FoodData Central SR Legacy 171284 (Yogurt, plain, whole milk); 1 cup (8 fl oz) = 245 g"
+  },
+  {
+   "name": "cream cheese",
+   "pluralName": "cream cheese",
+   "category": "Dairy",
+   "aliases": [],
+   "fdcId": 173418,
+   "densityGPerMl": 0.9806,
+   "sourceNote": "USDA FoodData Central SR Legacy 173418 (Cheese, cream); 1 tbsp = 14.5 g"
+  },
+  {
+   "name": "cheddar cheese",
+   "pluralName": "cheddar cheese",
+   "category": "Dairy",
+   "aliases": [
+    "cheddar",
+    "sharp cheddar",
+    "sharp cheddar cheese",
+    "shredded cheddar",
+    "shredded cheddar cheese"
+   ],
+   "fdcId": 173414,
+   "densityGPerMl": 0.4776,
+   "sourceNote": "USDA FoodData Central SR Legacy 173414 (Cheese, cheddar (Includes foods for USDA's Food Distribution Program)); 1 cup, shredded = 113 g"
+  },
+  {
+   "name": "mozzarella cheese",
+   "pluralName": "mozzarella cheese",
+   "category": "Dairy",
+   "aliases": [
+    "mozzarella",
+    "shredded mozzarella",
+    "shredded mozzarella cheese"
+   ],
+   "fdcId": 170845,
+   "densityGPerMl": 0.4734,
+   "sourceNote": "USDA FoodData Central SR Legacy 170845 (Cheese, mozzarella, whole milk); 1 cup, shredded = 112 g"
+  },
+  {
+   "name": "parmesan cheese",
+   "pluralName": "parmesan cheese",
+   "category": "Dairy",
+   "aliases": [
+    "grated parmesan",
+    "grated parmesan cheese",
+    "parmesan",
+    "parmigiano-reggiano"
+   ],
+   "fdcId": 171247,
+   "densityGPerMl": 0.4227,
+   "sourceNote": "USDA FoodData Central SR Legacy 171247 (Cheese, parmesan, grated); 1 cup = 100 g"
+  },
+  {
+   "name": "monterey jack cheese",
+   "pluralName": "monterey jack cheese",
+   "category": "Dairy",
+   "aliases": [
+    "monterey jack",
+    "pepper jack",
+    "pepper jack cheese"
+   ],
+   "fdcId": 170844,
+   "densityGPerMl": 0.4776,
+   "sourceNote": "USDA FoodData Central SR Legacy 170844 (Cheese, monterey); 1 cup, shredded = 113 g"
+  },
+  {
+   "name": "swiss cheese",
+   "pluralName": "swiss cheese",
+   "category": "Dairy",
+   "aliases": [],
+   "fdcId": 171251,
+   "densityGPerMl": 0.4565,
+   "sourceNote": "USDA FoodData Central SR Legacy 171251 (Cheese, swiss); 1 cup, shredded = 108 g"
+  },
+  {
+   "name": "feta cheese",
+   "pluralName": "feta cheese",
+   "category": "Dairy",
+   "aliases": [
+    "crumbled feta",
+    "feta"
+   ],
+   "fdcId": 173420,
+   "densityGPerMl": 0.634,
+   "sourceNote": "USDA FoodData Central SR Legacy 173420 (Cheese, feta); 1 cup, crumbled = 150 g"
+  },
+  {
+   "name": "ricotta cheese",
+   "pluralName": "ricotta cheese",
+   "category": "Dairy",
+   "aliases": [
+    "ricotta"
+   ],
+   "fdcId": 170851,
+   "densityGPerMl": 1.0482,
+   "sourceNote": "USDA FoodData Central SR Legacy 170851 (Cheese, ricotta, whole milk); 0.5 cup = 124 g"
+  },
+  {
+   "name": "cottage cheese",
+   "pluralName": "cottage cheese",
+   "category": "Dairy",
+   "aliases": [],
+   "fdcId": 172179,
+   "densityGPerMl": 0.8876,
+   "sourceNote": "USDA FoodData Central SR Legacy 172179 (Cheese, cottage, creamed, large or small curd); 1 cup, large curd (not packed) = 210 g"
+  },
+  {
+   "name": "olive oil",
+   "pluralName": "olive oil",
+   "category": "Oils",
+   "aliases": [
+    "evoo",
+    "extra virgin olive oil",
+    "extra-virgin olive oil",
+    "light olive oil"
+   ],
+   "fdcId": 171413,
+   "densityGPerMl": 0.913,
+   "sourceNote": "USDA FoodData Central SR Legacy 171413 (Oil, olive, salad or cooking); 1 cup = 216 g"
+  },
+  {
+   "name": "vegetable oil",
+   "pluralName": "vegetable oil",
+   "category": "Oils",
+   "aliases": [
+    "cooking oil",
+    "neutral oil",
+    "soybean oil"
+   ],
+   "fdcId": 172370,
+   "densityGPerMl": 0.9214,
+   "sourceNote": "USDA FoodData Central SR Legacy 172370 (Oil, vegetable, soybean, refined); 1 cup = 218 g"
+  },
+  {
+   "name": "canola oil",
+   "pluralName": "canola oil",
+   "category": "Oils",
+   "aliases": [],
+   "fdcId": 172336,
+   "densityGPerMl": 0.9214,
+   "sourceNote": "USDA FoodData Central SR Legacy 172336 (Oil, canola); 1 cup = 218 g"
+  },
+  {
+   "name": "coconut oil",
+   "pluralName": "coconut oil",
+   "category": "Oils",
+   "aliases": [],
+   "fdcId": 171412,
+   "densityGPerMl": 0.9214,
+   "sourceNote": "USDA FoodData Central SR Legacy 171412 (Oil, coconut); 1 cup = 218 g"
+  },
+  {
+   "name": "sesame oil",
+   "pluralName": "sesame oil",
+   "category": "Oils",
+   "aliases": [
+    "toasted sesame oil"
+   ],
+   "fdcId": 171016,
+   "densityGPerMl": 0.9214,
+   "sourceNote": "USDA FoodData Central SR Legacy 171016 (Oil, sesame, salad or cooking); 1 cup = 218 g"
+  },
+  {
+   "name": "shortening",
+   "pluralName": "shortening",
+   "category": "Oils",
+   "aliases": [
+    "vegetable shortening"
+   ],
+   "fdcId": 171011,
+   "densityGPerMl": 0.8665,
+   "sourceNote": "USDA FoodData Central SR Legacy 171011 (Shortening, household, soybean (partially hydrogenated)-cottonseed (partially hydrogenated)); 1 cup = 205 g"
+  },
+  {
+   "name": "mayonnaise",
+   "pluralName": "mayonnaise",
+   "category": "Condiments",
+   "aliases": [
+    "mayo"
+   ],
+   "fdcId": 171009,
+   "densityGPerMl": 0.9299,
+   "sourceNote": "USDA FoodData Central SR Legacy 171009 (Salad dressing, mayonnaise, regular); 1 cup = 220 g"
+  },
+  {
+   "name": "long-grain white rice",
+   "pluralName": "long-grain white rice",
+   "category": "Grains",
+   "aliases": [
+    "basmati rice",
+    "jasmine rice",
+    "long grain rice",
+    "long-grain rice",
+    "rice",
+    "uncooked rice",
+    "white rice"
+   ],
+   "fdcId": 168877,
+   "densityGPerMl": 0.7819,
+   "sourceNote": "USDA FoodData Central SR Legacy 168877 (Rice, white, long-grain, regular, raw, enriched); 1 cup = 185 g"
+  },
+  {
+   "name": "brown rice",
+   "pluralName": "brown rice",
+   "category": "Grains",
+   "aliases": [],
+   "fdcId": 169703,
+   "densityGPerMl": 0.7819,
+   "sourceNote": "USDA FoodData Central SR Legacy 169703 (Rice, brown, long-grain, raw (Includes foods for USDA's Food Distribution Program)); 1 cup = 185 g"
+  },
+  {
+   "name": "cooked white rice",
+   "pluralName": "cooked white rice",
+   "category": "Grains",
+   "aliases": [],
+   "fdcId": 168878,
+   "densityGPerMl": 0.6678,
+   "sourceNote": "USDA FoodData Central SR Legacy 168878 (Rice, white, long-grain, regular, enriched, cooked); 1 cup = 158 g"
+  },
+  {
+   "name": "quinoa",
+   "pluralName": "quinoa",
+   "category": "Grains",
+   "aliases": [],
+   "fdcId": 168874,
+   "densityGPerMl": 0.7185,
+   "sourceNote": "USDA FoodData Central SR Legacy 168874 (Quinoa, uncooked); 1 cup = 170 g"
+  },
+  {
+   "name": "spaghetti",
+   "pluralName": "spaghetti",
+   "category": "Grains",
+   "aliases": [
+    "dry pasta",
+    "egg noodles",
+    "elbow macaroni",
+    "fettuccine",
+    "linguine",
+    "macaroni",
+    "pasta",
+    "penne",
+    "rotini"
+   ],
+   "fdcId": 169736,
+   "densityGPerMl": null,
+   "sourceNote": "USDA FoodData Central SR Legacy 169736 (Pasta, dry, enriched)"
+  },
+  {
+   "name": "couscous",
+   "pluralName": "couscous",
+   "category": "Grains",
+   "aliases": [],
+   "fdcId": 169699,
+   "densityGPerMl": 0.7312,
+   "sourceNote": "USDA FoodData Central SR Legacy 169699 (Couscous, dry); 1 cup = 173 g"
+  },
+  {
+   "name": "flour tortilla",
+   "pluralName": "flour tortillas",
+   "category": "Grains",
+   "aliases": [
+    "tortilla",
+    "tortillas"
+   ],
+   "fdcId": 167535,
+   "densityGPerMl": null,
+   "sourceNote": "USDA FoodData Central SR Legacy 167535 (Tortillas, ready-to-bake or -fry, flour, shelf stable)"
+  },
+  {
+   "name": "corn tortilla",
+   "pluralName": "corn tortillas",
+   "category": "Grains",
+   "aliases": [],
+   "fdcId": 175036,
+   "densityGPerMl": null,
+   "sourceNote": "USDA FoodData Central SR Legacy 175036 (Tortillas, ready-to-bake or -fry, corn)"
+  },
+  {
+   "name": "black beans",
+   "pluralName": "black beans",
+   "category": "Canned",
+   "aliases": [
+    "canned black beans"
+   ],
+   "fdcId": 175238,
+   "densityGPerMl": 1.0144,
+   "sourceNote": "USDA FoodData Central SR Legacy 175238 (Beans, black, mature seeds, canned, low sodium); 1 cup = 240 g"
+  },
+  {
+   "name": "kidney beans",
+   "pluralName": "kidney beans",
+   "category": "Canned",
+   "aliases": [
+    "canned kidney beans",
+    "red kidney beans"
+   ],
+   "fdcId": 175243,
+   "densityGPerMl": 0.6678,
+   "sourceNote": "USDA FoodData Central SR Legacy 175243 (Beans, kidney, red, mature seeds, canned, drained solids, rinsed in tap water); 1 cup cup rinsed solids = 158 g"
+  },
+  {
+   "name": "pinto beans",
+   "pluralName": "pinto beans",
+   "category": "Canned",
+   "aliases": [],
+   "fdcId": 173797,
+   "densityGPerMl": 0.7143,
+   "sourceNote": "USDA FoodData Central SR Legacy 173797 (Beans, pinto, mature seeds, canned, drained solids, rinsed in tap water); 1 cup = 169 g"
+  },
+  {
+   "name": "chickpeas",
+   "pluralName": "chickpeas",
+   "category": "Canned",
+   "aliases": [
+    "garbanzo beans",
+    "garbanzos"
+   ],
+   "fdcId": 173801,
+   "densityGPerMl": 0.6425,
+   "sourceNote": "USDA FoodData Central SR Legacy 173801 (Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained, rinsed in tap water); 1 cup drained, rinsed = 152 g"
+  },
+  {
+   "name": "dried lentils",
+   "pluralName": "dried lentils",
+   "category": "Grains",
+   "aliases": [
+    "brown lentils",
+    "green lentils",
+    "lentils",
+    "red lentils"
+   ],
+   "fdcId": 172420,
+   "densityGPerMl": 0.8115,
+   "sourceNote": "USDA FoodData Central SR Legacy 172420 (Lentils, raw); 1 cup = 192 g"
+  },
+  {
+   "name": "diced tomatoes",
+   "pluralName": "diced tomatoes",
+   "category": "Canned",
+   "aliases": [
+    "canned diced tomatoes",
+    "canned tomatoes",
+    "crushed tomatoes",
+    "petite diced tomatoes"
+   ],
+   "fdcId": 170051,
+   "densityGPerMl": 1.0144,
+   "sourceNote": "USDA FoodData Central SR Legacy 170051 (Tomatoes, red, ripe, canned, packed in tomato juice); 1 cup = 240 g"
+  },
+  {
+   "name": "tomato sauce",
+   "pluralName": "tomato sauce",
+   "category": "Canned",
+   "aliases": [],
+   "fdcId": 170054,
+   "densityGPerMl": 1.0356,
+   "sourceNote": "USDA FoodData Central SR Legacy 170054 (Tomato products, canned, sauce); 1 cup = 245 g"
+  },
+  {
+   "name": "tomato paste",
+   "pluralName": "tomato paste",
+   "category": "Canned",
+   "aliases": [],
+   "fdcId": 170459,
+   "densityGPerMl": 1.082,
+   "sourceNote": "USDA FoodData Central SR Legacy 170459 (Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)); 1 tbsp = 16 g"
+  },
+  {
+   "name": "chicken broth",
+   "pluralName": "chicken broth",
+   "category": "Canned",
+   "aliases": [
+    "chicken bone broth",
+    "chicken stock",
+    "low-sodium chicken broth"
+   ],
+   "fdcId": 174536,
+   "densityGPerMl": 1.0525,
+   "sourceNote": "USDA FoodData Central SR Legacy 174536 (Soup, chicken broth, ready-to-serve); 1 cup = 249 g"
+  },
+  {
+   "name": "beef broth",
+   "pluralName": "beef broth",
+   "category": "Canned",
+   "aliases": [
+    "beef stock"
+   ],
+   "fdcId": 171538,
+   "densityGPerMl": 1.0144,
+   "sourceNote": "USDA FoodData Central SR Legacy 171538 (Soup, beef broth or bouillon canned, ready-to-serve); 1 cup = 240 g"
+  },
+  {
+   "name": "vegetable broth",
+   "pluralName": "vegetable broth",
+   "category": "Canned",
+   "aliases": [
+    "vegetable stock"
+   ],
+   "fdcId": 171583,
+   "densityGPerMl": 0.9341,
+   "sourceNote": "USDA FoodData Central SR Legacy 171583 (Soup, vegetable broth, ready to serve); 1 cup = 221 g"
+  },
+  {
+   "name": "coconut milk",
+   "pluralName": "coconut milk",
+   "category": "Canned",
+   "aliases": [
+    "canned coconut milk",
+    "full-fat coconut milk"
+   ],
+   "fdcId": 170173,
+   "densityGPerMl": 0.9552,
+   "sourceNote": "USDA FoodData Central SR Legacy 170173 (Nuts, coconut milk, canned (liquid expressed from grated meat and water)); 1 cup = 226 g"
+  },
+  {
+   "name": "peanut butter",
+   "pluralName": "peanut butter",
+   "category": "Condiments",
+   "aliases": [
+    "chunky peanut butter",
+    "creamy peanut butter",
+    "smooth peanut butter"
+   ],
+   "fdcId": 172470,
+   "densityGPerMl": 1.082,
+   "sourceNote": "USDA FoodData Central SR Legacy 172470 (Peanut butter, smooth style, without salt); 2 tbsp = 32 g"
+  },
+  {
+   "name": "soy sauce",
+   "pluralName": "soy sauce",
+   "category": "Condiments",
+   "aliases": [
+    "low-sodium soy sauce",
+    "shoyu",
+    "tamari"
+   ],
+   "fdcId": 174277,
+   "densityGPerMl": 1.082,
+   "sourceNote": "USDA FoodData Central SR Legacy 174277 (Soy sauce made from soy and wheat (shoyu)); 1 tbsp = 16 g"
+  },
+  {
+   "name": "worcestershire sauce",
+   "pluralName": "worcestershire sauce",
+   "category": "Condiments",
+   "aliases": [
+    "worcestershire"
+   ],
+   "fdcId": 171610,
+   "densityGPerMl": 1.1497,
+   "sourceNote": "USDA FoodData Central SR Legacy 171610 (Sauce, worcestershire); 1 tbsp = 17 g"
+  },
+  {
+   "name": "ketchup",
+   "pluralName": "ketchup",
+   "category": "Condiments",
+   "aliases": [
+    "catsup"
+   ],
+   "fdcId": 168556,
+   "densityGPerMl": 1.0144,
+   "sourceNote": "USDA FoodData Central SR Legacy 168556 (Catsup); 1 cup = 240 g"
+  },
+  {
+   "name": "dijon mustard",
+   "pluralName": "dijon mustard",
+   "category": "Condiments",
+   "aliases": [
+    "mustard",
+    "prepared mustard",
+    "whole grain mustard",
+    "yellow mustard"
+   ],
+   "fdcId": 172234,
+   "densityGPerMl": 1.0144,
+   "sourceNote": "USDA FoodData Central SR Legacy 172234 (Mustard, prepared, yellow); 1 tsp or 1 packet = 5 g"
+  },
+  {
+   "name": "apple cider vinegar",
+   "pluralName": "apple cider vinegar",
+   "category": "Condiments",
+   "aliases": [
+    "cider vinegar"
+   ],
+   "fdcId": 173469,
+   "densityGPerMl": 1.0077,
+   "sourceNote": "USDA FoodData Central SR Legacy 173469 (Vinegar, cider); 1 tbsp = 14.9 g"
+  },
+  {
+   "name": "white vinegar",
+   "pluralName": "white vinegar",
+   "category": "Condiments",
+   "aliases": [
+    "distilled white vinegar",
+    "vinegar"
+   ],
+   "fdcId": 172237,
+   "densityGPerMl": 1.0077,
+   "sourceNote": "USDA FoodData Central SR Legacy 172237 (Vinegar, distilled); 1 tbsp = 14.9 g"
+  },
+  {
+   "name": "red wine vinegar",
+   "pluralName": "red wine vinegar",
+   "category": "Condiments",
+   "aliases": [],
+   "fdcId": 172240,
+   "densityGPerMl": 1.0077,
+   "sourceNote": "USDA FoodData Central SR Legacy 172240 (Vinegar, red wine); 1 tbsp = 14.9 g"
+  },
+  {
+   "name": "balsamic vinegar",
+   "pluralName": "balsamic vinegar",
+   "category": "Condiments",
+   "aliases": [],
+   "fdcId": 172241,
+   "densityGPerMl": 1.082,
+   "sourceNote": "USDA FoodData Central SR Legacy 172241 (Vinegar, balsamic); 1 tbsp = 16 g"
+  },
+  {
+   "name": "salsa",
+   "pluralName": "salsa",
+   "category": "Condiments",
+   "aliases": [],
+   "fdcId": 174524,
+   "densityGPerMl": 1.2173,
+   "sourceNote": "USDA FoodData Central SR Legacy 174524 (Sauce, salsa, ready-to-serve); 2 tbsp = 36 g"
+  },
+  {
+   "name": "barbecue sauce",
+   "pluralName": "barbecue sauce",
+   "category": "Condiments",
+   "aliases": [
+    "bbq sauce"
+   ],
+   "fdcId": 174523,
+   "densityGPerMl": 1.1497,
+   "sourceNote": "USDA FoodData Central SR Legacy 174523 (Sauce, barbecue); 1 tbsp = 17 g"
+  },
+  {
+   "name": "hot sauce",
+   "pluralName": "hot sauce",
+   "category": "Condiments",
+   "aliases": [
+    "hot pepper sauce",
+    "sriracha"
+   ],
+   "fdcId": 171186,
+   "densityGPerMl": 1.3187,
+   "sourceNote": "USDA FoodData Central SR Legacy 171186 (Sauce, hot chile, sriracha); 1 tsp = 6.5 g"
+  },
+  {
+   "name": "salt",
+   "pluralName": "salt",
+   "category": "Spices",
+   "aliases": [
+    "fine salt",
+    "fine sea salt",
+    "iodized salt",
+    "sea salt",
+    "table salt"
+   ],
+   "fdcId": 173468,
+   "densityGPerMl": 1.2173,
+   "sourceNote": "USDA FoodData Central SR Legacy 173468 (Salt, table); 1 tsp = 6 g"
+  },
+  {
+   "name": "black pepper",
+   "pluralName": "black pepper",
+   "category": "Spices",
+   "aliases": [
+    "cracked black pepper",
+    "ground black pepper",
+    "ground pepper",
+    "pepper"
+   ],
+   "fdcId": 170931,
+   "densityGPerMl": 0.4666,
+   "sourceNote": "USDA FoodData Central SR Legacy 170931 (Spices, pepper, black); 1 tsp, ground = 2.3 g"
+  },
+  {
+   "name": "ground cinnamon",
+   "pluralName": "ground cinnamon",
+   "category": "Spices",
+   "aliases": [
+    "cinnamon"
+   ],
+   "fdcId": 171320,
+   "densityGPerMl": 0.5275,
+   "sourceNote": "USDA FoodData Central SR Legacy 171320 (Spices, cinnamon, ground); 1 tsp = 2.6 g"
+  },
+  {
+   "name": "ground cumin",
+   "pluralName": "ground cumin",
+   "category": "Spices",
+   "aliases": [
+    "cumin"
+   ],
+   "fdcId": 170923,
+   "densityGPerMl": 0.4261,
+   "sourceNote": "USDA FoodData Central SR Legacy 170923 (Spices, cumin seed); 1 tsp, whole = 2.1 g"
+  },
+  {
+   "name": "paprika",
+   "pluralName": "paprika",
+   "category": "Spices",
+   "aliases": [
+    "smoked paprika",
+    "sweet paprika"
+   ],
+   "fdcId": 171329,
+   "densityGPerMl": 0.4666,
+   "sourceNote": "USDA FoodData Central SR Legacy 171329 (Spices, paprika); 1 tsp = 2.3 g"
+  },
+  {
+   "name": "chili powder",
+   "pluralName": "chili powder",
+   "category": "Spices",
+   "aliases": [],
+   "fdcId": 171319,
+   "densityGPerMl": 0.5478,
+   "sourceNote": "USDA FoodData Central SR Legacy 171319 (Spices, chili powder); 1 tsp = 2.7 g"
+  },
+  {
+   "name": "garlic powder",
+   "pluralName": "garlic powder",
+   "category": "Spices",
+   "aliases": [
+    "granulated garlic"
+   ],
+   "fdcId": 171325,
+   "densityGPerMl": 0.6289,
+   "sourceNote": "USDA FoodData Central SR Legacy 171325 (Spices, garlic powder); 1 tsp = 3.1 g"
+  },
+  {
+   "name": "onion powder",
+   "pluralName": "onion powder",
+   "category": "Spices",
+   "aliases": [],
+   "fdcId": 171327,
+   "densityGPerMl": 0.4869,
+   "sourceNote": "USDA FoodData Central SR Legacy 171327 (Spices, onion powder); 1 tsp = 2.4 g"
+  },
+  {
+   "name": "dried oregano",
+   "pluralName": "dried oregano",
+   "category": "Spices",
+   "aliases": [
+    "oregano"
+   ],
+   "fdcId": 171328,
+   "densityGPerMl": 0.2029,
+   "sourceNote": "USDA FoodData Central SR Legacy 171328 (Spices, oregano, dried); 1 tsp, leaves = 1 g"
+  },
+  {
+   "name": "dried basil",
+   "pluralName": "dried basil",
+   "category": "Spices",
+   "aliases": [],
+   "fdcId": 171317,
+   "densityGPerMl": 0.142,
+   "sourceNote": "USDA FoodData Central SR Legacy 171317 (Spices, basil, dried); 1 tsp, leaves = 0.7 g"
+  },
+  {
+   "name": "dried thyme",
+   "pluralName": "dried thyme",
+   "category": "Spices",
+   "aliases": [
+    "thyme"
+   ],
+   "fdcId": 170938,
+   "densityGPerMl": 0.2029,
+   "sourceNote": "USDA FoodData Central SR Legacy 170938 (Spices, thyme, dried); 1 tsp, leaves = 1 g"
+  },
+  {
+   "name": "dried rosemary",
+   "pluralName": "dried rosemary",
+   "category": "Spices",
+   "aliases": [],
+   "fdcId": 171333,
+   "densityGPerMl": 0.2435,
+   "sourceNote": "USDA FoodData Central SR Legacy 171333 (Spices, rosemary, dried); 1 tsp = 1.2 g"
+  },
+  {
+   "name": "ground ginger",
+   "pluralName": "ground ginger",
+   "category": "Spices",
+   "aliases": [],
+   "fdcId": 170926,
+   "densityGPerMl": 0.3652,
+   "sourceNote": "USDA FoodData Central SR Legacy 170926 (Spices, ginger, ground); 1 tsp = 1.8 g"
+  },
+  {
+   "name": "ground nutmeg",
+   "pluralName": "ground nutmeg",
+   "category": "Spices",
+   "aliases": [
+    "nutmeg"
+   ],
+   "fdcId": 171326,
+   "densityGPerMl": 0.4463,
+   "sourceNote": "USDA FoodData Central SR Legacy 171326 (Spices, nutmeg, ground); 1 tsp = 2.2 g"
+  },
+  {
+   "name": "ground cloves",
+   "pluralName": "ground cloves",
+   "category": "Spices",
+   "aliases": [],
+   "fdcId": 171321,
+   "densityGPerMl": 0.4261,
+   "sourceNote": "USDA FoodData Central SR Legacy 171321 (Spices, cloves, ground); 1 tsp = 2.1 g"
+  },
+  {
+   "name": "cayenne pepper",
+   "pluralName": "cayenne pepper",
+   "category": "Spices",
+   "aliases": [
+    "cayenne",
+    "ground cayenne pepper"
+   ],
+   "fdcId": 170932,
+   "densityGPerMl": 0.3652,
+   "sourceNote": "USDA FoodData Central SR Legacy 170932 (Spices, pepper, red or cayenne); 1 tsp = 1.8 g"
+  },
+  {
+   "name": "red pepper flakes",
+   "pluralName": "red pepper flakes",
+   "category": "Spices",
+   "aliases": [
+    "chili flakes",
+    "crushed red pepper",
+    "crushed red pepper flakes"
+   ],
+   "fdcId": 170932,
+   "densityGPerMl": 0.3652,
+   "sourceNote": "USDA FoodData Central SR Legacy 170932 (Spices, pepper, red or cayenne); 1 tsp = 1.8 g"
+  },
+  {
+   "name": "poultry seasoning",
+   "pluralName": "poultry seasoning",
+   "category": "Spices",
+   "aliases": [],
+   "fdcId": 171331,
+   "densityGPerMl": 0.3043,
+   "sourceNote": "USDA FoodData Central SR Legacy 171331 (Spices, poultry seasoning); 1 tsp = 1.5 g"
+  },
+  {
+   "name": "ground turmeric",
+   "pluralName": "ground turmeric",
+   "category": "Spices",
+   "aliases": [
+    "turmeric"
+   ],
+   "fdcId": 172231,
+   "densityGPerMl": 0.6087,
+   "sourceNote": "USDA FoodData Central SR Legacy 172231 (Spices, turmeric, ground); 1 tsp = 3 g"
+  },
+  {
+   "name": "curry powder",
+   "pluralName": "curry powder",
+   "category": "Spices",
+   "aliases": [],
+   "fdcId": 170924,
+   "densityGPerMl": 0.4058,
+   "sourceNote": "USDA FoodData Central SR Legacy 170924 (Spices, curry powder); 1 tsp = 2 g"
+  },
+  {
+   "name": "dried parsley",
+   "pluralName": "dried parsley",
+   "category": "Spices",
+   "aliases": [
+    "parsley flakes"
+   ],
+   "fdcId": 170930,
+   "densityGPerMl": 0.1014,
+   "sourceNote": "USDA FoodData Central SR Legacy 170930 (Spices, parsley, dried); 1 tsp = 0.5 g"
+  },
+  {
+   "name": "bay leaf",
+   "pluralName": "bay leaves",
+   "category": "Spices",
+   "aliases": [],
+   "fdcId": 170917,
+   "densityGPerMl": null,
+   "sourceNote": "USDA FoodData Central SR Legacy 170917 (Spices, bay leaf)"
+  },
+  {
+   "name": "sesame seeds",
+   "pluralName": "sesame seeds",
+   "category": "Nuts",
+   "aliases": [],
+   "fdcId": 170150,
+   "densityGPerMl": 0.6087,
+   "sourceNote": "USDA FoodData Central SR Legacy 170150 (Seeds, sesame seeds, whole, dried); 1 cup = 144 g"
+  },
+  {
+   "name": "walnuts",
+   "pluralName": "walnuts",
+   "category": "Nuts",
+   "aliases": [
+    "chopped walnuts",
+    "walnut halves"
+   ],
+   "fdcId": 170187,
+   "densityGPerMl": 0.4945,
+   "sourceNote": "USDA FoodData Central SR Legacy 170187 (Nuts, walnuts, english); 1 cup, chopped = 117 g"
+  },
+  {
+   "name": "pecans",
+   "pluralName": "pecans",
+   "category": "Nuts",
+   "aliases": [
+    "chopped pecans",
+    "pecan halves"
+   ],
+   "fdcId": 170182,
+   "densityGPerMl": 0.4607,
+   "sourceNote": "USDA FoodData Central SR Legacy 170182 (Nuts, pecans); 1 cup, chopped = 109 g"
+  },
+  {
+   "name": "almonds",
+   "pluralName": "almonds",
+   "category": "Nuts",
+   "aliases": [
+    "whole almonds"
+   ],
+   "fdcId": 170567,
+   "densityGPerMl": 0.6044,
+   "sourceNote": "USDA FoodData Central SR Legacy 170567 (Nuts, almonds); 1 cup, whole = 143 g"
+  },
+  {
+   "name": "sliced almonds",
+   "pluralName": "sliced almonds",
+   "category": "Nuts",
+   "aliases": [
+    "slivered almonds"
+   ],
+   "fdcId": 170567,
+   "densityGPerMl": 0.3889,
+   "sourceNote": "USDA FoodData Central SR Legacy 170567 (Nuts, almonds); 1 cup, sliced = 92 g"
+  },
+  {
+   "name": "peanuts",
+   "pluralName": "peanuts",
+   "category": "Nuts",
+   "aliases": [
+    "dry-roasted peanuts",
+    "roasted peanuts"
+   ],
+   "fdcId": 173806,
+   "densityGPerMl": 0.6171,
+   "sourceNote": "USDA FoodData Central SR Legacy 173806 (Peanuts, all types, dry-roasted, without salt); 1 cup = 146 g"
+  },
+  {
+   "name": "raisins",
+   "pluralName": "raisins",
+   "category": "Nuts",
+   "aliases": [
+    "golden raisins"
+   ],
+   "fdcId": 168165,
+   "densityGPerMl": 0.6129,
+   "sourceNote": "USDA FoodData Central SR Legacy 168165 (Raisins, dark, seedless (Includes foods for USDA's Food Distribution Program)); 1 cup (not packed) = 145 g"
+  },
+  {
+   "name": "dried cranberries",
+   "pluralName": "dried cranberries",
+   "category": "Nuts",
+   "aliases": [
+    "craisins"
+   ],
+   "fdcId": 171723,
+   "densityGPerMl": 0.6763,
+   "sourceNote": "USDA FoodData Central SR Legacy 171723 (Cranberries, dried, sweetened (Includes foods for USDA's Food Distribution Program)); 0.25 cup = 40 g"
+  },
+  {
+   "name": "onion",
+   "pluralName": "onions",
+   "category": "Produce",
+   "aliases": [
+    "large onion",
+    "medium onion",
+    "red onion",
+    "small onion",
+    "sweet onion",
+    "white onion",
+    "yellow onion"
+   ],
+   "fdcId": 170000,
+   "densityGPerMl": 0.6763,
+   "sourceNote": "USDA FoodData Central SR Legacy 170000 (Onions, raw); 1 cup, chopped = 160 g"
+  },
+  {
+   "name": "green onion",
+   "pluralName": "green onions",
+   "category": "Produce",
+   "aliases": [
+    "scallion",
+    "scallions",
+    "spring onion",
+    "spring onions"
+   ],
+   "fdcId": 170005,
+   "densityGPerMl": 0.4227,
+   "sourceNote": "USDA FoodData Central SR Legacy 170005 (Onions, spring or scallions (includes tops and bulb), raw); 1 cup, chopped = 100 g"
+  },
+  {
+   "name": "garlic",
+   "pluralName": "garlic",
+   "category": "Produce",
+   "aliases": [
+    "fresh garlic",
+    "garlic clove",
+    "minced garlic"
+   ],
+   "fdcId": 169230,
+   "densityGPerMl": 0.5748,
+   "sourceNote": "USDA FoodData Central SR Legacy 169230 (Garlic, raw); 1 cup = 136 g"
+  },
+  {
+   "name": "shallot",
+   "pluralName": "shallots",
+   "category": "Produce",
+   "aliases": [],
+   "fdcId": 170499,
+   "densityGPerMl": 0.6763,
+   "sourceNote": "USDA FoodData Central SR Legacy 170499 (Shallots, raw); 1 tbsp chopped = 10 g"
+  },
+  {
+   "name": "carrot",
+   "pluralName": "carrots",
+   "category": "Produce",
+   "aliases": [
+    "large carrot",
+    "medium carrot"
+   ],
+   "fdcId": 170393,
+   "densityGPerMl": 0.541,
+   "sourceNote": "USDA FoodData Central SR Legacy 170393 (Carrots, raw); 1 cup chopped = 128 g"
+  },
+  {
+   "name": "celery",
+   "pluralName": "celery",
+   "category": "Produce",
+   "aliases": [
+    "celery rib",
+    "celery ribs",
+    "celery stalk",
+    "celery stalks"
+   ],
+   "fdcId": 169988,
+   "densityGPerMl": 0.4269,
+   "sourceNote": "USDA FoodData Central SR Legacy 169988 (Celery, raw); 1 cup chopped = 101 g"
+  },
+  {
+   "name": "bell pepper",
+   "pluralName": "bell peppers",
+   "category": "Produce",
+   "aliases": [
+    "green bell pepper",
+    "red bell pepper",
+    "sweet pepper",
+    "yellow bell pepper"
+   ],
+   "fdcId": 170427,
+   "densityGPerMl": 0.6298,
+   "sourceNote": "USDA FoodData Central SR Legacy 170427 (Peppers, sweet, green, raw); 1 cup, chopped = 149 g"
+  },
+  {
+   "name": "jalapeno",
+   "pluralName": "jalapenos",
+   "category": "Produce",
+   "aliases": [
+    "jalapeno pepper",
+    "jalapeño",
+    "jalapeño pepper"
+   ],
+   "fdcId": 168576,
+   "densityGPerMl": 0.3804,
+   "sourceNote": "USDA FoodData Central SR Legacy 168576 (Peppers, jalapeno, raw); 1 cup, sliced = 90 g"
+  },
+  {
+   "name": "tomato",
+   "pluralName": "tomatoes",
+   "category": "Produce",
+   "aliases": [
+    "fresh tomato",
+    "plum tomato",
+    "roma tomato",
+    "roma tomatoes"
+   ],
+   "fdcId": 170457,
+   "densityGPerMl": 0.7608,
+   "sourceNote": "USDA FoodData Central SR Legacy 170457 (Tomatoes, red, ripe, raw, year round average); 1 cup, chopped or sliced = 180 g"
+  },
+  {
+   "name": "cherry tomatoes",
+   "pluralName": "cherry tomatoes",
+   "category": "Produce",
+   "aliases": [
+    "grape tomatoes"
+   ],
+   "fdcId": 170457,
+   "densityGPerMl": 0.6298,
+   "sourceNote": "USDA FoodData Central SR Legacy 170457 (Tomatoes, red, ripe, raw, year round average); 1 cup cherry tomatoes = 149 g"
+  },
+  {
+   "name": "potato",
+   "pluralName": "potatoes",
+   "category": "Produce",
+   "aliases": [
+    "baking potato",
+    "russet potato",
+    "russet potatoes",
+    "yukon gold potatoes"
+   ],
+   "fdcId": 170026,
+   "densityGPerMl": 0.634,
+   "sourceNote": "USDA FoodData Central SR Legacy 170026 (Potatoes, flesh and skin, raw); 0.5 cup, diced = 75 g"
+  },
+  {
+   "name": "sweet potato",
+   "pluralName": "sweet potatoes",
+   "category": "Produce",
+   "aliases": [
+    "yam"
+   ],
+   "fdcId": 168482,
+   "densityGPerMl": 0.5622,
+   "sourceNote": "USDA FoodData Central SR Legacy 168482 (Sweet potato, raw, unprepared (Includes foods for USDA's Food Distribution Program)); 1 cup, cubes = 133 g"
+  },
+  {
+   "name": "broccoli",
+   "pluralName": "broccoli",
+   "category": "Produce",
+   "aliases": [
+    "broccoli florets"
+   ],
+   "fdcId": 170379,
+   "densityGPerMl": 0.3846,
+   "sourceNote": "USDA FoodData Central SR Legacy 170379 (Broccoli, raw); 1 cup chopped = 91 g"
+  },
+  {
+   "name": "cauliflower",
+   "pluralName": "cauliflower",
+   "category": "Produce",
+   "aliases": [
+    "cauliflower florets"
+   ],
+   "fdcId": 169986,
+   "densityGPerMl": 0.4523,
+   "sourceNote": "USDA FoodData Central SR Legacy 169986 (Cauliflower, raw); 1 cup chopped (1/2\" pieces) = 107 g"
+  },
+  {
+   "name": "spinach",
+   "pluralName": "spinach",
+   "category": "Produce",
+   "aliases": [
+    "baby spinach",
+    "fresh spinach"
+   ],
+   "fdcId": 168462,
+   "densityGPerMl": 0.1268,
+   "sourceNote": "USDA FoodData Central SR Legacy 168462 (Spinach, raw); 1 cup = 30 g"
+  },
+  {
+   "name": "kale",
+   "pluralName": "kale",
+   "category": "Produce",
+   "aliases": [],
+   "fdcId": 168421,
+   "densityGPerMl": 0.0888,
+   "sourceNote": "USDA FoodData Central SR Legacy 168421 (Kale, raw); 1 cup = 21 g"
+  },
+  {
+   "name": "cabbage",
+   "pluralName": "cabbage",
+   "category": "Produce",
+   "aliases": [
+    "green cabbage",
+    "shredded cabbage"
+   ],
+   "fdcId": 169975,
+   "densityGPerMl": 0.2959,
+   "sourceNote": "USDA FoodData Central SR Legacy 169975 (Cabbage, raw); 1 cup, shredded = 70 g"
+  },
+  {
+   "name": "zucchini",
+   "pluralName": "zucchini",
+   "category": "Produce",
+   "aliases": [
+    "courgette"
+   ],
+   "fdcId": 169291,
+   "densityGPerMl": 0.5241,
+   "sourceNote": "USDA FoodData Central SR Legacy 169291 (Squash, summer, zucchini, includes skin, raw); 1 cup, chopped = 124 g"
+  },
+  {
+   "name": "mushrooms",
+   "pluralName": "mushrooms",
+   "category": "Produce",
+   "aliases": [
+    "button mushrooms",
+    "cremini mushrooms",
+    "sliced mushrooms",
+    "white mushrooms"
+   ],
+   "fdcId": 169251,
+   "densityGPerMl": 0.2959,
+   "sourceNote": "USDA FoodData Central SR Legacy 169251 (Mushrooms, white, raw); 1 cup, pieces or slices = 70 g"
+  },
+  {
+   "name": "cucumber",
+   "pluralName": "cucumbers",
+   "category": "Produce",
+   "aliases": [],
+   "fdcId": 168409,
+   "densityGPerMl": 0.4396,
+   "sourceNote": "USDA FoodData Central SR Legacy 168409 (Cucumber, with peel, raw); 0.5 cup slices = 52 g"
+  },
+  {
+   "name": "corn kernels",
+   "pluralName": "corn kernels",
+   "category": "Produce",
+   "aliases": [
+    "corn",
+    "frozen corn",
+    "sweet corn"
+   ],
+   "fdcId": 168398,
+   "densityGPerMl": 0.5748,
+   "sourceNote": "USDA FoodData Central SR Legacy 168398 (Corn, sweet, yellow, frozen, kernels cut off cob, unprepared (Includes foods for USDA's Food Distribution Program)); 1 cup = 136 g"
+  },
+  {
+   "name": "frozen peas",
+   "pluralName": "frozen peas",
+   "category": "Produce",
+   "aliases": [
+    "green peas",
+    "peas"
+   ],
+   "fdcId": 170016,
+   "densityGPerMl": 0.5664,
+   "sourceNote": "USDA FoodData Central SR Legacy 170016 (Peas, green, frozen, unprepared (Includes foods for USDA's Food Distribution Program)); 1 cup = 134 g"
+  },
+  {
+   "name": "green beans",
+   "pluralName": "green beans",
+   "category": "Produce",
+   "aliases": [
+    "string beans"
+   ],
+   "fdcId": 169961,
+   "densityGPerMl": 0.4227,
+   "sourceNote": "USDA FoodData Central SR Legacy 169961 (Beans, snap, green, raw); 1 cup 1/2\" pieces = 100 g"
+  },
+  {
+   "name": "lettuce",
+   "pluralName": "lettuce",
+   "category": "Produce",
+   "aliases": [
+    "iceberg lettuce",
+    "romaine",
+    "romaine lettuce"
+   ],
+   "fdcId": 169247,
+   "densityGPerMl": 0.1987,
+   "sourceNote": "USDA FoodData Central SR Legacy 169247 (Lettuce, cos or romaine, raw); 1 cup shredded = 47 g"
+  },
+  {
+   "name": "avocado",
+   "pluralName": "avocados",
+   "category": "Produce",
+   "aliases": [
+    "ripe avocado"
+   ],
+   "fdcId": 171705,
+   "densityGPerMl": 0.634,
+   "sourceNote": "USDA FoodData Central SR Legacy 171705 (Avocados, raw, all commercial varieties); 1 cup, cubes = 150 g"
+  },
+  {
+   "name": "fresh parsley",
+   "pluralName": "fresh parsley",
+   "category": "Produce",
+   "aliases": [
+    "chopped parsley",
+    "flat-leaf parsley",
+    "italian parsley",
+    "parsley"
+   ],
+   "fdcId": 170416,
+   "densityGPerMl": 0.2536,
+   "sourceNote": "USDA FoodData Central SR Legacy 170416 (Parsley, fresh); 1 cup chopped = 60 g"
+  },
+  {
+   "name": "fresh cilantro",
+   "pluralName": "fresh cilantro",
+   "category": "Produce",
+   "aliases": [
+    "chopped cilantro",
+    "cilantro",
+    "coriander leaves"
+   ],
+   "fdcId": 169997,
+   "densityGPerMl": 0.0676,
+   "sourceNote": "USDA FoodData Central SR Legacy 169997 (Coriander (cilantro) leaves, raw); 0.25 cup = 4 g"
+  },
+  {
+   "name": "fresh basil",
+   "pluralName": "fresh basil",
+   "category": "Produce",
+   "aliases": [
+    "basil",
+    "basil leaves"
+   ],
+   "fdcId": 172232,
+   "densityGPerMl": 0.1792,
+   "sourceNote": "USDA FoodData Central SR Legacy 172232 (Basil, fresh); 2 tbsp, chopped = 5.3 g"
+  },
+  {
+   "name": "fresh ginger",
+   "pluralName": "fresh ginger",
+   "category": "Produce",
+   "aliases": [
+    "ginger",
+    "ginger root",
+    "grated ginger",
+    "minced ginger"
+   ],
+   "fdcId": 169231,
+   "densityGPerMl": 0.4058,
+   "sourceNote": "USDA FoodData Central SR Legacy 169231 (Ginger root, raw); 1 tsp = 2 g"
+  },
+  {
+   "name": "lemon juice",
+   "pluralName": "lemon juice",
+   "category": "Produce",
+   "aliases": [
+    "fresh lemon juice"
+   ],
+   "fdcId": 167747,
+   "densityGPerMl": 1.0313,
+   "sourceNote": "USDA FoodData Central SR Legacy 167747 (Lemon juice, raw); 1 cup = 244 g"
+  },
+  {
+   "name": "lime juice",
+   "pluralName": "lime juice",
+   "category": "Produce",
+   "aliases": [
+    "fresh lime juice"
+   ],
+   "fdcId": 168156,
+   "densityGPerMl": 1.0229,
+   "sourceNote": "USDA FoodData Central SR Legacy 168156 (Lime juice, raw); 1 cup = 242 g"
+  },
+  {
+   "name": "lemon",
+   "pluralName": "lemons",
+   "category": "Produce",
+   "aliases": [],
+   "fdcId": 167746,
+   "densityGPerMl": null,
+   "sourceNote": "USDA FoodData Central SR Legacy 167746 (Lemons, raw, without peel)"
+  },
+  {
+   "name": "lime",
+   "pluralName": "limes",
+   "category": "Produce",
+   "aliases": [],
+   "fdcId": 168155,
+   "densityGPerMl": null,
+   "sourceNote": "USDA FoodData Central SR Legacy 168155 (Limes, raw)"
+  },
+  {
+   "name": "apple",
+   "pluralName": "apples",
+   "category": "Produce",
+   "aliases": [
+    "granny smith apple",
+    "granny smith apples"
+   ],
+   "fdcId": 171688,
+   "densityGPerMl": 0.5283,
+   "sourceNote": "USDA FoodData Central SR Legacy 171688 (Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)); 1 cup, quartered or chopped = 125 g"
+  },
+  {
+   "name": "banana",
+   "pluralName": "bananas",
+   "category": "Produce",
+   "aliases": [
+    "mashed banana",
+    "ripe banana",
+    "ripe bananas"
+   ],
+   "fdcId": 173944,
+   "densityGPerMl": 0.951,
+   "sourceNote": "USDA FoodData Central SR Legacy 173944 (Bananas, raw); 1 cup, mashed = 225 g"
+  },
+  {
+   "name": "blueberries",
+   "pluralName": "blueberries",
+   "category": "Produce",
+   "aliases": [
+    "fresh blueberries"
+   ],
+   "fdcId": 171711,
+   "densityGPerMl": 0.6256,
+   "sourceNote": "USDA FoodData Central SR Legacy 171711 (Blueberries, raw); 1 cup = 148 g"
+  },
+  {
+   "name": "strawberries",
+   "pluralName": "strawberries",
+   "category": "Produce",
+   "aliases": [
+    "fresh strawberries",
+    "sliced strawberries"
+   ],
+   "fdcId": 167762,
+   "densityGPerMl": 0.7016,
+   "sourceNote": "USDA FoodData Central SR Legacy 167762 (Strawberries, raw); 1 cup, sliced = 166 g"
+  },
+  {
+   "name": "pumpkin puree",
+   "pluralName": "pumpkin puree",
+   "category": "Canned",
+   "aliases": [
+    "canned pumpkin",
+    "pumpkin"
+   ],
+   "fdcId": 168450,
+   "densityGPerMl": 1.0356,
+   "sourceNote": "USDA FoodData Central SR Legacy 168450 (Pumpkin, canned, without salt); 1 cup = 245 g"
+  },
+  {
+   "name": "chicken breast",
+   "pluralName": "chicken breasts",
+   "category": "Meat",
+   "aliases": [
+    "boneless chicken breast",
+    "boneless skinless chicken breast",
+    "boneless skinless chicken breasts",
+    "chicken",
+    "chicken breast halves"
+   ],
+   "fdcId": 171077,
+   "densityGPerMl": null,
+   "sourceNote": "USDA FoodData Central SR Legacy 171077 (Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw)"
+  },
+  {
+   "name": "chicken thigh",
+   "pluralName": "chicken thighs",
+   "category": "Meat",
+   "aliases": [
+    "boneless chicken thighs",
+    "boneless skinless chicken thighs"
+   ],
+   "fdcId": 173627,
+   "densityGPerMl": null,
+   "sourceNote": "USDA FoodData Central SR Legacy 173627 (Chicken, broilers or fryers, dark meat, thigh, meat only, raw)"
+  },
+  {
+   "name": "ground beef",
+   "pluralName": "ground beef",
+   "category": "Meat",
+   "aliases": [
+    "beef mince",
+    "hamburger",
+    "lean ground beef",
+    "minced beef"
+   ],
+   "fdcId": 171796,
+   "densityGPerMl": null,
+   "sourceNote": "USDA FoodData Central SR Legacy 171796 (Beef, ground, 85% lean meat / 15% fat, raw (Includes foods for USDA's Food Distribution Program))"
+  },
+  {
+   "name": "ground turkey",
+   "pluralName": "ground turkey",
+   "category": "Meat",
+   "aliases": [],
+   "fdcId": 171505,
+   "densityGPerMl": null,
+   "sourceNote": "USDA FoodData Central SR Legacy 171505 (Turkey, Ground, raw)"
+  },
+  {
+   "name": "ground pork",
+   "pluralName": "ground pork",
+   "category": "Meat",
+   "aliases": [],
+   "fdcId": 167902,
+   "densityGPerMl": null,
+   "sourceNote": "USDA FoodData Central SR Legacy 167902 (Pork, fresh, ground, raw)"
+  },
+  {
+   "name": "pork tenderloin",
+   "pluralName": "pork tenderloins",
+   "category": "Meat",
+   "aliases": [],
+   "fdcId": 168312,
+   "densityGPerMl": null,
+   "sourceNote": "USDA FoodData Central SR Legacy 168312 (Pork, fresh, loin, tenderloin, separable lean and fat, raw)"
+  },
+  {
+   "name": "bacon",
+   "pluralName": "bacon",
+   "category": "Meat",
+   "aliases": [
+    "bacon slices",
+    "bacon strips"
+   ],
+   "fdcId": 168277,
+   "densityGPerMl": null,
+   "sourceNote": "USDA FoodData Central SR Legacy 168277 (Pork, cured, bacon, unprepared)"
+  },
+  {
+   "name": "beef chuck roast",
+   "pluralName": "beef chuck roasts",
+   "category": "Meat",
+   "aliases": [
+    "beef chuck",
+    "beef stew meat",
+    "chuck roast",
+    "stew meat"
+   ],
+   "fdcId": 170813,
+   "densityGPerMl": null,
+   "sourceNote": "USDA FoodData Central SR Legacy 170813 (Beef, chuck, under blade pot roast or steak, boneless, separable lean and fat, trimmed to 0\" fat, all grades, raw)"
+  },
+  {
+   "name": "salmon",
+   "pluralName": "salmon",
+   "category": "Meat",
+   "aliases": [
+    "salmon fillet",
+    "salmon fillets"
+   ],
+   "fdcId": 175167,
+   "densityGPerMl": null,
+   "sourceNote": "USDA FoodData Central SR Legacy 175167 (Fish, salmon, Atlantic, farmed, raw)"
+  },
+  {
+   "name": "shrimp",
+   "pluralName": "shrimp",
+   "category": "Meat",
+   "aliases": [
+    "large shrimp",
+    "raw shrimp"
+   ],
+   "fdcId": 175179,
+   "densityGPerMl": null,
+   "sourceNote": "USDA FoodData Central SR Legacy 175179 (Crustaceans, shrimp, raw)"
+  },
+  {
+   "name": "cooked ham",
+   "pluralName": "cooked ham",
+   "category": "Meat",
+   "aliases": [
+    "diced ham",
+    "ham"
+   ],
+   "fdcId": 173864,
+   "densityGPerMl": null,
+   "sourceNote": "USDA FoodData Central SR Legacy 173864 (Ham, sliced, regular (approximately 11% fat))"
+  },
+  {
+   "name": "water",
+   "pluralName": "water",
+   "category": "Other",
+   "aliases": [
+    "boiling water",
+    "cold water",
+    "hot water",
+    "ice water",
+    "lukewarm water",
+    "warm water"
+   ],
+   "fdcId": 173647,
+   "densityGPerMl": 1.0009,
+   "sourceNote": "USDA FoodData Central SR Legacy 173647 (Beverages, water, tap, drinking); 1 fl oz = 29.6 g"
+  },
+  {
+   "name": "coffee",
+   "pluralName": "coffee",
+   "category": "Other",
+   "aliases": [
+    "brewed coffee",
+    "strong coffee"
+   ],
+   "fdcId": 171890,
+   "densityGPerMl": 1.0009,
+   "sourceNote": "USDA FoodData Central SR Legacy 171890 (Beverages, coffee, brewed, prepared with tap water); 1 fl oz = 29.6 g"
+  },
+  {
+   "name": "orange juice",
+   "pluralName": "orange juice",
+   "category": "Other",
+   "aliases": [],
+   "fdcId": 169098,
+   "densityGPerMl": 1.0482,
+   "sourceNote": "USDA FoodData Central SR Legacy 169098 (Orange juice, raw (Includes foods for USDA's Food Distribution Program)); 1 cup = 248 g"
+  }
+ ],
+ "yields": [
+  {
+   "food": "chicken breast",
+   "fromState": "cooked",
+   "toState": "raw",
+   "ratio": 1.1364,
+   "ratioMax": 1.4286,
+   "preparedDensityGPerMl": 0.5917,
+   "basis": "boneless breast, simmered, about 70–88% cooking yield",
+   "sourceNote": "USDA Table of Cooking Yields for Meat and Poultry R2: Chicken, broiler-fryer, breast, meat and skin; Poached, Simmered or Stewed; prepared density from SR Legacy: 1 cup, chopped or diced = 140 g"
+  },
+  {
+   "food": "chicken thigh",
+   "fromState": "cooked",
+   "toState": "raw",
+   "ratio": 1.2195,
+   "ratioMax": 1.4925,
+   "preparedDensityGPerMl": null,
+   "basis": "boneless thigh, simmered, about 67–82% cooking yield",
+   "sourceNote": "USDA Table of Cooking Yields for Meat and Poultry R2: Chicken, broiler-fryer, thigh, meat and skin; Poached, Simmered or Stewed"
+  },
+  {
+   "food": "ground beef",
+   "fromState": "cooked",
+   "toState": "raw",
+   "ratio": 1.3963,
+   "ratioMax": 1.5699,
+   "preparedDensityGPerMl": null,
+   "basis": "ground beef (12-22% fat), browned crumbles, about 64–72% cooking yield",
+   "sourceNote": "USDA Table of Cooking Yields for Meat and Poultry R2: Beef, ground, medium fat (12%-22%), crumbles; Pan-fried"
+  },
+  {
+   "food": "ground pork",
+   "fromState": "cooked",
+   "toState": "raw",
+   "ratio": 1.3333,
+   "ratioMax": 1.6129,
+   "preparedDensityGPerMl": null,
+   "basis": "ground pork (10-27% fat), browned crumbles, about 62–75% cooking yield",
+   "sourceNote": "USDA Table of Cooking Yields for Meat and Poultry R2: Pork, ground, crumbles, medium fat (10%-27%); Pan-browned"
+  },
+  {
+   "food": "pork tenderloin",
+   "fromState": "cooked",
+   "toState": "raw",
+   "ratio": 1.1905,
+   "ratioMax": 1.3514,
+   "preparedDensityGPerMl": null,
+   "basis": "pork tenderloin, roasted, about 74–84% cooking yield",
+   "sourceNote": "USDA Table of Cooking Yields for Meat and Poultry R2: Pork, fresh, loin, tenderloin, separable lean only; Baked or Roasted, unspecified"
+  },
+  {
+   "food": "beef chuck roast",
+   "fromState": "cooked",
+   "toState": "raw",
+   "ratio": 1.2788,
+   "ratioMax": 1.642,
+   "preparedDensityGPerMl": null,
+   "basis": "chuck pot roast, braised, about 61–78% cooking yield",
+   "sourceNote": "USDA Table of Cooking Yields for Meat and Poultry R2: Beef, chuck, under blade pot roast, boneless, separable lean and fat, trimmed to 0\" fat, all grades; Braised"
+  },
+  {
+   "food": "bacon",
+   "fromState": "cooked",
+   "toState": "raw",
+   "ratio": 3.0703,
+   "ratioMax": 3.2755,
+   "preparedDensityGPerMl": null,
+   "basis": "bacon, oven-cooked, about 31–33% cooking yield",
+   "sourceNote": "USDA Table of Cooking Yields for Meat and Poultry R2: Pork, cured, bacon; Baked or Roasted, unspecified"
+  }
+ ]
+}

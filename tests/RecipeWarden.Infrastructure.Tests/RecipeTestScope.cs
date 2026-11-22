@@ -1,7 +1,10 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using RecipeWarden.Core.Recipes;
 using RecipeWarden.Core.Search;
 using RecipeWarden.Infrastructure.Data;
+using RecipeWarden.Infrastructure.Identity;
+using RecipeWarden.Infrastructure.Measurement;
 using RecipeWarden.Infrastructure.Recipes;
 
 namespace RecipeWarden.Infrastructure.Tests;
@@ -25,6 +28,9 @@ internal sealed class RecipeTestScope : IAsyncDisposable
     public RecipeSearchService Search => scope.ServiceProvider.GetRequiredService<RecipeSearchService>();
     public TagService Tags => scope.ServiceProvider.GetRequiredService<TagService>();
     public CollectionService Collections => scope.ServiceProvider.GetRequiredService<CollectionService>();
+    public FoodCatalogService Foods => scope.ServiceProvider.GetRequiredService<FoodCatalogService>();
+    public RecipeScaler Scaler => scope.ServiceProvider.GetRequiredService<RecipeScaler>();
+    public UserPreferenceStore Preferences => scope.ServiceProvider.GetRequiredService<UserPreferenceStore>();
 
     public static async Task<RecipeTestScope> CreateAsync(TimeProvider? clock = null) =>
         new(await TestDatabase.CreateAsync(clock: clock));
@@ -62,6 +68,15 @@ internal sealed class RecipeTestScope : IAsyncDisposable
             MinRating = minRating,
             Page = page,
         }), RecipeVisibility.Published, TestContext.Current.CancellationToken);
+
+    /// <summary>A user to own profile rows (UserPreference has a foreign key to the user).</summary>
+    public async Task<string> AddUserAsync()
+    {
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+        var user = new AppUser { UserName = $"u{Guid.NewGuid():N}@example.com", Email = $"u{Guid.NewGuid():N}@example.com" };
+        (await users.CreateAsync(user)).Succeeded.ShouldBeTrue();
+        return user.Id;
+    }
 
     public async ValueTask DisposeAsync()
     {

@@ -226,6 +226,114 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.ToTable("CollectionRecipes");
                 });
 
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Food", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("DefaultPurchaseUnitId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("DensityGPerMl")
+                        .HasColumnType("REAL");
+
+                    b.Property<int?>("FdcId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsPantryStaple")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("PackageSize")
+                        .HasColumnType("REAL");
+
+                    b.Property<int?>("PackageUnitId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("PluralName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StoreSection")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedById")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DefaultPurchaseUnitId");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique();
+
+                    b.HasIndex("PackageUnitId");
+
+                    b.ToTable("Foods");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.FoodAlias", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Alias")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("FoodId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("NormalizedAlias")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FoodId");
+
+                    b.HasIndex("NormalizedAlias")
+                        .IsUnique();
+
+                    b.ToTable("FoodAliases");
+                });
+
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.IngredientGroup", b =>
                 {
                     b.Property<int>("Id")
@@ -464,6 +572,9 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("FoodId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int?>("GroupId")
                         .HasColumnType("INTEGER");
 
@@ -515,6 +626,8 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("FoodId");
 
                     b.HasIndex("GroupId");
 
@@ -571,6 +684,10 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.Property<int?>("TimerSeconds")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Title")
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.HasIndex("RecipeId", "SortOrder");
@@ -591,6 +708,21 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.HasIndex("TagId");
 
                     b.ToTable("RecipeTags");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.SeedRun", b =>
+                {
+                    b.Property<string>("Name")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AppliedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Name");
+
+                    b.ToTable("SeedRuns");
                 });
 
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Tag", b =>
@@ -1102,8 +1234,15 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.Property<string>("UserId")
                         .HasColumnType("TEXT");
 
+                    b.Property<double?>("DefaultScale")
+                        .HasColumnType("REAL");
+
                     b.Property<string>("Theme")
                         .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Units")
                         .HasMaxLength(16)
                         .HasColumnType("TEXT");
 
@@ -1114,6 +1253,72 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.HasKey("UserId");
 
                     b.ToTable("UserPreferences");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.YieldConversion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Basis")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("FoodId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FromState")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FromUnitKind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("PreparedDensityGPerMl")
+                        .HasColumnType("REAL");
+
+                    b.Property<double>("Ratio")
+                        .HasColumnType("REAL");
+
+                    b.Property<double>("RatioMax")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ToState")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedById")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FoodId", "FromState")
+                        .IsUnique();
+
+                    b.ToTable("YieldConversions");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -1182,6 +1387,28 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Food", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Unit", null)
+                        .WithMany()
+                        .HasForeignKey("DefaultPurchaseUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Unit", null)
+                        .WithMany()
+                        .HasForeignKey("PackageUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.FoodAlias", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Food", null)
+                        .WithMany("Aliases")
+                        .HasForeignKey("FoodId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.IngredientGroup", b =>
                 {
                     b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
@@ -1206,6 +1433,11 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeIngredient", b =>
                 {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Food", null)
+                        .WithMany()
+                        .HasForeignKey("FoodId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("RecipeWarden.Infrastructure.Data.IngredientGroup", "Group")
                         .WithMany()
                         .HasForeignKey("GroupId")
@@ -1269,6 +1501,22 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                         .HasForeignKey("RecipeWarden.Infrastructure.Data.UserPreference", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.YieldConversion", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Food", "Food")
+                        .WithMany()
+                        .HasForeignKey("FoodId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Food");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Food", b =>
+                {
+                    b.Navigation("Aliases");
                 });
 
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Recipe", b =>

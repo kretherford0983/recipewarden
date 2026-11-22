@@ -82,14 +82,29 @@
     </div>
     <p class="hint">Servings and times can be ranges (6-8, 20-25 min). Times take minutes or hours (1 hr 15 min). Leave total empty to add prep and cook.</p>
 
-    <div class="field">
-        <label asp-for="Input.Tags">Tags <span class="hint">(comma-separated)</span></label>
-        <input asp-for="Input.Tags" list="known-tags" autocomplete="off">
-        <datalist id="known-tags">
-            @foreach (var t in Model.KnownTags) { <option value="@t"></option> }
-        </datalist>
+    @* ADR 0016: tags grouped by type as checkboxes, plus a box for new names. Works without JavaScript. *@
+    <fieldset class="field tag-picker" id="Input_Tags_picker">
+        <legend>Tags</legend>
         <span asp-validation-for="Input.Tags" class="field-error"></span>
-    </div>
+        <input type="search" class="tag-filter" data-tag-filter hidden placeholder="Filter tags" aria-label="Filter tags" autocomplete="off">
+        @foreach (var group in Model.TagGroups)
+        {
+            var chosen = group.Tags.Where(t => Model.IsTicked(t.Id)).Select(t => t.Name).ToList();
+            <details open="@(chosen.Count > 0)">
+                <summary>@group.Label @if (chosen.Count > 0) { <span class="chosen">(@string.Join(", ", chosen))</span> }</summary>
+                <div class="tag-options">
+                    @foreach (var t in group.Tags)
+                    {
+                        <label><input type="checkbox" name="Input.TagIds" value="@t.Id" checked="@Model.IsTicked(t.Id)"> @t.Name</label>
+                    }
+                </div>
+            </details>
+        }
+        <div class="field">
+            <label asp-for="Input.Tags">New tags <span class="hint">(comma-separated)</span></label>
+            <input asp-for="Input.Tags" autocomplete="off">
+        </div>
+    </fieldset>
 
     <div class="field">
         <label asp-for="Input.Ingredients">Ingredients <span class="hint">(one per line; a line ending in “:” starts a group)</span></label>
@@ -101,7 +116,7 @@
     </div>
 
     <div class="field">
-        <label asp-for="Input.Steps">Steps <span class="hint">(one per line; pasted numbering is removed)</span></label>
+        <label asp-for="Input.Steps">Steps <span class="hint">(one per line; pasted numbering is removed. In a numbered list, lines under an item stay in that step, and <code>1. **Heading**</code> gives the step a heading)</span></label>
         <textarea asp-for="Input.Steps" rows="10" class="lines" data-reorder="steps"></textarea>
         <span asp-validation-for="Input.Steps" class="field-error"></span>
     </div>

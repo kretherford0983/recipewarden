@@ -53,7 +53,7 @@ public sealed class EditModel(RecipeService recipes, TagService tags, Permission
 
         SetCurrent(current);
         IsAdmin = await permissions.IsAdminAsync(User);
-        if (HasBindingErrors() || ReadInput() is not { } edit)
+        if (HasBindingErrors() || await ReadInputAsync() is not { } edit)
         {
             await LoadTagsAsync();
             return Page();

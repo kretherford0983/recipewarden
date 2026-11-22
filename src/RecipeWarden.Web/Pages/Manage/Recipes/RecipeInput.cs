@@ -45,8 +45,11 @@ public sealed class RecipeInput
     /// <summary>One step per line; a short line ending in ":" starts a section.</summary>
     public string? Steps { get; set; }
 
-    /// <summary>Comma-separated tag names.</summary>
+    /// <summary>ADR 0016: "New tags" box, comma-separated names. A name that matches an existing tag selects it.</summary>
     public string? Tags { get; set; }
+
+    /// <summary>ADR 0016: the tags ticked in the picker. Ids that do not exist are refused (SEC-13).</summary>
+    public int[] TagIds { get; set; } = [];
 
     /// <summary>BR-06: the version the editor was opened at.</summary>
     public int Version { get; set; }

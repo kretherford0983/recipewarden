@@ -1,6 +1,6 @@
-# RecipeWarden — Specification v0.10
+# RecipeWarden — Specification v0.11
 
-Version 0.10 · 2026-11-21
+Version 0.11 · 2026-11-22
 
 ## 1. Overview
 
@@ -266,7 +266,7 @@ These rules are enforced in the domain layer (not only the UI) and each has unit
 | BR-24 | Unit escalation: amounts move to the next larger unit when they would need more than the tool cap (e.g. 16 Tbsp → 1 cup; 48 tsp → 1 cup). |
 | BR-25 | Vague quantities keep their word in the text ("pinch salt") and show the approximate amount as a hint; scaled vague amounts above 4 pinches convert to the nearest tool. "To taste" never scales. |
 | BR-26 | Yield conversions are shown as an "about" range with the basis ("boneless breast, \~25% cooking loss"), never as an exact amount. |
-| BR-27 | Count items: round to the nearest whole; eggs round to the nearest half and express halves as "+ 1 yolk" or "+ 2 Tbsp beaten egg". |
+| BR-27 | Count items: round to the nearest whole; eggs round to the nearest half and express halves as "+ 1 yolk" in ordinary recipes, or "4½ eggs (4 eggs + 2 Tbsp beaten egg)" in baking/precision recipes (ADR 0012). |
 | BR-28 | Fractions display with denominators 2, 3, 4, 8 only (and 16 for tsp); decimals for metric (1 decimal for g under 10 g, whole g otherwise; ml whole). |
 | BR-29 | Times are not scaled automatically; a note warns that cook times may change for scaled recipes above 2x or pan changes. |
 | BR-110 | Container factor = (container capacity × fill % × container count) ÷ finished yield, both in ml. Default fill %: 90% for bottles and jars, 85% for freezer containers (expansion), 100% for serving dishes; editable per container and per use. |
@@ -602,6 +602,7 @@ Three zones: public reading pages, `/manage` for editors, `/admin` for admins. T
 | `/admin/settings` | Site name, defaults, proxy trust, rate limits | Admin |
 | `/admin/audit` | Audit log | Admin |
 | `/account/login`, `/account/logout`, `/account/2fa`, `/account/password` | Account | Anonymous (login) / signed in |
+| `/account/theme`, `/account/preferences` | Save theme (FR-UI-01), unit system and default scale (FR-UI-02) to the profile; POST only | Signed in |
 | `/health` | Liveness ("ok" only) | Anonymous |
 | `/media/{id}` | Image delivery | Anonymous |
 | /recipes/{slug}/export-ai, /collections/{slug}/export-ai | Export for AI (goal picker, include-inventory option, download or copy) | Anonymous |
@@ -641,8 +642,8 @@ SQLite via EF Core 10 with code-first migrations applied at startup. Images live
 | --- | --- | --- |
 | Recipe | Id, Slug, Title, Description, Servings, ServingsMax, ServingsEstimated, YieldText, YieldAmount, YieldUnitId, YieldSource (Measured/Entered/Estimated), FinishedDensityGPerMl, PrepMinutes, PrepMinutesMax, CookMinutes, CookMinutesMax, TotalMinutes, TotalMinutesMax, IsPrecision, Status (Draft/Published), SourceType (Manual/Web/File/Personal), SourceUrl, SourceName, SourceAuthor, SourceImportedAt, FinishImageId, ParentRecipeId, Notes, Rating, LastCookedAt, InventoryVersionSeen, Version, DeletedAt, DeletedById | Root entity. FinishImageId arrives with images in M4 (ADR 0009). |
 | IngredientGroup | Id, RecipeId, Name, SortOrder | "For the sauce". Optional. |
-| RecipeIngredient | Id, RecipeId, GroupId, SortOrder, RawText, Quantity, QuantityMax, QuantityText, UnitId, Name, FoodId, Preparation, State (raw/cooked/…), IsOptional, Note, ParseConfidence | RawText always kept (BR-04). Name is the parsed ingredient text, kept whether or not a Food matches (ADR 0009); FoodId arrives in M2. |
-| Step | Id, RecipeId, SortOrder, Text, ImageId, SectionName, TimerSeconds | Timer parsed from text. |
+| RecipeIngredient | Id, RecipeId, GroupId, SortOrder, RawText, Quantity, QuantityMax, QuantityText, UnitId, Name, FoodId, Preparation, State (raw/cooked/…), IsOptional, Note, ParseConfidence | RawText always kept (BR-04). Name is the parsed ingredient text, kept whether or not a Food matches (ADR 0009). FoodId is set on save by exact name or alias, and by a startup pass for unlinked lines; null when nothing matches (ADR 0013). |
+| Step | Id, RecipeId, SortOrder, Title, Text, ImageId, SectionName, TimerSeconds | Title is an optional step heading (ADR 0015). Timer parsed from text. |
 | Image | Id, StoragePath, ContentType, Width, Height, Bytes, Sha256, AltText, SourceUrl | Shared by finish and step images. |
 | RecipeTag | RecipeId, TagId | Composite PK. |
 | RecipeSlugAlias | Slug (PK), RecipeId, CreatedAt | Earlier published slugs; redirect to the current one (BR-02, ADR 0008). |
@@ -659,11 +660,12 @@ SQLite via EF Core 10 with code-first migrations applied at startup. Images live
 | Table | Key columns | Notes |
 | --- | --- | --- |
 | Unit | Id, Code, Name, PluralName, Aliases, Kind (Volume/Mass/Count/Vague/Temperature/Length), System (US/Metric/Either), ToBase (ml or g), IsVague | Seeded; editable for Vague only. |
-| Food | Id, Name, PluralName, Category, DensityGPerMl, DefaultPurchaseUnitId, PackageSize, PackageUnitId, StoreSection, FdcId, IsPantryStaple | Ingredient catalogue. |
-| FoodAlias | FoodId, Alias | "AP flour" → all-purpose flour. |
+| Food | Id, Name, NormalizedName, PluralName, Category, DensityGPerMl, DefaultPurchaseUnitId, PackageSize, PackageUnitId, StoreSection, FdcId, IsPantryStaple, Source (Usda/Custom), SourceNote | Ingredient catalogue. Seeded once from USDA public-domain data (ADR 0013); unique on NormalizedName. |
+| FoodAlias | Id, FoodId, Alias, NormalizedAlias | "AP flour" → all-purpose flour. Unique on NormalizedAlias. |
 | FoodAllergen | FoodId, AllergenId |  |
 | Allergen | Id, Code, Name | Seeded: 9 US majors + gluten. |
-| YieldConversion | Id, FoodId, FromState, ToState, FromUnitKind, Ratio, RatioMax, Basis | e.g. cooked shredded chicken cup → raw boneless g. |
+| YieldConversion | Id, FoodId, FromState, ToState, FromUnitKind, Ratio, RatioMax, PreparedDensityGPerMl, Basis, Source, SourceNote | Ratio–RatioMax: grams bought per gram prepared. PreparedDensityGPerMl weighs a volume of the prepared food (e.g. cooked chicken, cups → g). |
+| SeedRun | Name, AppliedAt | One row per seed applied at startup, so a seed runs once (ADR 0013). |
 | NutrientRef | FdcId or local id, Source (USDA dataset or Custom label), DatasetVersion, per-100 g nutrient columns | Bundled USDA dataset (D-06). |
 
 ### 8.4 Kitchen inventory
@@ -682,7 +684,7 @@ SQLite via EF Core 10 with code-first migrations applied at startup. Images live
 | ShoppingListItemSource | ItemId, RecipeId, Scale | BR-42. |
 | ImportJob | Id, SourceKind (Url/Markdown/Docx/Pdf), SourceRef, Status, RawPath, ParsedJson, WarningsJson, CreatedRecipeId, CreatedById, CreatedAt | Raw kept 30 days. |
 | AspNet\* tables | Identity users, roles, claims, tokens | Standard Identity schema. |
-| UserPreference | UserId, Theme, UnitSystem, DefaultScale |  |
+| UserPreference | UserId, Theme, Units, DefaultScale | Units: as written, US, metric or weight (ADR 0014). |
 | AuditEntry | Id, At, UserId, Action, EntityType, EntityId, Ip, DetailsJson | Append-only. |
 | BackupRecord | Id, Kind (Manual/Scheduled/PreRestore/PreUpgrade), StartedAt, CompletedAt, Path, Bytes, Sha256, Status, Error |  |
 | AppSetting | Key, Value | Schedule, retention, site name, defaults. |
@@ -938,8 +940,8 @@ The repository is public (ADR 0005): GitHub-hosted Actions minutes are free and 
 
 1. **M0 Foundations** — repo, solution, CI, analyzers, Identity, layout/theme, health, installer skeleton.
 2. **M1 Recipes** — model, migrations, manual CRUD, ingredient parser, reading view, search, tags, collections. Text only: images in M4; "free of" filter (BR-53) in M6 (ADR 0009).
-3. **M2 Measurement** — units, densities, scaling, display planner, vague amounts, yield conversions.
-4. **M3 Kitchen** — inventory, versioning, suggestions.
+3. **M2 Measurement** — units, densities, scaling, vague amounts, yield conversions, °F/°C; tag picker and step headings (ADR 0012, 0015, 0016).
+4. **M3 Kitchen** — inventory, versioning, suggestions, display planner (FR-MEAS-02, AC-32, AC-33), container scaling (FR-SCL-04/05/06, AC-37–39), pan-size alternatives (FR-MEAS-07) (ADR 0012).
 5. **M4 Import** — finish and step images (upload, `/media/{id}`), safe fetcher, JSON-LD/heuristic URL import, Markdown, Docx, PDF, review, duplicates.
 6. **M5 Output** — print, Markdown export/import round-trip, cook mode, shopping lists, Export for AI and AI-response import.
 7. **M6 Nutrition and allergens**.
@@ -963,8 +965,8 @@ This matrix seeds `docs/traceability.md` in the repo. Test classes are named aft
 | FR-VIEW-01/02 | BR-10 | Recipe page anatomy (7.3); cook mode | E2E W1 | AC-23 |
 | FR-EXP-01 | BR-10, BR-28 | Print stylesheet; `/print` | E2E PrintLayout (PDF snapshot) | AC-24 |
 | FR-EXP-02/03 | BR-10 | recipe-md v1 (9.7) | Importers.Tests MarkdownRoundTrip | AC-25 |
-| FR-SCL-01/02/03 | BR-20, BR-29 | ScalingService | Core.Tests Scaling (property-based) | AC-30, AC-31 |
-| FR-MEAS-01/02 | BR-21–24, BR-28 | DisplayPlanner, Unit, Food.Density | Core.Tests DisplayPlanner | AC-32, AC-33 |
+| FR-SCL-01/02/03 | BR-20, BR-29 | ScaleRules, IngredientFactor, RecipeScaler; recipe toolbar | Core.Tests ScaleRules, IngredientFactor; Infra.Tests RecipeScaler; Web.Tests ScalingPage; E2E ScaleToolbar | AC-30, AC-31 |
+| FR-MEAS-01/02 | BR-21–24, BR-28 | MeasureDisplay (M2), DisplayPlanner (M3), Unit, Food.Density | Core.Tests MeasureDisplay; DisplayPlanner (M3) | AC-32, AC-33 (M3) |
 | FR-MEAS-03 | BR-25 | Vague units | Core.Tests VagueQuantities | AC-34 |
 | FR-MEAS-04 | BR-26 | YieldConversion | Core.Tests YieldConversion | AC-35 |
 | FR-MEAS-06 | BR-27 | Count rounding | Core.Tests CountItems | AC-36 |
@@ -1179,6 +1181,7 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
+- v0.11 (2026-11-22): M2 decisions. ADR 0012 — display planner (FR-MEAS-02, AC-32, AC-33), container scaling (FR-SCL-04 to 06) and pan sizes move to M3 (9.10); BR-27 egg wording by baking/precision. ADR 0013 — measurement seed from USDA public-domain data, foods linked on save; 8.2 FoodId note, 8.3 Food, FoodAlias, YieldConversion columns and SeedRun. ADR 0014 — scale and units in the query string; 7.2 `/account/theme` and `/account/preferences`; 8.5 UserPreference.Units. ADR 0015 — 8.2 Step.Title. ADR 0016 — tag picker. Traceability rows for FR-SCL and FR-MEAS updated.
 - v0.10 (2026-11-21): AC-100 — account emails are checked (format, then duplicates) before a password is asked for, by the CLI, the account service and the installer.
 - v0.9 (2026-11-21): servings and times accept ranges, and times accept hours (ADR 0010; BR-03, 8.2 *Max columns, FR-SRCH-02 filter on the high end). Built-in default tags (ADR 0011, FR-ORG-01).
 - v0.8 (2026-11-20): M1 scope (ADR 0009) — images move to M4 and the "free of" filter (BR-53) to M6; drafts are not public; 8.2 adds RecipeIngredient.Name, Recipe.DeletedById, RecipeSlugAlias and normalized names for tags and collections. BR-02 — slugs follow the title and old published slugs redirect (ADR 0008). BR-11 — applies to any change away from Web.
@@ -1195,3 +1198,5 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 - [How use of GitHub Actions is measured](https://docs.github.com/en/enterprise-cloud@latest/billing/concepts/product-billing/github-actions) — artifacts, caches and Packages share one storage pool.
 - [About GitHub's plans (Actions free cases)](https://docs.github.com/en/get-started/learning-about-github/githubs-plans) — self-hosted runners do not consume minutes.
 - [Cannot enable CodeQL in a private repository](https://docs.github.com/en/code-security/reference/code-scanning/troubleshoot-analysis-errors/private-repository-enablement) — code scanning on private repos needs Team or Enterprise with Code Security.
+- [USDA FoodData Central](https://fdc.nal.usda.gov/) — public domain, CC0 1.0; SR Legacy household portion weights give the seeded densities (ADR 0013).
+- [USDA Table of Cooking Yields for Meat and Poultry, Release 2](https://www.ars.usda.gov/) — US government work; cooking-yield ranges for the seeded yield conversions (ADR 0013).
