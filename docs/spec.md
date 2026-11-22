@@ -1,4 +1,4 @@
-# RecipeWarden — Specification v0.11
+# RecipeWarden — Specification v0.12
 
 Version 0.12 · 2026-11-22
 
