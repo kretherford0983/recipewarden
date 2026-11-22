@@ -21,6 +21,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
     public DbSet<RecipeTag> RecipeTags => Set<RecipeTag>();
     public DbSet<RecipeCollection> Collections => Set<RecipeCollection>();
     public DbSet<CollectionRecipe> CollectionRecipes => Set<CollectionRecipe>();
+    public DbSet<Food> Foods => Set<Food>();
+    public DbSet<FoodAlias> FoodAliases => Set<FoodAlias>();
+    public DbSet<YieldConversion> YieldConversions => Set<YieldConversion>();
+    public DbSet<SeedRun> SeedRuns => Set<SeedRun>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -30,6 +34,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         {
             e.HasKey(p => p.UserId);
             e.Property(p => p.Theme).HasConversion<string>().HasMaxLength(16); // 8.1: enums stored as text
+            e.Property(p => p.Units).HasConversion<string>().HasMaxLength(16);
+            Real(e.Property(p => p.DefaultScale));
             e.HasOne<AppUser>().WithOne().HasForeignKey<UserPreference>(p => p.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -85,6 +91,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
             Real(e.Property(i => i.ParseConfidence));
             e.HasOne(i => i.Group).WithMany().HasForeignKey(i => i.GroupId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(i => i.Unit).WithMany().HasForeignKey(i => i.UnitId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(i => i.FoodId);
+            e.HasOne<Food>().WithMany().HasForeignKey(i => i.FoodId).OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<RecipeStep>(e =>
@@ -92,6 +100,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
             e.HasIndex(s => new { s.RecipeId, s.SortOrder });
             e.Property(s => s.Text).HasMaxLength(StepTextRules.MaxStepLength);
             e.Property(s => s.SectionName).HasMaxLength(200);
+            e.Property(s => s.Title).HasMaxLength(StepTextRules.MaxTitleLength);
         });
 
         builder.Entity<RecipeSlugAlias>(e =>
@@ -153,6 +162,52 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
             e.Property(c => c.Description).HasMaxLength(RecipeEdit.MaxDescriptionLength);
             e.Property(c => c.Version).IsConcurrencyToken();
             e.HasMany(c => c.Recipes).WithOne().HasForeignKey(r => r.CollectionId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<Food>(e =>
+        {
+            e.HasIndex(f => f.NormalizedName).IsUnique();
+            e.Property(f => f.Name).HasMaxLength(FoodRules.MaxNameLength);
+            e.Property(f => f.NormalizedName).HasMaxLength(FoodRules.MaxNameLength * 2);
+            e.Property(f => f.PluralName).HasMaxLength(FoodRules.MaxNameLength);
+            e.Property(f => f.Category).HasMaxLength(40);
+            e.Property(f => f.Source).HasMaxLength(16);
+            e.Property(f => f.SourceNote).HasMaxLength(500);
+            e.Property(f => f.StoreSection).HasMaxLength(40);
+            Real(e.Property(f => f.DensityGPerMl));
+            Real(e.Property(f => f.PackageSize));
+            e.HasMany(f => f.Aliases).WithOne().HasForeignKey(a => a.FoodId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Unit>().WithMany().HasForeignKey(f => f.DefaultPurchaseUnitId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Unit>().WithMany().HasForeignKey(f => f.PackageUnitId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<FoodAlias>(e =>
+        {
+            e.HasIndex(a => a.NormalizedAlias).IsUnique();
+            e.HasIndex(a => a.FoodId);
+            e.Property(a => a.Alias).HasMaxLength(FoodRules.MaxNameLength);
+            e.Property(a => a.NormalizedAlias).HasMaxLength(FoodRules.MaxNameLength * 2);
+        });
+
+        builder.Entity<YieldConversion>(e =>
+        {
+            e.HasIndex(y => new { y.FoodId, y.FromState }).IsUnique();
+            e.Property(y => y.FromState).HasMaxLength(16);
+            e.Property(y => y.ToState).HasMaxLength(16);
+            e.Property(y => y.FromUnitKind).HasConversion<string>().HasMaxLength(16);
+            e.Property(y => y.Basis).HasMaxLength(FoodRules.MaxBasisLength);
+            e.Property(y => y.Source).HasMaxLength(16);
+            e.Property(y => y.SourceNote).HasMaxLength(500);
+            Real(e.Property(y => y.Ratio));
+            Real(e.Property(y => y.RatioMax));
+            Real(e.Property(y => y.PreparedDensityGPerMl));
+            e.HasOne(y => y.Food).WithMany().HasForeignKey(y => y.FoodId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<SeedRun>(e =>
+        {
+            e.HasKey(r => r.Name);
+            e.Property(r => r.Name).HasMaxLength(64);
         });
 
         builder.Entity<CollectionRecipe>(e =>

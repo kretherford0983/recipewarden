@@ -1,11 +1,16 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RecipeWarden.Core.Security;
+using RecipeWarden.Infrastructure.Measurement;
 
 namespace RecipeWarden.Infrastructure.Data;
 
-/// <summary>Applies migrations, switches the database to WAL (8.1, NFR-07) and seeds the roles.</summary>
-public sealed class DatabaseInitializer(AppDbContext db, RoleManager<IdentityRole> roles)
+/// <summary>
+/// Applies migrations, switches the database to WAL (8.1, NFR-07), seeds the roles and the measurement catalogue
+/// (once, ADR 0013), and links ingredients that have no food yet.
+/// </summary>
+public sealed class DatabaseInitializer(AppDbContext db, RoleManager<IdentityRole> roles, MeasurementSeeder seeder,
+    FoodCatalogService foods)
 {
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -25,6 +30,9 @@ public sealed class DatabaseInitializer(AppDbContext db, RoleManager<IdentityRol
                 }
             }
         }
+
+        await seeder.ApplyAsync(cancellationToken).ConfigureAwait(false);
+        await foods.LinkUnmatchedAsync(cancellationToken).ConfigureAwait(false);
     }
 
     internal static string Describe(IdentityResult result) =>

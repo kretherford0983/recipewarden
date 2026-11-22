@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using RecipeWarden.Core.Measurement;
 using RecipeWarden.Core.Recipes;
 using RecipeWarden.Importers.Ingredients;
 using RecipeWarden.Infrastructure.Data;
+using RecipeWarden.Infrastructure.Measurement;
 
 namespace RecipeWarden.Infrastructure.Recipes;
 
@@ -10,7 +12,7 @@ namespace RecipeWarden.Infrastructure.Recipes;
 /// (BR-01 to BR-06, BR-10/11) apply the same way from any page, and the audit log (FR-ADM-01, M7) has one place to
 /// hook in. The search index is updated in the same transaction.
 /// </summary>
-public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagService tags)
+public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagService tags, FoodCatalogService foods)
 {
     public const string SourceChangeNeedsAdmin = "Only an Admin can change the source of a web recipe";
 
@@ -257,7 +259,7 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
             SourceUrl = r.SourceUrl,
             SourceAuthor = r.SourceAuthor,
             IngredientsText = IngredientsText(r),
-            StepsText = StepTextRules.Join(r.Steps.OrderBy(s => s.SortOrder).Select(s => new StepText(s.SectionName, s.Text))),
+            StepsText = StepTextRules.Join(r.Steps.OrderBy(s => s.SortOrder).Select(s => new StepText(s.SectionName, s.Text, s.Title))),
             Tags = r.Tags.Select(t => t.Tag!.Name).Order(StringComparer.OrdinalIgnoreCase).ToArray(),
             WantsPublish = r.Status == RecipeStatus.Published,
         };
@@ -324,6 +326,7 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
         recipe.Version++;
 
         var units = await db.Units.AsNoTracking().ToDictionaryAsync(u => u.Code, u => u.Id, StringComparer.Ordinal, cancellationToken).ConfigureAwait(false);
+        var matcher = await foods.LoadMatcherAsync(cancellationToken).ConfigureAwait(false); // ADR 0013: link on save
         IngredientGroup? group = null;
         var order = 0;
         foreach (var line in parsed.Ingredients)
@@ -351,12 +354,19 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
                 IsOptional = p.IsOptional,
                 Note = p.Note,
                 ParseConfidence = p.Confidence,
+                FoodId = matcher.Match(p.Name),
             });
         }
 
         for (var i = 0; i < parsed.Steps.Count; i++)
         {
-            recipe.Steps.Add(new RecipeStep { SortOrder = i, Text = parsed.Steps[i].Text, SectionName = parsed.Steps[i].SectionName });
+            recipe.Steps.Add(new RecipeStep
+            {
+                SortOrder = i,
+                Text = parsed.Steps[i].Text,
+                SectionName = parsed.Steps[i].SectionName,
+                Title = parsed.Steps[i].Title,
+            });
         }
 
         foreach (var tag in await tags.ResolveAsync(edit.Tags, now, cancellationToken).ConfigureAwait(false))
@@ -445,7 +455,7 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
         }
 
         var sections = ChunkBy(r.Steps.OrderBy(s => s.SortOrder), s => s.SectionName)
-            .Select(c => new StepSectionView(c[0].SectionName, c.Select(s => s.Text).ToList()))
+            .Select(c => new StepSectionView(c[0].SectionName, c.Select(s => new StepView(s.Title, s.Text)).ToList()))
             .ToList();
 
         var total = r.TotalMinutes is not null
@@ -499,7 +509,11 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
             Note = i.Note,
             Confidence = i.ParseConfidence,
         };
-        return new IngredientLineView(IngredientFormatter.Format(parsed), i.RawText, parsed.NeedsReview, i.IsOptional);
+        return new IngredientLineView(IngredientFormatter.Format(parsed), i.RawText, parsed.NeedsReview, i.IsOptional)
+        {
+            Parsed = parsed,
+            FoodId = i.FoodId,
+        };
     }
 
     private static List<List<T>> ChunkBy<T, TKey>(IEnumerable<T> items, Func<T, TKey> key)

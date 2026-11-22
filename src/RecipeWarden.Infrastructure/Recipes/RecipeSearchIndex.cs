@@ -27,7 +27,7 @@ internal static class RecipeSearchIndex
         }
 
         var ingredients = string.Join('\n', recipe.Ingredients.OrderBy(i => i.SortOrder).Select(i => i.RawText));
-        var steps = string.Join('\n', recipe.Steps.OrderBy(s => s.SortOrder).Select(s => s.Text));
+        var steps = string.Join('\n', recipe.Steps.OrderBy(s => s.SortOrder).Select(s => s.Title is null ? s.Text : s.Title + ". " + s.Text));
         var tags = string.Join('\n', recipe.Tags.Select(t => t.Tag!.Name));
         var description = recipe.Description ?? string.Empty;
         var notes = recipe.Notes ?? string.Empty;

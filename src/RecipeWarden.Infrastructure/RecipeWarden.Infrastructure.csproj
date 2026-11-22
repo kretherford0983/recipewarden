@@ -9,6 +9,10 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
+    <!-- ADR 0013: USDA public-domain seed, built by tools/seed/build-seed.py. -->
+    <EmbeddedResource Include="Data/Seed/measurement-v1.json" LogicalName="RecipeWarden.Seed.measurement-v1.json" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="RecipeWarden.Infrastructure.Tests" />
   </ItemGroup>
 </Project>
