@@ -1,7 +1,16 @@
 namespace RecipeWarden.Core.Measurement;
 
-/// <summary>What the engine knows about a food (section 8.3 Food): its name and, if known, its density.</summary>
-public sealed record FoodFacts(int Id, string Name, decimal? DensityGPerMl);
+/// <summary>ADR 0018: what kind of food it is, for BR-22's "dry solid".</summary>
+public enum FoodForm
+{
+    Other = 0,
+    Dry = 1,
+    Liquid = 2,
+    Fat = 3,
+}
+
+/// <summary>What the engine knows about a food (section 8.3 Food): its name, density and form.</summary>
+public sealed record FoodFacts(int Id, string Name, decimal? DensityGPerMl, FoodForm Form = FoodForm.Other);
 
 /// <summary>
 /// Section 8.3 YieldConversion (BR-26): <see cref="Ratio"/> to <see cref="RatioMax"/> grams bought per gram
