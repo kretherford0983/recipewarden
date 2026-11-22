@@ -14,7 +14,7 @@ public sealed class NewModel(RecipeService recipes, TagService tags) : RecipeEdi
 
     public async Task<IActionResult> OnPostAsync()
     {
-        if (HasBindingErrors() || ReadInput() is not { } edit)
+        if (HasBindingErrors() || await ReadInputAsync() is not { } edit)
         {
             await LoadTagsAsync();
             return Page();

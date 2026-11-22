@@ -11,7 +11,7 @@ public sealed class FR_MEAS_05_FoodRulesTests
     [InlineData(0.53, true)]
     [InlineData(1.44, true)]
     [InlineData(0.005, false)]
-    [InlineData(53, false)]
+    [InlineData(53.0, false)]
     public void Density_range(double? density, bool ok)
     {
         (FoodRules.ValidateDensity((decimal?)density) is null).ShouldBe(ok);
@@ -30,7 +30,7 @@ public sealed class FR_MEAS_05_FoodRulesTests
     [InlineData(1.14, 1.43, 0.59, "simmered", true)]
     [InlineData(1.43, 1.14, null, "simmered", false)]
     [InlineData(1.1, 20, null, "simmered", false)]
-    [InlineData(1.1, 1.2, 9, "simmered", false)]
+    [InlineData(1.1, 1.2, 9.0, "simmered", false)]
     [InlineData(1.1, 1.2, null, " ", false)]
     public void Yield_needs_a_low_to_high_range_and_a_basis(double ratio, double max, double? density, string basis, bool ok)
     {

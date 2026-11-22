@@ -64,7 +64,8 @@ public sealed class ADR_0010_EditorRangeTests(RecipeWardenFactory factory) : ICl
     {
         using var editor = await factory.SignInAsync("ranges-tags@example.com");
         var html = await editor.GetStringAsync("/manage/recipes/new", Ct);
-        html.ShouldContain("<option value=\"Homemade Ingredient\">");
-        html.ShouldContain("<option value=\"Side Dish\">");
+        // ADR 0016: built-in tags are offered as checkboxes in the tag picker (they were datalist options before).
+        html.ShouldMatch("<label><input type=\"checkbox\" name=\"Input.TagIds\" value=\"\\d+\"> Homemade Ingredient</label>");
+        html.ShouldMatch("<label><input type=\"checkbox\" name=\"Input.TagIds\" value=\"\\d+\"> Side Dish</label>");
     }
 }

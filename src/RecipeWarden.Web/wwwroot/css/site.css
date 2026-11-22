@@ -216,3 +216,6 @@ table.conversions td input[name="aliases"] { min-width: 12rem; }
 .tag-picker .tag-options { display: flex; flex-wrap: wrap; gap: .25rem 1rem; margin: .375rem 0 .5rem; }
 .tag-picker .tag-options label { font-weight: normal; }
 .tag-picker .chosen { font-weight: normal; color: var(--muted); }
+.scale-toolbar select { max-width: 100%; }
+.scale-from select { max-width: min(16rem, 60vw); text-overflow: ellipsis; }
+.scale-toolbar input { max-width: 100%; }

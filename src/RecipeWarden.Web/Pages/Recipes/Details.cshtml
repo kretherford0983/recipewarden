@@ -137,7 +137,7 @@
                 <p class="scaled-note">
                     Scaled @ScaleRules.Label(sc.Factor)@(Model.ScaleSource is null ? "" : " (" + Model.ScaleSource + ")"):
                     serves @ServingsRules.Format(sc.Servings, sc.ServingsMax).
-                    The saved recipe is unchanged. <a href="@Model.Link(1m, sc.Units)">Show as written</a>
+                    The saved recipe is unchanged. <a href="@Model.Link(1m, DisplayUnits.AsWritten)">Show as written</a>
                 </p>
             }
             @if (sc.TimeNote is not null) { <p class="notice">@sc.TimeNote</p> }
