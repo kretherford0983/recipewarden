@@ -1,6 +1,6 @@
 # RecipeWarden — Specification v0.11
 
-Version 0.11 · 2026-11-22
+Version 0.12 · 2026-11-22
 
 ## 1. Overview
 
@@ -280,7 +280,7 @@ These rules are enforced in the domain layer (not only the UI) and each has unit
 | ID | Rule |
 | --- | --- |
 | BR-30 | Any add, retire or edit of a tool increments the inventory version. |
-| BR-31 | Each recipe stores the inventory version at which suggestions were last evaluated. On view, if the stored version is lower, suggestions are re-evaluated and the stored version updated (no sign-in needed for evaluation; applying to the saved recipe needs Editor). |
+| BR-31 | Each recipe stores the inventory version at which suggestions were last accepted (`InventoryVersionSeen`). On view, suggestions are re-evaluated in memory against the snapshot at that version; viewing never writes (SEC-31, ADR 0017). Measures (spoons, cups) apply at once; a new scale is offered as weights. Dismissing or applying needs Editor and moves the stored version. |
 | BR-32 | A suggestion is shown only if it changes at least one displayed amount, tool or method, and it is keyed (e.g. `scale:flour`) so a dismissal is remembered per recipe. |
 | BR-33 | If no measuring tools are in the inventory, the planner assumes a standard US set (1/4, 1/2 and 1 tsp; 1 Tbsp; 1/4, 1/3, 1/2 and 1 cup) and says so. |
 
@@ -592,7 +592,9 @@ Three zones: public reading pages, `/manage` for editors, `/admin` for admins. T
 | `/shopping/new`, delete | Create or delete a list | Editor |
 | `/manage/recipes/new`, `/manage/recipes/{id}/edit` | Recipe editor | Editor |
 | `/manage/import`, `/manage/import/{jobId}/review` | Import (URL, file) and review | Editor |
-| `/manage/kitchen` | Kitchen inventory | Editor |
+| `/manage/kitchen` | Kitchen inventory: add, presets, retire, restore (W5) | Editor |
+| `/manage/recipes/{id}/suggestions` | Dismiss or save a suggestion to the recipe (ADR 0017) | Editor |
+| `/manage/recipes/{id}/cooked` | "I made this": last cooked and a measured yield (ADR 0019) | Editor |
 | `/manage/tags`, `/manage/collections` | Tag and collection management | Editor |
 | `/manage/conversions` | Densities, vague amounts, yield conversions | Editor |
 | `/manage/trash` | Trash | Editor |
@@ -640,7 +642,7 @@ SQLite via EF Core 10 with code-first migrations applied at startup. Images live
 
 | Table | Key columns | Notes |
 | --- | --- | --- |
-| Recipe | Id, Slug, Title, Description, Servings, ServingsMax, ServingsEstimated, YieldText, YieldAmount, YieldUnitId, YieldSource (Measured/Entered/Estimated), FinishedDensityGPerMl, PrepMinutes, PrepMinutesMax, CookMinutes, CookMinutesMax, TotalMinutes, TotalMinutesMax, IsPrecision, Status (Draft/Published), SourceType (Manual/Web/File/Personal), SourceUrl, SourceName, SourceAuthor, SourceImportedAt, FinishImageId, ParentRecipeId, Notes, Rating, LastCookedAt, InventoryVersionSeen, Version, DeletedAt, DeletedById | Root entity. FinishImageId arrives with images in M4 (ADR 0009). |
+| Recipe | Id, Slug, Title, Description, Servings, ServingsMax, ServingsEstimated, YieldText, YieldAmount, YieldUnitId, YieldSource (Measured/Entered/Estimated), FinishedDensityGPerMl, PanShape, PanWidth, PanLength, PrepMinutes, PrepMinutesMax, CookMinutes, CookMinutesMax, TotalMinutes, TotalMinutesMax, IsPrecision, Status (Draft/Published), SourceType (Manual/Web/File/Personal), SourceUrl, SourceName, SourceAuthor, SourceImportedAt, FinishImageId, ParentRecipeId, Notes, Rating, LastCookedAt, InventoryVersionSeen, Version, DeletedAt, DeletedById | Root entity. FinishImageId arrives with images in M4 (ADR 0009). Pan is one field, prefilled from the steps (ADR 0020). |
 | IngredientGroup | Id, RecipeId, Name, SortOrder | "For the sauce". Optional. |
 | RecipeIngredient | Id, RecipeId, GroupId, SortOrder, RawText, Quantity, QuantityMax, QuantityText, UnitId, Name, FoodId, Preparation, State (raw/cooked/…), IsOptional, Note, ParseConfidence | RawText always kept (BR-04). Name is the parsed ingredient text, kept whether or not a Food matches (ADR 0009). FoodId is set on save by exact name or alias, and by a startup pass for unlinked lines; null when nothing matches (ADR 0013). |
 | Step | Id, RecipeId, SortOrder, Title, Text, ImageId, SectionName, TimerSeconds | Title is an optional step heading (ADR 0015). Timer parsed from text. |
@@ -660,7 +662,7 @@ SQLite via EF Core 10 with code-first migrations applied at startup. Images live
 | Table | Key columns | Notes |
 | --- | --- | --- |
 | Unit | Id, Code, Name, PluralName, Aliases, Kind (Volume/Mass/Count/Vague/Temperature/Length), System (US/Metric/Either), ToBase (ml or g), IsVague | Seeded; editable for Vague only. |
-| Food | Id, Name, NormalizedName, PluralName, Category, DensityGPerMl, DefaultPurchaseUnitId, PackageSize, PackageUnitId, StoreSection, FdcId, IsPantryStaple, Source (Usda/Custom), SourceNote | Ingredient catalogue. Seeded once from USDA public-domain data (ADR 0013); unique on NormalizedName. |
+| Food | Id, Name, NormalizedName, PluralName, Category, Form (Dry/Liquid/Fat/Other), DensityGPerMl, DefaultPurchaseUnitId, PackageSize, PackageUnitId, StoreSection, FdcId, IsPantryStaple, Source (Usda/Custom), SourceNote | Ingredient catalogue. Seeded once from USDA public-domain data (ADR 0013); unique on NormalizedName. Form decides weight-first for non-precision recipes (BR-22, ADR 0018). |
 | FoodAlias | Id, FoodId, Alias, NormalizedAlias | "AP flour" → all-purpose flour. Unique on NormalizedAlias. |
 | FoodAllergen | FoodId, AllergenId |  |
 | Allergen | Id, Code, Name | Seeded: 9 US majors + gluten. |
@@ -674,6 +676,7 @@ SQLite via EF Core 10 with code-first migrations applied at startup. Images live
 | --- | --- | --- |
 | KitchenTool | Id, Name, ToolType (MeasuringSpoon/MeasuringCup/LiquidMeasure/Scale/Thermometer/Appliance/Pan/Container), QuantityOwned, DefaultFillPct, CapacityAmount, CapacityUnitId, ResolutionAmount, ResolutionUnitId, SupportedUnits, PanShape, PanWidth, PanLength, IsActive, AddedAt, RetiredAt | Scale stores supported units and resolution. |
 | InventoryVersion | Id (single row), Version, ChangedAt | BR-30. |
+| InventorySnapshot | Version (PK), ToolsJson, CreatedAt | Active tools at each version; suggestions diff against it (ADR 0017). |
 
 ### 8.5 Shopping, imports, admin
 
@@ -1181,6 +1184,7 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
+- v0.12 (2026-11-22): M3 Kitchen. BR-31 reworded — suggestions are evaluated on view without writes; measures apply at once and a new scale is an offer (ADR 0017 and amendment). ADR 0018 — planner uses spoons and cups only, weight first by Food.Form or precision. ADR 0019 — yields and container scaling. ADR 0020 — recipe pan field. ADR 0021 — inventory scope and standard-set seed. 7.2 adds `/manage/recipes/{id}/suggestions` and `/cooked`; 8.2 Recipe pan columns; 8.3 Food.Form; 8.4 InventorySnapshot.
 - v0.11 (2026-11-22): M2 decisions. ADR 0012 — display planner (FR-MEAS-02, AC-32, AC-33), container scaling (FR-SCL-04 to 06) and pan sizes move to M3 (9.10); BR-27 egg wording by baking/precision. ADR 0013 — measurement seed from USDA public-domain data, foods linked on save; 8.2 FoodId note, 8.3 Food, FoodAlias, YieldConversion columns and SeedRun. ADR 0014 — scale and units in the query string; 7.2 `/account/theme` and `/account/preferences`; 8.5 UserPreference.Units. ADR 0015 — 8.2 Step.Title. ADR 0016 — tag picker. Traceability rows for FR-SCL and FR-MEAS updated.
 - v0.10 (2026-11-21): AC-100 — account emails are checked (format, then duplicates) before a password is asked for, by the CLI, the account service and the installer.
 - v0.9 (2026-11-21): servings and times accept ranges, and times accept hours (ADR 0010; BR-03, 8.2 *Max columns, FR-SRCH-02 filter on the high end). Built-in default tags (ADR 0011, FR-ORG-01).

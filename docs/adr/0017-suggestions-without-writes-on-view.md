@@ -26,3 +26,16 @@ dismiss, (c) suggestions for editors only.
 ## Consequences
 - BR-31 is met in substance ("re-evaluated on view") without its write. Spec BR-31 is reworded to match.
 - Snapshots are small (the active tools as JSON), one per inventory version.
+
+## Amendment (2026-11-22, during M3 build): what becomes an offer
+AC-40 says "plans recalculate" when a tool is added, and AC-42 says a new spoon that changes nothing shows no banner.
+Holding every spoon or cup change behind an editor's "Save to recipe" would contradict AC-40, so:
+- The display planner always uses the **current** active measures (FR-TOOL-03). Adding or retiring a spoon or cup
+  changes the plan at once, for everyone, with no banner.
+- Only a **new scale** is an offer, because it changes the method (cups → grams), not just the fill. Its key is
+  `weight:scale-{toolId}`. Weights are shown by default only when the snapshot at `InventoryVersionSeen` already
+  had a scale (`SuggestionEngine.WeightAccepted`), or after an editor applies the offer.
+- Readers' "Show me" is `?weights=show`, for that view only. Editors dismiss or apply at
+  `/manage/recipes/{id}/suggestions` (POST, antiforgery). Apply moves `InventoryVersionSeen` to the current version.
+- New recipes start with `InventoryVersionSeen` = the current version, so a recipe written after the scale was added
+  shows weights at once (AC-33).

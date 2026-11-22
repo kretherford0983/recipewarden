@@ -22,8 +22,8 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | FR-MEAS-03 | BR-25 | Vague units | Core.Tests VagueQuantities | AC-34 |
 | FR-MEAS-04 | BR-26 | YieldConversion | Core.Tests YieldConversion | AC-35 |
 | FR-MEAS-06 | BR-27 | Count rounding | Core.Tests CountItems | AC-36 |
-| FR-TOOL-01/02/03 | BR-30, BR-33 | KitchenTool, InventoryVersion; `/manage/kitchen` | Core.Tests Inventory; E2E W5 | AC-40 |
-| FR-TOOL-04/05 | BR-31, BR-32 | Suggestion engine, RecipeSuggestionState | Core.Tests Suggestions; E2E W5 | AC-41, AC-42 |
+| FR-TOOL-01/02/03 | BR-30, BR-33 | KitchenRules, KitchenTools (Core); KitchenService, InventoryVersion, InventorySnapshot; `/manage/kitchen` | Core `FR_TOOL_01_KitchenRulesTests`; Infra `FR_TOOL_01_KitchenStoreTests`; Web `FR_TOOL_01_KitchenPageTests`; E2E W5 | AC-40 |
+| FR-TOOL-04/05 | BR-31, BR-32 | SuggestionEngine (Core), SuggestionService, RecipeSuggestionState; `/manage/recipes/{id}/suggestions` | Core `FR_TOOL_04_SuggestionEngineTests`; Infra `FR_TOOL_04_SuggestionStoreTests`; Web `FR_TOOL_04_SuggestionPageTests`; E2E `W5_KitchenTests` | AC-41, AC-42 |
 | FR-SHOP-01–04 | BR-40–42 | ShoppingList tables; `/shopping` | Core.Tests ListMerge; E2E W6 | AC-50, AC-51 |
 | FR-NUT-01/02 | BR-50, BR-51 | NutritionFacts, NutrientRef | Core.Tests Nutrition | AC-55 |
 | FR-ALG-01/02/03 | BR-52, BR-53 | Allergen, FoodAllergen, RecipeAllergen | Core.Tests Allergens | AC-56 |
@@ -39,14 +39,14 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | FR-EXP-04 to 08 | BR-90–97; BR-10 | AiExportBuilder, AI-response importer, recipe-md schema; /export-ai, /manage/import/ai-response | Importers.Tests AiExport, AiResponseImport; E2E W10 | AC-26 to AC-29 |
 | FR-BKP-06/07 | BR-62, BR-64–66; SEC-15, SEC-54 | install.sh --restore, /setup, CLI restore | Installer container tests (migration A to B); Web.Tests Setup; Cli.Tests Restore | AC-83, AC-84, AC-85 |
 | FR-OPS-02–05 | BR-80–85 | HealthMonitor service, StorageSnapshot, HealthCheckResult; /admin/health, /health/ready | Core.Tests HealthRules, Projection; Infra.Tests StorageProbe; E2E W9 | AC-98, AC-99 |
-| FR-SCL-04/05/06 | BR-110–114; BR-20, BR-21, BR-27 | ContainerScaler; Recipe.Yield\*; KitchenTool (Container); recipe toolbar | Core.Tests ContainerScaling, YieldEstimate; E2E W1 | AC-37, AC-38, AC-39 |
+| FR-SCL-04/05/06 | BR-110–114; BR-20, BR-21, BR-27 | ContainerRules (Core); Recipe.Yield\*; KitchenTool (Container); recipe page fit and how-many; `/manage/recipes/{id}/cooked` | Core `FR_SCL_04_ContainerRulesTests`; Infra `FR_SCL_06_YieldAndPanStoreTests`; Web `FR_SCL_04_ContainerPageTests` | AC-37, AC-38, AC-39 |
 | FR-IMP-09/10 | BR-13, BR-93; SEC-44–47 | IAiRecipeParser, AI settings, AiCallLog; /admin/ai | Importers.Tests AiParser (stubbed provider); Web.Tests AiSettings, AiSsrfException | AC-17, AC-18 |
 | FR-NUT-03 to 06 | BR-50, BR-54 | Unmatched report, NutrientRef (Custom), dataset importer; /manage/nutrition, /admin/nutrition-data | Core.Tests NutritionMapping; Infra.Tests DatasetRefresh | AC-57, AC-58 |
 | FR-BKP-08 to 15 | BR-60–62; SEC-70, SEC-74, SEC-75 | Backup:AllowedFolders, apply-config, systemd drop-in, BackupSchedule, marker check, encryption (9.6.1) | Cli.Tests ApplyConfig; Infra.Tests BackupDestination, Retention, Encryption; installer container tests | AC-86, AC-87, AC-88, AC-89 |
 
 ## Status by milestone
 
-**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** merged into `develop` (PR #10, 2026-11-22; dev build v0.2.0-dev.9). **In progress:** M3 Kitchen on `feature/m3-kitchen` (0.3.0), including the display planner, container scaling and pan sizes moved from M2 (ADR 0012).
+**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** merged into `develop` (PR #10, 2026-11-22; dev build v0.2.0-dev.9). **M3 Kitchen:** built on `feature/m3-kitchen` (0.3.0), PR into `develop` open; includes the display planner, container scaling and pan sizes moved from M2 (ADR 0012).
 
 ### M0 Foundations (built 2026-11-17; deployed and verified 2026-11-20 — DONE)
 
@@ -138,6 +138,24 @@ Scope decisions: ADR 0012 (display planner, container scaling and pan sizes move
 | ADR 0016 tag picker | Done | `_EditorForm` picker, `RecipeInput.TagIds`, `editor.js` filter | Web `ADR_0016_TagPickerTests` |
 | FR-SCL-04/05/06, AC-37–39 | **Moved to M3** (ADR 0012) | — | — |
 | AC-70 / SEC-30 | Extended to `/manage/conversions`, `/account/preferences` and the scaled recipe page | — | Web `AC_70_AuthMatrixTests`, `SEC_30_FormTokenTests` |
+
+### M3 Kitchen (built 2026-11-22; PR into `develop`)
+
+Scope decisions: ADR 0017 (suggestions without writes on view; amendment: only a new scale is an offer), ADR 0018
+(planner uses spoons and cups, jugs ignored; weight first by precision or Food.Form), ADR 0019 (yields: editors save,
+readers try), ADR 0020 (pan field prefilled from the steps), ADR 0021 (appliances inventory-only; standard set seeded).
+
+| ID | Status | Implementation | Tests |
+| --- | --- | --- | --- |
+| FR-TOOL-01/02/03 / BR-30, BR-33 / AC-40 | Done: add, presets, edit, retire, restore; each change bumps the version and stores a snapshot; standard set seeded once (`kitchen-v1`) | `KitchenRules`, `KitchenTools` (Core); `KitchenService`, `KitchenSeeder`; `/manage/kitchen` | Core `FR_TOOL_01_KitchenRulesTests`, `FR_TOOL_01_KitchenInputTests`; Infra `FR_TOOL_01_KitchenStoreTests`; Web `FR_TOOL_01_KitchenPageTests` |
+| FR-TOOL-04/05 / BR-31, BR-32 / AC-41, AC-42 | Done per ADR 0017: computed on view, no writes; a new scale offers weights (Show me for readers; Dismiss / Save to recipe for editors); a new spoon applies at once with no banner | `SuggestionEngine` (Core); `SuggestionService`; recipe banner; `/manage/recipes/{id}/suggestions` | Core `FR_TOOL_04_SuggestionEngineTests`; Infra `FR_TOOL_04_SuggestionStoreTests`; Web `FR_TOOL_04_SuggestionPageTests`; E2E `W5_KitchenTests` |
+| FR-MEAS-02 / BR-21, BR-24 / AC-32 | Done: up to 3 fills of active spoons and cups, near-exact first then the recipe tolerance; "1 cup + 2 Tbsp"; tooltip explains the plan | `DisplayPlanner`, `ToolPlan` (Core); `IngredientScaler` | Core `FR_MEAS_02_DisplayPlannerTests`; Web `FR_TOOL_01_KitchenPageTests` (plan follows the inventory) |
+| BR-22 / AC-33 | Done: with a scale, precision recipes and dry foods show grams (scale resolution) with volume second | `IngredientScaler.WeightFirst`, `Food.Form`, `FoodRules.DefaultForm` | Core `BR_22_WeightFirstTests`, `BR_22_FoodFormTests`; Web `Save_to_recipe_makes_weights_the_default`; E2E W5 |
+| FR-REC-06 | Done: recipe tolerance used by the planner | `DisplayPlanner.Plan(…, tolerance)` | Core planner tolerance tests |
+| FR-SCL-04/05/06 / BR-110–114 / AC-37, AC-38, AC-39 | Done: fit to a container (owned or typed), fill %, count, how many; yield estimated (labelled), entered or measured ("I made this") | `ContainerRules` (Core); `RecipeScaler.ContainersAsync`; `RecipeService.MarkCookedAsync`; recipe page; `/manage/recipes/{id}/cooked` | Core `FR_SCL_04_ContainerRulesTests`, `FR_SCL_06_RecipeYieldAndPanEditTests`; Infra `FR_SCL_06_YieldAndPanStoreTests`; Web `FR_SCL_04_ContainerPageTests` |
+| FR-MEAS-07 (pans) / BR-29 | Done: pan field prefilled from the steps; alternatives within ±15% area, owned pans first, bake-time note | `PanRules` (Core); editor form; recipe page | Core `FR_MEAS_07_PanRulesTests`; Web `Doubling_a_9x13_recipe_suggests_pans` |
+| AC-70 / SEC-30 | Extended to `/manage/kitchen`, `/manage/recipes/{id}/cooked` and `/suggestions` | — | Web `AC_70_AuthMatrixTests`, `SEC_30_FormTokenTests` |
+| Migration | `M3_Kitchen`: KitchenTool, InventoryVersion, InventorySnapshot, RecipeSuggestionState; Recipe pan columns; Food.Form (default `Other`, then `food-form-v1` seed) | `Data/Migrations` | Infra store tests |
 
 #### M0 deployment check (2026-11-20, test host)
 

@@ -7,6 +7,13 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 
 ### M3 Kitchen
 - Version bumped to 0.3.0 (docs/branching.md).
+- My Kitchen (`/manage/kitchen`): measuring spoons and cups, scales, containers, pans and appliances; presets; retire and restore; versioned inventory with snapshots; standard US set seeded (FR-TOOL-01..03, BR-30, BR-33, AC-40).
+- Display planner: amounts shown as fills of your spoons and cups, e.g. "1 cup + 2 Tbsp", with an explanation tooltip (FR-MEAS-02, BR-21, BR-24, AC-32).
+- Weight first with a scale for precision recipes and dry foods; new `Food.Form` field on Conversions (BR-22, AC-33).
+- Suggestions without writes on view: a new scale offers weights; Show me, Dismiss, Save to recipe (FR-TOOL-04/05, BR-31, BR-32, AC-41, AC-42; ADR 0017).
+- Container scaling: fit to a container or several, fill %, how many; recipe yield estimated, entered or measured with "I made this" (FR-SCL-04..06, BR-110..114, AC-37..39).
+- Pan field (prefilled from the steps) and pan alternatives when scaling (FR-MEAS-07, BR-29).
+- Spec v0.12; ADRs 0017–0021.
 
 ## 0.2.0 — unreleased
 
