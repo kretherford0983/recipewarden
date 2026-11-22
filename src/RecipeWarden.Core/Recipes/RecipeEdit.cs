@@ -30,6 +30,15 @@ public sealed record RecipeEdit
     public string? StepsText { get; init; }
     public IReadOnlyList<string> Tags { get; init; } = [];
 
+    /// <summary>ADR 0019: what the recipe makes, e.g. "12 fl oz" or "about 2 quarts" (saved as an entered yield).</summary>
+    public string? YieldText { get; init; }
+
+    /// <summary>BR-112: the finished product's density, so a weight yield can fill a volume container.</summary>
+    public decimal? FinishedDensityGPerMl { get; init; }
+
+    /// <summary>ADR 0020: the pan, e.g. "9x13" or "9-inch round".</summary>
+    public string? PanText { get; init; }
+
     /// <summary>"Publish" rather than "Save draft" was pressed; BR-01 still decides.</summary>
     public bool WantsPublish { get; init; }
 
@@ -81,6 +90,21 @@ public sealed record RecipeEdit
         if (StepTextRules.Validate(StepTextRules.Split(StepsText)) is { } stepError)
         {
             errors.Add(new(RecipeField.Steps, stepError));
+        }
+
+        if (!string.IsNullOrWhiteSpace(YieldText) && !Measurement.AmountText.TryParse(YieldText, out _))
+        {
+            errors.Add(new(RecipeField.Yield, "Enter what it makes as an amount and unit, e.g. 12 fl oz, 2 quarts or 500 g"));
+        }
+
+        if (Measurement.FoodRules.ValidateDensity(FinishedDensityGPerMl) is { } densityError)
+        {
+            errors.Add(new(RecipeField.FinishedDensity, densityError));
+        }
+
+        if (!string.IsNullOrWhiteSpace(PanText) && Kitchen.PanRules.Parse(PanText) is null)
+        {
+            errors.Add(new(RecipeField.Pan, "Enter the pan like 9x13, 8x8 square, 9-inch round or 9x5 loaf"));
         }
 
         if (Tags.Count > MaxTags)

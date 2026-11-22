@@ -6,7 +6,11 @@ namespace RecipeWarden.Infrastructure.Measurement;
 
 /// <summary>A food row on /manage/conversions.</summary>
 public sealed record FoodRow(int Id, string Name, string? Category, decimal? DensityGPerMl, string Source, string? SourceNote,
-    IReadOnlyList<string> Aliases, int RecipeLines);
+    IReadOnlyList<string> Aliases, int RecipeLines)
+{
+    /// <summary>ADR 0018.</summary>
+    public FoodForm Form { get; init; }
+}
 
 /// <summary>A vague unit (pinch, dash …) and its current value in teaspoons.</summary>
 public sealed record VagueRow(int Id, string Code, string Name, decimal Teaspoons, decimal DefaultTeaspoons);
@@ -36,7 +40,7 @@ public sealed class FoodCatalogService(AppDbContext db, TimeProvider clock)
     {
         var units = await db.Units.AsNoTracking().ToListAsync(cancellationToken).ConfigureAwait(false);
         var foods = await db.Foods.AsNoTracking()
-            .Select(f => new FoodFacts(f.Id, f.Name, f.DensityGPerMl))
+            .Select(f => new FoodFacts(f.Id, f.Name, f.DensityGPerMl, f.Form))
             .ToListAsync(cancellationToken).ConfigureAwait(false);
         var yields = await db.YieldConversions.AsNoTracking()
             .Select(y => new YieldFacts(y.FoodId, y.FromState, y.ToState, y.Ratio, y.RatioMax, y.PreparedDensityGPerMl, y.Basis))
@@ -82,7 +86,7 @@ public sealed class FoodCatalogService(AppDbContext db, TimeProvider clock)
         var foods = await db.Foods.AsNoTracking().Include(f => f.Aliases)
             .Select(f => new
             {
-                f.Id, f.Name, f.NormalizedName, f.Category, f.DensityGPerMl, f.Source, f.SourceNote,
+                f.Id, f.Name, f.NormalizedName, f.Category, f.DensityGPerMl, f.Source, f.SourceNote, f.Form,
                 Aliases = f.Aliases.Select(a => a.Alias).ToList(),
                 AliasKeys = f.Aliases.Select(a => a.NormalizedAlias).ToList(),
                 Lines = db.RecipeIngredients.Count(i => i.FoodId == f.Id),
@@ -93,7 +97,7 @@ public sealed class FoodCatalogService(AppDbContext db, TimeProvider clock)
             .Where(f => key.Length == 0 || f.NormalizedName.Contains(key, StringComparison.Ordinal) || f.AliasKeys.Any(a => a.Contains(key, StringComparison.Ordinal)))
             .OrderBy(f => f.Category).ThenBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
             .Select(f => new FoodRow(f.Id, f.Name, f.Category, f.DensityGPerMl, f.Source, f.SourceNote,
-                f.Aliases.Order(StringComparer.OrdinalIgnoreCase).ToList(), f.Lines))
+                f.Aliases.Order(StringComparer.OrdinalIgnoreCase).ToList(), f.Lines) { Form = f.Form })
             .ToList();
     }
 
@@ -139,6 +143,7 @@ public sealed class FoodCatalogService(AppDbContext db, TimeProvider clock)
             NormalizedName = FoodMatcher.Normalize(clean),
             PluralName = clean,
             DensityGPerMl = density,
+            Form = FoodRules.DefaultForm(clean, null),
             Source = FoodSources.Custom,
             CreatedAt = now,
             UpdatedAt = now,
@@ -152,7 +157,12 @@ public sealed class FoodCatalogService(AppDbContext db, TimeProvider clock)
     }
 
     /// <summary>FR-MEAS-05: changes a food's density and aliases. The name stays: it is what lines were matched on.</summary>
-    public async Task<ConversionEditResult> UpdateFoodAsync(int id, decimal? density, string? aliases, string userId,
+    public Task<ConversionEditResult> UpdateFoodAsync(int id, decimal? density, string? aliases, string userId,
+        CancellationToken cancellationToken = default) =>
+        UpdateFoodAsync(id, density, aliases, null, userId, cancellationToken);
+
+    /// <summary>FR-MEAS-05, ADR 0018: as above, and the food's form when given.</summary>
+    public async Task<ConversionEditResult> UpdateFoodAsync(int id, decimal? density, string? aliases, FoodForm? form, string userId,
         CancellationToken cancellationToken = default)
     {
         if (FoodRules.ValidateDensity(density) is { } error)
@@ -173,6 +183,11 @@ public sealed class FoodCatalogService(AppDbContext db, TimeProvider clock)
         }
 
         food.DensityGPerMl = density;
+        if (form is { } f)
+        {
+            food.Form = f;
+        }
+
         db.FoodAliases.RemoveRange(food.Aliases.Where(a => aliasList.All(n => FoodMatcher.Normalize(n) != a.NormalizedAlias)));
         foreach (var alias in aliasList.Where(n => food.Aliases.All(a => a.NormalizedAlias != FoodMatcher.Normalize(n))))
         {

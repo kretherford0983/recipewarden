@@ -85,6 +85,20 @@ public sealed record RecipeView
     public IReadOnlyList<TagLink> Tags { get; init; } = [];
     public IReadOnlyList<CollectionLink> Collections { get; init; } = [];
     public DateTimeOffset UpdatedAt { get; init; }
+
+    /// <summary>ADR 0019: the stored finished yield (amount, unit code, source) and finished density (BR-112).</summary>
+    public decimal? YieldAmount { get; init; }
+    public string? YieldUnitCode { get; init; }
+    public Core.Kitchen.YieldSource? YieldSource { get; init; }
+    public decimal? FinishedDensityGPerMl { get; init; }
+
+    /// <summary>ADR 0020: the recipe's pan, if entered.</summary>
+    public Core.Kitchen.Pan? Pan { get; init; }
+
+    public DateTimeOffset? LastCookedAt { get; init; }
+
+    /// <summary>ADR 0017: the inventory version this recipe last accepted.</summary>
+    public int InventoryVersionSeen { get; init; }
 }
 
 public sealed record CollectionLink(int Id, string Name, string Slug);

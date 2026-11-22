@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using RecipeWarden.Core.Kitchen;
 using RecipeWarden.Core.Measurement;
 using RecipeWarden.Core.Organization;
 using RecipeWarden.Core.Recipes;
@@ -40,6 +41,11 @@ public sealed class Recipe
     public int? Rating { get; set; }
     public DateTimeOffset? LastCookedAt { get; set; }
     public int InventoryVersionSeen { get; set; }
+
+    /// <summary>ADR 0020: the recipe's pan; width is the diameter of a round pan. Inches.</summary>
+    public PanShape? PanShape { get; set; }
+    public decimal? PanWidth { get; set; }
+    public decimal? PanLength { get; set; }
 
     /// <summary>BR-06: optimistic concurrency token, incremented on every save.</summary>
     public int Version { get; set; }
@@ -189,6 +195,9 @@ public sealed class Food
     /// <summary>Where the numbers came from, e.g. "USDA FoodData Central SR Legacy 168894; 1 cup = 125 g".</summary>
     public string? SourceNote { get; set; }
 
+    /// <summary>ADR 0018: Dry, Liquid, Fat or Other, for BR-22's weight preference.</summary>
+    public FoodForm Form { get; set; }
+
     public int? DefaultPurchaseUnitId { get; set; }
     public decimal? PackageSize { get; set; }
     public int? PackageUnitId { get; set; }
@@ -240,4 +249,64 @@ public sealed class SeedRun
 {
     public string Name { get; set; } = string.Empty;
     public DateTimeOffset AppliedAt { get; set; }
+}
+
+/// <summary>Section 8.4 KitchenTool (FR-TOOL-01). Retired tools are kept for history (FR-TOOL-02).</summary>
+public sealed class KitchenTool
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public ToolType ToolType { get; set; }
+    public int QuantityOwned { get; set; } = 1;
+    public decimal DefaultFillPct { get; set; } = 100m;
+    public decimal? CapacityAmount { get; set; }
+    public int? CapacityUnitId { get; set; }
+    public Unit? CapacityUnit { get; set; }
+    public decimal? ResolutionAmount { get; set; }
+    public int? ResolutionUnitId { get; set; }
+    public Unit? ResolutionUnit { get; set; }
+
+    /// <summary>Unit codes a scale shows, comma-separated ("g,oz").</summary>
+    public string? SupportedUnits { get; set; }
+    public PanShape? PanShape { get; set; }
+    public decimal? PanWidth { get; set; }
+    public decimal? PanLength { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTimeOffset AddedAt { get; set; }
+    public DateTimeOffset? RetiredAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+    public string? UpdatedById { get; set; }
+}
+
+/// <summary>Section 8.4 InventoryVersion (BR-30): one row, incremented by every add, edit, retire or reactivate.</summary>
+public sealed class InventoryVersion
+{
+    public int Id { get; set; }
+    public int Version { get; set; }
+    public DateTimeOffset ChangedAt { get; set; }
+}
+
+/// <summary>ADR 0017: the active tools at a version, so suggestions can be worked out on view without writing.</summary>
+public sealed class InventorySnapshot
+{
+    public int Version { get; set; }
+    public string ToolsJson { get; set; } = "[]";
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+/// <summary>Section 8.2 RecipeSuggestionState (FR-TOOL-05): an editor's dismissal or application of a keyed suggestion.</summary>
+public sealed class RecipeSuggestionState
+{
+    public int RecipeId { get; set; }
+    public string SuggestionKey { get; set; } = string.Empty;
+    public SuggestionStatus Status { get; set; }
+    public int InventoryVersion { get; set; }
+    public DateTimeOffset At { get; set; }
+    public string? ById { get; set; }
+}
+
+public enum SuggestionStatus
+{
+    Dismissed,
+    Applied,
 }
