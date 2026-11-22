@@ -193,3 +193,26 @@ table.list td, table.list th, table.diff td, table.diff th { border-bottom: 1px 
 .pre { white-space: pre-wrap; }
 details.confirm summary { cursor: pointer; min-height: 44px; line-height: 44px; }
 .manage-links { list-style: none; padding: 0; display: grid; gap: .75rem; }
+
+/* M2: recipe toolbar (7.3 item 3), scaled notes, step headings (ADR 0014, ADR 0015). */
+.scale-toolbar { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; align-items: center; margin: 1rem 0 .5rem;
+  padding: .5rem .75rem; border: 1px solid var(--border); border-radius: .375rem; background: var(--surface); }
+.scale-toolbar form { margin: 0; }
+.scale-presets [role="group"] { display: inline-flex; gap: .25rem; margin-left: .5rem; }
+.scale-presets button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.toolbar-label { font-weight: 600; }
+.scale-from summary { cursor: pointer; }
+.scale-status p { margin: .25rem 0; }
+.scaled-note { color: var(--muted); }
+.ingredients .secondary { color: var(--muted); }
+.ingredients .hint { display: block; font-size: .875rem; color: var(--muted); }
+.smart-note { margin: .125rem 0 .5rem; font-size: .875rem; color: var(--muted); }
+.step-title { display: block; }
+table.conversions td input[name="aliases"] { min-width: 12rem; }
+/* Tag picker (ADR 0016) */
+.tag-picker { border: 1px solid var(--border); border-radius: .375rem; padding: .5rem .75rem; }
+.tag-picker details { margin: .25rem 0; }
+.tag-picker summary { cursor: pointer; font-weight: 600; }
+.tag-picker .tag-options { display: flex; flex-wrap: wrap; gap: .25rem 1rem; margin: .375rem 0 .5rem; }
+.tag-picker .tag-options label { font-weight: normal; }
+.tag-picker .chosen { font-weight: normal; color: var(--muted); }

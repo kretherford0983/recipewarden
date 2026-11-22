@@ -1,0 +1,137 @@
+@page "/manage/conversions"
+@model RecipeWarden.Web.Pages.Manage.ConversionsModel
+@using RecipeWarden.Core.Measurement
+@using RecipeWarden.Infrastructure.Data
+@{
+    ViewData["Title"] = "Conversions";
+    var q = Model.Filter;
+}
+<h1>Conversions</h1>
+<p class="hint">Weights per cup, vague amounts and cooked-to-raw estimates used when recipes are scaled or converted.
+    Starting values come from USDA FoodData Central and the USDA Table of Cooking Yields (public domain).</p>
+@if (Model.Message is not null) { <p class="notice" role="status">@Model.Message</p> }
+@if (Model.Error is not null) { <p class="error-summary" role="alert">@Model.Error</p> }
+
+<section aria-labelledby="foods-heading">
+    <h2 id="foods-heading">Foods and densities</h2>
+    <form method="get" action="/manage/conversions" class="inline-form" role="search">
+        <label for="food-filter">Find</label>
+        <input id="food-filter" name="q" type="search" value="@q" maxlength="@FoodRules.MaxNameLength">
+        <button type="submit">Filter</button>
+        @if (!string.IsNullOrEmpty(q)) { <a href="/manage/conversions">Show all</a> }
+    </form>
+
+    <details class="add-food">
+        <summary>Add a food</summary>
+        <form method="post" action="/manage/conversions?handler=AddFood" class="inline-form" asp-antiforgery="true">
+            <label for="new-food">Name</label>
+            <input id="new-food" name="name" maxlength="@FoodRules.MaxNameLength" required>
+            <label for="new-density">g/ml</label>
+            <input id="new-density" name="density" inputmode="decimal" size="6" placeholder="optional">
+            <label for="new-aliases">Other names</label>
+            <input id="new-aliases" name="aliases" placeholder="comma-separated">
+            <button type="submit">Add</button>
+        </form>
+    </details>
+
+    @if (Model.Foods.Count == 0)
+    {
+        <p class="empty-state">No foods match.</p>
+    }
+    else
+    {
+        <table class="list conversions">
+            <caption class="visually-hidden">Foods</caption>
+            <thead><tr><th scope="col">Food</th><th scope="col">Density and other names</th><th scope="col">Recipes</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+            <tbody>
+            @foreach (var f in Model.Foods)
+            {
+                <tr>
+                    <th scope="row">
+                        @f.Name
+                        <span class="hint">@f.Category@(f.Source == FoodSources.Custom ? " · household" : "")</span>
+                    </th>
+                    <td>
+                        <form method="post" action="/manage/conversions?handler=UpdateFood" class="inline-form" asp-antiforgery="true">
+                            <input type="hidden" name="id" value="@f.Id">
+                            <input type="hidden" name="q" value="@q">
+                            <label class="visually-hidden" for="density-@f.Id">Density of @f.Name in g/ml</label>
+                            <input id="density-@f.Id" name="density" value="@ConversionsModel.Number(f.DensityGPerMl)" inputmode="decimal" size="6" title="@f.SourceNote">
+                            <span aria-hidden="true">g/ml</span>
+                            <label class="visually-hidden" for="aliases-@f.Id">Other names for @f.Name</label>
+                            <input id="aliases-@f.Id" name="aliases" value="@string.Join(", ", f.Aliases)" size="30">
+                            <button type="submit">Save</button>
+                        </form>
+                    </td>
+                    <td>@f.RecipeLines</td>
+                    <td>
+                        <details class="confirm">
+                            <summary>Delete…</summary>
+                            <form method="post" action="/manage/conversions?handler=DeleteFood" asp-antiforgery="true">
+                                <input type="hidden" name="id" value="@f.Id">
+                                <p>@f.RecipeLines ingredient line(s) lose their link and keep their text.</p>
+                                <button type="submit" class="danger">Delete “@f.Name”</button>
+                            </form>
+                        </details>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+</section>
+
+<section aria-labelledby="vague-heading">
+    <h2 id="vague-heading">Vague amounts</h2>
+    <table class="list">
+        <thead><tr><th scope="col">Amount</th><th scope="col">Teaspoons</th><th scope="col">Standard</th></tr></thead>
+        <tbody>
+        @foreach (var v in Model.Vague)
+        {
+            <tr>
+                <th scope="row">@v.Name</th>
+                <td>
+                    <form method="post" action="/manage/conversions?handler=UpdateVague" class="inline-form" asp-antiforgery="true">
+                        <input type="hidden" name="id" value="@v.Id">
+                        <label class="visually-hidden" for="vague-@v.Id">One @v.Name in teaspoons</label>
+                        <input id="vague-@v.Id" name="teaspoons" value="@ConversionsModel.Number(v.Teaspoons)" inputmode="decimal" size="6" required>
+                        <button type="submit">Save</button>
+                    </form>
+                </td>
+                <td>@Fractions.Format(Fractions.Nearest(v.DefaultTeaspoons, Fractions.Teaspoon).Value) tsp</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</section>
+
+<section aria-labelledby="yields-heading">
+    <h2 id="yields-heading">Cooked to raw</h2>
+    <p class="hint">Cooking yield is the cooked weight as a percentage of the raw weight; the estimate uses the range.</p>
+    <table class="list">
+        <thead><tr><th scope="col">Food</th><th scope="col">Yield range, cooked g/ml, basis</th></tr></thead>
+        <tbody>
+        @foreach (var y in Model.Yields)
+        {
+            <tr>
+                <th scope="row">@y.FromState @y.Food → @y.ToState</th>
+                <td>
+                    <form method="post" action="/manage/conversions?handler=UpdateYield" class="inline-form" asp-antiforgery="true">
+                        <input type="hidden" name="id" value="@y.Id">
+                        <label for="low-@y.Id">From</label>
+                        <input id="low-@y.Id" name="lowPct" value="@ConversionsModel.Percent(y.RatioMax)" inputmode="decimal" size="4" required>
+                        <label for="high-@y.Id">to</label>
+                        <input id="high-@y.Id" name="highPct" value="@ConversionsModel.Percent(y.Ratio)" inputmode="decimal" size="4" required>
+                        <span aria-hidden="true">%</span>
+                        <label for="ydensity-@y.Id">cooked g/ml</label>
+                        <input id="ydensity-@y.Id" name="density" value="@ConversionsModel.Number(y.PreparedDensityGPerMl)" inputmode="decimal" size="6">
+                        <label for="basis-@y.Id">basis</label>
+                        <input id="basis-@y.Id" name="basis" value="@y.Basis" maxlength="@FoodRules.MaxBasisLength" size="40" required>
+                        <button type="submit">Save</button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</section>

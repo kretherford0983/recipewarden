@@ -29,7 +29,8 @@ public sealed partial class SEC_30_FormTokenTests(RecipeWardenFactory factory) :
         {
             "/", "/recipes", "/recipes/" + slug, "/search?q=form", "/tags/forms", "/collections", "/collections/form-list",
             "/manage", "/manage/recipes/new", $"/manage/recipes/{id}/edit", "/manage/trash", "/manage/tags",
-            "/manage/collections", "/manage/collections?c=form-list",
+            "/manage/collections", "/manage/collections?c=form-list", "/manage/conversions",
+            "/recipes/" + slug + "?scale=2&units=metric",
         };
 
         var forms = 0;

@@ -47,6 +47,10 @@ public sealed class AC_70_AuthMatrixTests(RecipeWardenFactory factory) : IClassF
         ["/manage/trash"] = Access.Editor,
         ["/manage/tags"] = Access.Editor,
         ["/manage/collections"] = Access.Editor,
+
+        // M2 (section 7.2)
+        ["/manage/conversions"] = Access.Editor,
+        ["/account/preferences"] = Access.SignedIn, // FR-UI-02 profile units and default scale (POST only)
     };
 
     public static TheoryData<string> ProtectedRoutes() =>
