@@ -46,7 +46,7 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 
 ## Status by milestone
 
-**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** merged into `develop` (PR #10, 2026-11-22; dev build v0.2.0-dev.9). **M3 Kitchen:** merged into `develop` (PR #11, 2026-11-22); host test pending. **M4 Import:** built on `feature/m4-import` (0.4.0), PR into `develop` open.
+**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** merged into `develop` (PR #10, 2026-11-22; dev build v0.2.0-dev.9). **M3 Kitchen:** merged into `develop` (PR #11, 2026-11-22); host test pending. **M4 Import:** merged into `develop` (PR #12, 2026-11-23); host test pending. **In progress:** M5 Output on `feature/m5-output` (0.5.0).
 
 ### M0 Foundations (built 2026-11-17; deployed and verified 2026-11-20 — DONE)
 
@@ -157,7 +157,7 @@ readers try), ADR 0020 (pan field prefilled from the steps), ADR 0021 (appliance
 | AC-70 / SEC-30 | Extended to `/manage/kitchen`, `/manage/recipes/{id}/cooked` and `/suggestions` | — | Web `AC_70_AuthMatrixTests`, `SEC_30_FormTokenTests` |
 | Migration | `M3_Kitchen`: KitchenTool, InventoryVersion, InventorySnapshot, RecipeSuggestionState; Recipe pan columns; Food.Form (default `Other`, then `food-form-v1` seed) | `Data/Migrations` | Infra store tests |
 
-### M4 Import (built 2026-11-22; PR into `develop`)
+### M4 Import (built 2026-11-22; merged into `develop` 2026-11-23, PR #12 — DONE, host test pending)
 
 Scope decisions: ADR 0022 (WebP + thumbnail; `/media` anonymous only for published recipes' images), ADR 0023 (step
 photos follow their step), ADR 0024 (browser-like User-Agent, paste fallback, imports in the request), ADR 0025

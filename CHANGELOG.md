@@ -3,6 +3,11 @@
 Each release has a `## <version> — unreleased` section until it ships; the GitHub release carries the publish date.
 The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.Build.props` and adds its section.
 
+## 0.5.0 — unreleased
+
+### M5 Output
+- Version bumped to 0.5.0 (docs/branching.md).
+
 ## 0.4.0 — unreleased
 
 ### M4 Import
