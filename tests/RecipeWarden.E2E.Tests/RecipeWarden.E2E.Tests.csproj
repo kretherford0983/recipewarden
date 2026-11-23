@@ -14,4 +14,7 @@
     <Compile Include="..\Shared\TestDatabaseTemplate.cs" Link="Shared\TestDatabaseTemplate.cs" />
     <Compile Include="..\Shared\FakeWeb.cs" Link="Shared\FakeWeb.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="a11y-check.js" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

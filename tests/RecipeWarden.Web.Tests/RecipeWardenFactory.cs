@@ -42,7 +42,7 @@ public sealed partial class RecipeWardenFactory : WebApplicationFactory<Program>
         builder.UseSetting("Data:Directory", dataDirectory);
         builder.UseSetting("Serilog:MinimumLevel:Default", "Warning");
         builder.UseSetting("Operations:Background", "false"); // M7: tests run the scheduler and health monitor by hand
-        // SEC-63: test classes sign in many times from one test IP; SEC_01_PasswordTests checks the limit itself.
+        // SEC-63: test classes sign in many times from one test IP; SEC_63_SignInRateLimitTests checks the limit itself.
         builder.UseSetting("RateLimits:SignInsPerMinute", "100000");
         foreach (var (key, value) in Settings)
         {
