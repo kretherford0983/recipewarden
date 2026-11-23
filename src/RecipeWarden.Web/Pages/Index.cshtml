@@ -1,5 +1,6 @@
 @page
 @model IndexModel
+@using RecipeWarden.Infrastructure.Recipes
 @{
     ViewData["Title"] = "Home";
 }
@@ -22,6 +23,9 @@
 }
 else
 {
+    @await Html.PartialAsync("_RecommendationRow", ("season-heading", "In season", Model.Picks.InSeason))
+    @await Html.PartialAsync("_RecommendationRow", ("favorites-heading", "Favorites", Model.Picks.Favorites))
+    @await Html.PartialAsync("_RecommendationRow", ("lately-heading", "Not cooked lately", Model.Picks.NotCookedLately))
     <section aria-labelledby="recent-heading">
         <h2 id="recent-heading">Recently added</h2>
         <ul class="recipe-grid">

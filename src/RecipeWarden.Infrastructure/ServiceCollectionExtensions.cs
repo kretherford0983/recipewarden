@@ -52,6 +52,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<RecipeService>();
         services.AddScoped<RecipeSearchService>();
         services.AddScoped<CollectionService>();
+        var home = new HomeOptions();
+        configuration.GetSection(HomeOptions.SectionName).Bind(home);
+        services.AddSingleton(home);
+        services.AddScoped<RecommendationService>();
         services.AddScoped<FoodCatalogService>();
         services.AddScoped<MeasurementSeeder>();
         services.AddScoped<RecipeScaler>();
