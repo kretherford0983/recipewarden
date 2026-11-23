@@ -116,7 +116,10 @@ internal static class OperationsCommands
         return 0;
     }
 
-    /// <summary>"recipewarden health": the same checks as /admin/health, for SSH use. Exit 0 OK, 1 Warning, 2 Critical.</summary>
+    /// <summary>
+    /// "recipewarden health": the same checks as /admin/health, for SSH use. Exits like /health/ready: 0 for OK or
+    /// Warning, 2 for Critical (ADR 0037).
+    /// </summary>
     public static async Task<int> HealthAsync(IConfiguration config, TextWriter output, CancellationToken ct)
     {
         // The database basics first (read-only: present, quick_check, WAL); a broken database stops here.
@@ -152,12 +155,7 @@ internal static class OperationsCommands
         }
 
         await output.WriteLineAsync($"Status: {report.Status}").ConfigureAwait(false);
-        return report.Status switch
-        {
-            HealthStatus.OK => 0,
-            HealthStatus.Warning => 1,
-            _ => 2,
-        };
+        return report.Status == HealthStatus.Critical ? 2 : 0;
     }
 
     /// <summary>

@@ -74,7 +74,7 @@ public static class ArchiveRules
             return null;
         }
 
-        return AllowedRoots.Any(r => name == r || name + "/" == r) ? null : $"\"{Shorten(name)}\" is not part of a RecipeWarden backup";
+        return name is "db/" or "db" || AllowedRoots.Any(r => name == r || name + "/" == r) ? null : $"\"{Shorten(name)}\" is not part of a RecipeWarden backup";
     }
 
     /// <summary>

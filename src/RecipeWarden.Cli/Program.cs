@@ -31,7 +31,7 @@ var admin = new Command("admin", "Account administration") { adminCreate };
 root.Subcommands.Add(admin);
 
 // health (FR-OPS-02 for SSH use)
-var health = new Command("health", "Print a health summary (exit 0 OK, 1 Warning, 2 Critical)");
+var health = new Command("health", "Print a health summary (exit 0 OK or Warning, 2 Critical)");
 health.SetAction(async (parse, ct) =>
 {
     var config = CliConfig.Load(CliConfig.ResolvePath(parse.GetValue(configOption)));

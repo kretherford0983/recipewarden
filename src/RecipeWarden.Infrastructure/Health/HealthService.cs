@@ -158,7 +158,15 @@ public sealed partial class HealthService(
         var lastBackup = await db.BackupRecords.AsNoTracking()
             .Where(r => r.Status == BackupStatus.Succeeded && r.DeletedAt == null)
             .OrderByDescending(r => r.Id).Select(r => r.CompletedAt).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
-        checks.Add(HealthRules.Backups(lastBackup, BackupScheduleService.ShortestInterval(schedules, now), unreachable, now));
+        var since = await settings.GetTimeAsync(SettingKeys.TrackingSince, cancellationToken).ConfigureAwait(false);
+        if (since is null)
+        {
+            using var quietSince = AuditScope.Suppress();
+            await settings.SetTimeAsync(SettingKeys.TrackingSince, now, cancellationToken).ConfigureAwait(false);
+            since = now;
+        }
+
+        checks.Add(HealthRules.Backups(lastBackup, BackupScheduleService.ShortestInterval(schedules, now), unreachable, now, since));
 
         var status = HealthRules.Overall(checks);
         var diskStatus = checks.Where(c => c.Name.StartsWith("Disk", StringComparison.Ordinal) || c.Name.StartsWith("Capacity", StringComparison.Ordinal))

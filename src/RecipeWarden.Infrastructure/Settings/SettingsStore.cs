@@ -15,6 +15,7 @@ public static class SettingKeys
     public const string WebhookFormat = "Health.WebhookFormat";
     public const string WebhookAllowLan = "Health.WebhookAllowLan";
     public const string LastStatus = "Health.LastStatus";
+    public const string TrackingSince = "Health.TrackingSince";
     public const string LastIntegrityAt = "Health.LastIntegrityAt";
     public const string LastIntegrityOk = "Health.LastIntegrityOk";
     public const string LastQuickCheckAt = "Health.LastQuickCheckAt";

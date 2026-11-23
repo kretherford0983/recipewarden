@@ -173,7 +173,12 @@ public static class HealthRules
     /// BR-84: Warning when the last successful backup is older than 2x the schedule interval (48 h without a
     /// schedule); Critical after 7 days or when a backup destination is unreachable.
     /// </summary>
-    public static HealthCheck Backups(DateTimeOffset? lastSuccess, TimeSpan? shortestInterval, bool anyDestinationUnreachable, DateTimeOffset now)
+    /// <param name="trackingSince">
+    /// ADR 0037: when the app first measured health. With no backup yet, the age counts from then, so a fresh install is
+    /// not flagged until the same 48 hours (or 2x the schedule) have passed.
+    /// </param>
+    public static HealthCheck Backups(DateTimeOffset? lastSuccess, TimeSpan? shortestInterval, bool anyDestinationUnreachable, DateTimeOffset now,
+        DateTimeOffset? trackingSince = null)
     {
         const string name = "Backups";
         if (anyDestinationUnreachable)
@@ -181,9 +186,14 @@ public static class HealthRules
             return new HealthCheck(name, HealthStatus.Critical, "A backup folder is unreachable: " + BackupFolderHint);
         }
 
+        var limit = shortestInterval is { } i ? i * 2 : NoScheduleBackupAge;
         if (lastSuccess is not { } last)
         {
-            return new HealthCheck(name, HealthStatus.Warning, "No backup has been made yet. Use Back up now or add a schedule.");
+            var waited = now - (trackingSince ?? now - limit - TimeSpan.FromSeconds(1));
+            var none = "No backup has been made yet. Use Back up now or add a schedule.";
+            return waited > CriticalBackupAge ? new HealthCheck(name, HealthStatus.Critical, none)
+                : waited > limit ? new HealthCheck(name, HealthStatus.Warning, none)
+                : new HealthCheck(name, HealthStatus.OK, none);
         }
 
         var age = now - last;
@@ -193,7 +203,6 @@ public static class HealthRules
             return new HealthCheck(name, HealthStatus.Critical, text);
         }
 
-        var limit = shortestInterval is { } i ? i * 2 : NoScheduleBackupAge;
         return age > limit ? new HealthCheck(name, HealthStatus.Warning, text) : new HealthCheck(name, HealthStatus.OK, text);
     }
 

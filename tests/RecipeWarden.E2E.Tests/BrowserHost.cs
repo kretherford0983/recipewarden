@@ -37,12 +37,20 @@ public sealed class BrowserHost : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Data:Directory", dataDirectory);
         builder.UseSetting("Kestrel:Endpoints:Http:Url", "http://127.0.0.1:0");
         builder.UseSetting("Serilog:MinimumLevel:Default", "Warning");
+        builder.UseSetting("Operations:Background", "false"); // M7: no scheduler or monitor during browser tests
         builder.ConfigureServices(s =>
         {
             s.UseFastPasswordHashing();
+            s.AddSingleton<RecipeWarden.Infrastructure.Health.IVolumeProbe>(new RoomyDisk());
             s.AddSingleton<IDnsResolver>(Web);
             s.AddSingleton<ISocketConnector>(Web);
         });
+    }
+
+    /// <summary>Browser tests never depend on the build machine's disk (BR-81).</summary>
+    private sealed class RoomyDisk : RecipeWarden.Infrastructure.Health.IVolumeProbe
+    {
+        public (long Total, long Free) Measure(string path) => (100L * 1024 * 1024 * 1024, 60L * 1024 * 1024 * 1024);
     }
 
     public async ValueTask InitializeAsync()

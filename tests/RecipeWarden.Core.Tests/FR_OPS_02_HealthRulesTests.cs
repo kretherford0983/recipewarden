@@ -109,6 +109,16 @@ public sealed class FR_OPS_02_HealthRulesTests
     }
 
     [Fact]
+    [Trait("Req", "BR-84")]
+    public void Without_any_backup_the_age_counts_from_when_tracking_started()
+    {
+        HealthRules.Backups(null, null, false, Now, trackingSince: Now.AddHours(-1)).Status.ShouldBe(HealthStatus.OK);
+        HealthRules.Backups(null, null, false, Now, trackingSince: Now.AddHours(-49)).Status.ShouldBe(HealthStatus.Warning);
+        HealthRules.Backups(null, TimeSpan.FromDays(7), false, Now, trackingSince: Now.AddDays(-8)).Status.ShouldBe(HealthStatus.Critical);
+        HealthRules.Backups(null, null, false, Now, trackingSince: Now.AddHours(-1)).Message.ShouldContain("No backup");
+    }
+
+    [Fact]
     [Trait("Req", "BR-80")]
     public void Overall_is_the_worst_check()
     {

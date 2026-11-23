@@ -19,6 +19,7 @@ public sealed class SEC_54_ArchiveRulesTests
     [InlineData("keys/key-1.xml")]
     [InlineData("config/appsettings.Production.json")]
     [InlineData("media/")]
+    [InlineData("db/")]
     public void Expected_entries_are_accepted(string name) => ArchiveRules.CheckEntryName(name).ShouldBeNull();
 
     [Theory]

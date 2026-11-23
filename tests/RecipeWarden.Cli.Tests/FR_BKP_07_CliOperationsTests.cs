@@ -108,9 +108,9 @@ public sealed class FR_BKP_07_CliOperationsTests : IDisposable
         var output = new StringWriter();
         var exit = await OperationsCommands.HealthAsync(Config(), output, Ct);
         output.ToString().ShouldContain("quick_check: ok");
-        output.ToString().ShouldContain("[Warning] Backups: No backup has been made yet");
+        output.ToString().ShouldContain("[OK] Backups: No backup has been made yet", customMessage: "a fresh install has 48 hours (ADR 0037)");
         output.ToString().ShouldContain("Status: ");
-        exit.ShouldBeInRange(1, 2); // no backup yet → at least Warning; the build machine's disk may add Critical
+        exit.ShouldBeInRange(0, 2); // the build machine's disk decides between OK, Warning and Critical
     }
 
     [Fact]
