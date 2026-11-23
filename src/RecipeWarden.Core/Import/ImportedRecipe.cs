@@ -67,6 +67,12 @@ public sealed record ImportedRecipe
 
     public ExtractionMethod Method { get; init; }
 
+    /// <summary>recipe-md's <c>slug:</c>, used to match an AI reply to its recipe (ADR 0033).</summary>
+    public string? Slug { get; init; }
+
+    /// <summary>recipe-md's "## Changes" section (BR-95); it is also added to <see cref="Notes"/>.</summary>
+    public string? Changes { get; init; }
+
     /// <summary>Notes about the extraction itself, e.g. a yield that could not be used.</summary>
     public IReadOnlyList<string> Remarks { get; init; } = [];
 

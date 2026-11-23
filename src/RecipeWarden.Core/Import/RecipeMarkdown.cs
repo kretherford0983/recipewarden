@@ -154,6 +154,8 @@ public static partial class RecipeMarkdown
             SourceAuthor = Blank(source?.Text("author")),
             SourceUrl = Blank(source?.Text("url")),
             Method = ExtractionMethod.RecipeMarkdown,
+            Slug = Blank(meta.Text("slug")),
+            Changes = ImportText.Block(changes, RecipeEdit.MaxNotesLength),
         };
     }
 
