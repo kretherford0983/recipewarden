@@ -86,9 +86,11 @@ public static class RecipeWardenHost
             o.Conventions.AllowAnonymousToPage("/Tags/Details");
             o.Conventions.AllowAnonymousToPage("/Collections/Index");
             o.Conventions.AllowAnonymousToPage("/Collections/Details");
+            o.Conventions.AllowAnonymousToPage("/Media"); // ADR 0022: the page itself decides (published recipes only)
             // SEC-63: search and browse are limited per IP.
             o.Conventions.AddPageApplicationModelConvention("/Search", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.SearchPolicy)));
             o.Conventions.AddPageApplicationModelConvention("/Recipes/Index", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.SearchPolicy)));
+            o.Conventions.AddPageApplicationModelConvention("/Manage/Import/Index", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.UrlImportPolicy)));
             o.Conventions.AuthorizeFolder("/Manage", AppPolicies.CanEditRecipes);
             o.Conventions.AuthorizeFolder("/Admin", AppPolicies.CanAdminister);
         });

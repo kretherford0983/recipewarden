@@ -155,8 +155,15 @@ internal sealed class FakeWeb : IDnsResolver, ISocketConnector, IAsyncDisposable
         }
     }
 
+    private int disposed;
+
     public async ValueTask DisposeAsync()
     {
+        if (Interlocked.Exchange(ref disposed, 1) == 1)
+        {
+            return;
+        }
+
         await stop.CancelAsync();
         listener.Stop();
         try

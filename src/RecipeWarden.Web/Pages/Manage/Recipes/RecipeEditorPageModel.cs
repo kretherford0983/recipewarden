@@ -37,6 +37,12 @@ public abstract class RecipeEditorPageModel(TagService tags) : PageModel
 
     public abstract string FormAction { get; }
 
+    /// <summary>BR-10, ADR 0025: on an import review the web credit is shown but cannot be changed.</summary>
+    public virtual bool CreditLocked => false;
+
+    /// <summary>ADR 0025: extra fields inside the form (the review page's image and duplicate choices).</summary>
+    public virtual string? ExtraPartial => null;
+
     /// <summary>W2 step 3: live parse of the ingredient lines, shown as chips (htmx partial; POST with antiforgery).</summary>
     public PartialViewResult OnPostParse() =>
         Partial("_IngredientPreview", IngredientLineParser.ParseList(Input.Ingredients));

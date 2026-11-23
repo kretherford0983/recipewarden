@@ -29,6 +29,10 @@ public abstract class RecipeListPageModel(RecipeSearchService search, TagService
     [BindProperty(SupportsGet = true, Name = "rating")]
     public string? MinRating { get; set; }
 
+    /// <summary>"1": only recipes with a finish image (FR-SRCH-02).</summary>
+    [BindProperty(SupportsGet = true, Name = "image")]
+    public string? HasImage { get; set; }
+
     [BindProperty(SupportsGet = true, Name = "sort")]
     public string? Sort { get; set; }
 
@@ -68,6 +72,7 @@ public abstract class RecipeListPageModel(RecipeSearchService search, TagService
             Collection = fixedCollection ?? Collection,
             MaxMinutes = MaxMinutes,
             MinRating = MinRating,
+            HasImage = HasImage,
             Sort = Sort,
             Page = PageNumber,
         });
@@ -102,6 +107,7 @@ public abstract class RecipeListPageModel(RecipeSearchService search, TagService
         Add("collection", Collection);
         Add("time", MaxMinutes);
         Add("rating", MinRating);
+        Add("image", HasImage);
         Add("sort", Sort);
         Add("status", ShowingDrafts ? "draft" : null);
         Add("page", key == "page" ? value : null);

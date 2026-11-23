@@ -151,6 +151,17 @@
         <label asp-for="Input.IsPrecision">Baking / precision recipe <span class="hint">(tighter rounding when scaling)</span></label>
     </div>
 
+    @if (Model.CreditLocked)
+    {
+        <fieldset class="source">
+            <legend>Source</legend>
+            <p>From <a href="@Model.Input.SourceUrl" rel="noopener noreferrer nofollow" target="_blank">@(Model.Input.SourceName ?? Model.Input.SourceUrl)</a>@if (!string.IsNullOrEmpty(Model.Input.SourceAuthor)) { <text> by @Model.Input.SourceAuthor</text> }.</p>
+            <p class="hint">The credit for a web recipe is kept as imported (BR-10).</p>
+            <input type="hidden" asp-for="Input.SourceType">
+        </fieldset>
+    }
+    else
+    {
     <fieldset class="source">
         <legend>Source</legend>
         <div class="field">
@@ -179,6 +190,12 @@
             <span asp-validation-for="Input.SourceAuthor" class="field-error"></span>
         </div>
     </fieldset>
+    }
+
+    @if (Model.ExtraPartial is not null)
+    {
+        <partial name="@Model.ExtraPartial" model="Model" />
+    }
 
     <div class="actions">
         <button type="submit" name="Action" value="publish" class="primary">Publish</button>

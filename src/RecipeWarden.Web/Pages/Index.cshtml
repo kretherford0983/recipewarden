@@ -28,7 +28,8 @@ else
             @foreach (var r in Model.Recent)
             {
                 <li class="recipe-card">
-                    <a href="/recipes/@r.Slug"><h3>@r.Title</h3></a>
+                    @if (r.ImageId is not null) { <img class="thumb" src="/media/@r.ImageId/thumb" alt="" loading="lazy"> }
+                <a href="/recipes/@r.Slug"><h3>@r.Title</h3></a>
                     @if (r.Summary is not null) { <p>@r.Summary</p> }
                     @if (r.TotalMinutes is not null) { <p class="meta">@r.TimeText</p> }
                 </li>

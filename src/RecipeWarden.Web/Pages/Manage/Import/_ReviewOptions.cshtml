@@ -1,0 +1,19 @@
+@model RecipeWarden.Web.Pages.Manage.Import.ReviewModel
+@* ADR 0025: inside the editor form on the review page. *@
+<fieldset class="review-options">
+    <legend>Import</legend>
+    @if (Model.Review!.ImageUrl is { } image)
+    {
+        <div class="field checkbox">
+            <input id="CopyImage" name="CopyImage" type="checkbox" value="true" checked="@Model.CopyImage">
+            <label for="CopyImage">Copy the finished-dish image from the source <span class="hint">(@image)</span></label>
+        </div>
+    }
+    @if (Model.Review.Duplicate is not null)
+    {
+        <div class="field checkbox" id="SaveAnyway_field">
+            <input id="SaveAnyway" name="SaveAnyway" type="checkbox" value="true" checked="@Model.SaveAnyway">
+            <label for="SaveAnyway">Save anyway (keep both recipes)</label>
+        </div>
+    }
+</fieldset>

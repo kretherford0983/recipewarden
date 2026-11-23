@@ -1,6 +1,9 @@
 using System.Net;
 using Microsoft.Extensions.DependencyInjection;
 using RecipeWarden.Core.Recipes;
+using RecipeWarden.Infrastructure.Data;
+using RecipeWarden.Infrastructure.Import;
+using RecipeWarden.Infrastructure.Media;
 using RecipeWarden.Infrastructure.Recipes;
 
 namespace RecipeWarden.Web.Tests;
@@ -82,6 +85,32 @@ internal static class WebTestHelpers
         var collections = scope.ServiceProvider.GetRequiredService<CollectionService>();
         var c = await collections.CreateAsync("Sample List", null, "seed", Ct);
         await collections.AddRecipeAsync(c.Id, outcome.Id, Ct);
+
+        // M4: a published recipe's image with a known id (/media), and an import waiting for review (job 1).
+        var data = scope.ServiceProvider.GetRequiredService<DataOptions>();
+        var (encoded, _) = ImageEncoder.Encode(SampleJpeg());
+        var folder = Path.Combine(data.MediaDirectory, SampleImageId[..2]);
+        Directory.CreateDirectory(folder);
+        await File.WriteAllBytesAsync(Path.Combine(folder, SampleImageId + ".webp"), encoded!.Full, Ct);
+        await File.WriteAllBytesAsync(Path.Combine(folder, SampleImageId + ".thumb.webp"), encoded.Thumb, Ct);
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Images.Add(new Image { Id = SampleImageId, StoragePath = SampleImageId[..2] + "/" + SampleImageId + ".webp", Width = encoded.Width, Height = encoded.Height });
+        await db.SaveChangesAsync(Ct);
+        await recipes.SetFinishImageAsync(outcome.Id, SampleImageId, "seed", Ct);
+        await scope.ServiceProvider.GetRequiredService<ImportService>()
+            .StartPasteAsync("Sample Import\n\nIngredients\n1 egg\n\nSteps\nBoil.", null, false, "seed", Ct);
+    }
+
+    public const string SampleImageId = "0123456789abcdef0123456789abcdef";
+
+    /// <summary>A small JPEG made with SkiaSharp (no binary fixtures).</summary>
+    public static byte[] SampleJpeg(int width = 64, int height = 48)
+    {
+        using var bitmap = new SkiaSharp.SKBitmap(width, height);
+        bitmap.Erase(new SkiaSharp.SKColor(120, 160, 60));
+        using var image = SkiaSharp.SKImage.FromBitmap(bitmap);
+        using var encoded = image.Encode(SkiaSharp.SKEncodedImageFormat.Jpeg, 85);
+        return encoded.ToArray();
     }
 
     public const string SampleRecipeSlug = "sample-soup";
@@ -93,5 +122,31 @@ internal static class WebTestHelpers
         .Replace("/recipes/{slug}", "/recipes/" + SampleRecipeSlug, StringComparison.Ordinal)
         .Replace("/tags/{slug}", "/tags/" + SampleTagSlug, StringComparison.Ordinal)
         .Replace("/collections/{slug}", "/collections/" + SampleCollectionSlug, StringComparison.Ordinal)
+        .Replace("/media/{id}/{variant?}", "/media/" + SampleImageId, StringComparison.Ordinal)
         .Replace("{id:int}", "1", StringComparison.Ordinal);
+}
+
+/// <summary>Multipart form posts (file uploads) with the user's antiforgery token.</summary>
+internal static class MultipartHelpers
+{
+    public static async Task<HttpResponseMessage> PostFilesAsync(this HttpClient client, string url, IEnumerable<(string Field, string FileName, byte[] Bytes)> files,
+        params (string Key, string Value)[] fields)
+    {
+        var token = await RecipeWardenFactory.GetAntiforgeryTokenAsync(client, "/manage");
+        using var content = new MultipartFormDataContent();
+        content.Add(new StringContent(token), "__RequestVerificationToken");
+        foreach (var (key, value) in fields)
+        {
+            content.Add(new StringContent(value), key);
+        }
+
+        foreach (var (field, name, bytes) in files)
+        {
+            var part = new ByteArrayContent(bytes);
+            part.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+            content.Add(part, field, name);
+        }
+
+        return await client.PostAsync(url, content, TestContext.Current.CancellationToken);
+    }
 }

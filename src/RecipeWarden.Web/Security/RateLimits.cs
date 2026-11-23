@@ -14,12 +14,22 @@ public sealed class RateLimitOptions
 
     /// <summary>Unsafe requests (POST, PUT, PATCH, DELETE) per signed-in user per minute.</summary>
     public int WritesPerMinute { get; set; } = 120;
+
+    /// <summary>SEC-43: URL imports per user per hour.</summary>
+    public int UrlImportsPerHour { get; set; } = 20;
 }
 
-/// <summary>SEC-63: search 60/min per IP; writes 120/min per user. Over the limit: 429 with Retry-After.</summary>
+/// <summary>
+/// SEC-63: search 60/min per IP; writes 120/min per user. SEC-43: URL imports 20 an hour per user. Over the limit:
+/// 429 with Retry-After.
+/// </summary>
 internal static class RateLimits
 {
     public const string SearchPolicy = "search";
+    public const string UrlImportPolicy = "url-import";
+
+    /// <summary>The import page handler that fetches a URL (SEC-43); other handlers on that page are not counted.</summary>
+    public const string UrlImportHandler = "Url";
 
     public static IServiceCollection AddRecipeWardenRateLimits(this IServiceCollection services, IConfiguration configuration)
     {
@@ -39,6 +49,20 @@ internal static class RateLimits
             o.AddPolicy(SearchPolicy, ctx => RateLimitPartition.GetFixedWindowLimiter(
                 "ip:" + (ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
                 _ => Window(options.SearchPerMinute)));
+
+            // SEC-43: only the POST that fetches a page counts; opening the import page does not.
+            o.AddPolicy(UrlImportPolicy, ctx =>
+                HttpMethods.IsPost(ctx.Request.Method)
+                    && string.Equals(ctx.Request.Query["handler"], UrlImportHandler, StringComparison.OrdinalIgnoreCase)
+                    && ctx.User.FindFirstValue(ClaimTypes.NameIdentifier) is { } id
+                    ? RateLimitPartition.GetFixedWindowLimiter("import:" + id, _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = Math.Max(1, options.UrlImportsPerHour),
+                        Window = TimeSpan.FromHours(1),
+                        QueueLimit = 0,
+                        AutoReplenishment = true,
+                    })
+                    : RateLimitPartition.GetNoLimiter(string.Empty));
 
             o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
             {
