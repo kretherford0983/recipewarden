@@ -4,8 +4,11 @@ using RecipeWarden.Core.Recipes;
 using RecipeWarden.Core.Search;
 using RecipeWarden.Infrastructure.Data;
 using RecipeWarden.Infrastructure.Identity;
+using RecipeWarden.Infrastructure.Import;
 using RecipeWarden.Infrastructure.Kitchen;
 using RecipeWarden.Infrastructure.Measurement;
+using RecipeWarden.Infrastructure.Media;
+using RecipeWarden.Tests.Shared;
 using RecipeWarden.Infrastructure.Recipes;
 
 namespace RecipeWarden.Infrastructure.Tests;
@@ -35,9 +38,16 @@ internal sealed class RecipeTestScope : IAsyncDisposable
     public KitchenService Kitchen => scope.ServiceProvider.GetRequiredService<KitchenService>();
     public SuggestionService Suggestions => scope.ServiceProvider.GetRequiredService<SuggestionService>();
     public DatabaseInitializer Initializer => scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
+    public ImportService Import => scope.ServiceProvider.GetRequiredService<ImportService>();
+    public ImageStore Images => scope.ServiceProvider.GetRequiredService<ImageStore>();
+    public DataOptions Data => scope.ServiceProvider.GetRequiredService<DataOptions>();
 
-    public static async Task<RecipeTestScope> CreateAsync(TimeProvider? clock = null) =>
-        new(await TestDatabase.CreateAsync(clock: clock));
+    public static async Task<RecipeTestScope> CreateAsync(TimeProvider? clock = null, FakeWeb? web = null) =>
+        new(await TestDatabase.CreateAsync(clock: clock, configure: web is null ? null : s =>
+        {
+            s.AddSingleton<IDnsResolver>(web);
+            s.AddSingleton<ISocketConnector>(web);
+        }));
 
     /// <summary>A second, independent scope on the same database (another user's request).</summary>
     public AsyncServiceScope NewScope() => tdb.Provider.CreateAsyncScope();

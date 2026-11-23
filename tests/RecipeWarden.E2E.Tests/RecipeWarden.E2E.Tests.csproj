@@ -12,5 +12,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Shared\TestDatabaseTemplate.cs" Link="Shared\TestDatabaseTemplate.cs" />
+    <Compile Include="..\Shared\FakeWeb.cs" Link="Shared\FakeWeb.cs" />
   </ItemGroup>
 </Project>

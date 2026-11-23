@@ -66,6 +66,12 @@ public sealed class DetailsModel(RecipeService recipes, CollectionService collec
 
     public bool ShowWeights => string.Equals(Weights, "show", StringComparison.Ordinal);
 
+    /// <summary>ADR 0025: after an import whose image could not be copied ("image=failed").</summary>
+    [FromQuery(Name = "image")]
+    public string? ImageNote { get; set; }
+
+    public bool ImageCopyFailed => CanEdit && string.Equals(ImageNote, "failed", StringComparison.Ordinal);
+
     public bool FitRequested => FitToolId is not null || !string.IsNullOrWhiteSpace(FitCapacity);
 
     public async Task<IActionResult> OnGetAsync([FromRoute] string slug, string? scale, string? servings, string? units,

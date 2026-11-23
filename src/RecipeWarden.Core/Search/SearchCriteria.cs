@@ -20,6 +20,9 @@ public sealed record SearchInput
     public string? Collection { get; init; }
     public string? MaxMinutes { get; init; }
     public string? MinRating { get; init; }
+
+    /// <summary>"1" lists only recipes with a finish image (FR-SRCH-02, M4).</summary>
+    public string? HasImage { get; init; }
     public string? Sort { get; init; }
     public string? Page { get; init; }
 }
@@ -27,7 +30,7 @@ public sealed record SearchInput
 /// <summary>
 /// FR-SRCH-01/02: checked search criteria. Every value is parsed against an allow-list or a range; anything else
 /// is dropped, so nothing from the query string reaches SQL except as a typed parameter.
-/// "Free of" allergens is M6 and "has image" is M4 (ADR 0009).
+/// "Free of" allergens is M6 (ADR 0009).
 /// </summary>
 public sealed record SearchCriteria
 {
@@ -49,6 +52,7 @@ public sealed record SearchCriteria
     public string? CollectionSlug { get; init; }
     public int? MaxTotalMinutes { get; init; }
     public int? MinRating { get; init; }
+    public bool HasImage { get; init; }
     public SearchSort Sort { get; init; } = SearchSort.Newest;
     public int Page { get; init; } = 1;
 
@@ -73,6 +77,7 @@ public sealed record SearchCriteria
             CollectionSlug = SlugRules.IsValid(input.Collection) ? input.Collection : null,
             MaxTotalMinutes = InRange(input.MaxMinutes, 1, MaxMinutesLimit),
             MinRating = InRange(input.MinRating, 1, 5),
+            HasImage = input.HasImage == "1",
             Sort = sort,
             Page = Math.Clamp(ParseWhole(input.Page) ?? 1, 1, MaxPage),
         };

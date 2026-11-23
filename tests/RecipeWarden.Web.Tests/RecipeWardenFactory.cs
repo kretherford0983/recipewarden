@@ -8,6 +8,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using RecipeWarden.Core.Security;
 using RecipeWarden.Infrastructure.Data;
+using RecipeWarden.Infrastructure.Import;
 using RecipeWarden.Tests.Shared;
 
 namespace RecipeWarden.Web.Tests;
@@ -22,6 +23,9 @@ public sealed partial class RecipeWardenFactory : WebApplicationFactory<Program>
     public const string Password = "correct horse battery staple";
 
     private readonly string dataDirectory = Path.Combine(Path.GetTempPath(), "rw-web-" + Guid.NewGuid().ToString("N"));
+
+    /// <summary>ADR 0024: the pretend internet every import fetch goes to (no real network in tests).</summary>
+    internal FakeWeb Web { get; } = new();
 
     /// <summary>Extra settings a test class can add before the host starts.</summary>
     public Dictionary<string, string?> Settings { get; } = new();
@@ -41,6 +45,8 @@ public sealed partial class RecipeWardenFactory : WebApplicationFactory<Program>
         {
             s.AddSingleton<IStartupFilter, TestRemoteIpStartupFilter>();
             s.UseFastPasswordHashing();
+            s.AddSingleton<IDnsResolver>(Web);
+            s.AddSingleton<ISocketConnector>(Web);
         });
     }
 
@@ -109,6 +115,7 @@ public sealed partial class RecipeWardenFactory : WebApplicationFactory<Program>
         base.Dispose(disposing);
         if (disposing)
         {
+            Web.DisposeAsync().AsTask().GetAwaiter().GetResult();
             SqliteConnection.ClearAllPools();
             try
             {

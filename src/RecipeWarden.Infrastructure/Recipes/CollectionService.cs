@@ -42,11 +42,11 @@ public sealed class CollectionService(AppDbContext db, TimeProvider clock)
                           where cr.CollectionId == c.Id
                           orderby cr.SortOrder
                           select new { r.Id, r.Slug, r.Title, r.Description, r.TotalMinutes, r.TotalMinutesMax, r.PrepMinutes, r.PrepMinutesMax,
-                              r.CookMinutes, r.CookMinutesMax, r.Rating, r.Status })
+                              r.CookMinutes, r.CookMinutesMax, r.Rating, r.Status, r.FinishImageId })
             .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         var cards = rows.Select(r => RecipeSearchService.Card(r.Id, r.Slug, r.Title, r.Description, (r.TotalMinutes, r.TotalMinutesMax),
-            (r.PrepMinutes, r.PrepMinutesMax), (r.CookMinutes, r.CookMinutesMax), r.Rating, r.Status)).ToList();
+            (r.PrepMinutes, r.PrepMinutesMax), (r.CookMinutes, r.CookMinutesMax), r.Rating, r.Status, r.FinishImageId)).ToList();
         return new CollectionView(c.Id, c.Name, c.Slug, c.Description, c.Version, cards);
     }
 

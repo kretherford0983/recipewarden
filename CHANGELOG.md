@@ -3,6 +3,18 @@
 Each release has a `## <version> — unreleased` section until it ships; the GitHub release carries the publish date.
 The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.Build.props` and adds its section.
 
+## 0.4.0 — unreleased
+
+### M4 Import
+- Version bumped to 0.4.0 (docs/branching.md).
+- Import from a web address: schema.org JSON-LD, microdata or headings; credit kept and locked; optional copy of the finished-dish image (FR-IMP-01..03, AC-10..12; ADR 0024).
+- SafeFetcher: DNS vetted before connecting, no home-network or metadata addresses, redirects re-checked, 10 s and 5 MB caps; 20 URL imports an hour (SEC-40..43, AC-13).
+- When a site blocks importing, paste the page text or saved HTML instead (ADR 0024).
+- Import files: recipe-md v1, Markdown, .txt, Word .docx and text PDFs, several recipes per file; macro, legacy, encrypted, scanned and oversized files refused (FR-IMP-04/05, AC-14, AC-15).
+- Review page: the editor form filled from the import, with warnings and a possible-duplicate choice (FR-IMP-06/07, AC-16; ADR 0025). Imports kept 30 days (FR-IMP-08).
+- Photos: finished-dish and step photos, re-encoded as WebP without location data, with thumbnails; published recipes' photos are public, drafts' are not (FR-REC-01, SEC-52; ADR 0022, ADR 0023). "With a photo" filter on browse.
+- AI parser moved to M8 (ADR 0026). Spec v0.13; ADRs 0022–0026.
+
 ## 0.3.0 — unreleased
 
 ### M3 Kitchen

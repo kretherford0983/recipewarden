@@ -6,8 +6,10 @@ using Microsoft.Extensions.DependencyInjection;
 using RecipeWarden.Core.Security;
 using RecipeWarden.Infrastructure.Data;
 using RecipeWarden.Infrastructure.Identity;
+using RecipeWarden.Infrastructure.Import;
 using RecipeWarden.Infrastructure.Kitchen;
 using RecipeWarden.Infrastructure.Measurement;
+using RecipeWarden.Infrastructure.Media;
 using RecipeWarden.Infrastructure.Recipes;
 
 namespace RecipeWarden.Infrastructure;
@@ -45,6 +47,16 @@ public static class ServiceCollectionExtensions
         services.AddScoped<KitchenService>();
         services.AddScoped<KitchenSeeder>();
         services.AddScoped<SuggestionService>();
+
+        // M4 import and images (ADR 0022 to 0025): one fetcher for the process; every fetch goes through it.
+        var import = new ImportOptions();
+        configuration.GetSection(ImportOptions.SectionName).Bind(import);
+        services.AddSingleton(import);
+        services.AddSingleton<IDnsResolver, SystemDnsResolver>();
+        services.AddSingleton<ISocketConnector, TcpSocketConnector>();
+        services.AddSingleton<SafeFetcher>();
+        services.AddScoped<ImageStore>();
+        services.AddScoped<ImportService>();
         return services;
     }
 

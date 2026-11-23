@@ -36,6 +36,15 @@
         }
     </header>
 
+    @if (Model.ImageCopyFailed)
+    {
+        <p class="notice" role="status">@RecipeWarden.Infrastructure.Import.ImportService.ImageNotCopied. You can add a photo on the edit page.</p>
+    }
+    @if (r.FinishImageId is not null)
+    {
+        <img class="finish-image" src="/media/@r.FinishImageId" alt="@r.Title">
+    }
+
     <section class="recipe-meta" aria-label="About this recipe">
         @if (r.Description is not null)
         {
@@ -274,6 +283,7 @@
                             <li>
                                 @if (step.Title is not null) { <strong class="step-title">@step.Title</strong> }
                                 @step.Text
+                                @if (step.ImageId is not null) { <img class="step-image" src="/media/@step.ImageId" alt="" loading="lazy"> }
                             </li>
                         }
                     </ol>

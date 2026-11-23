@@ -56,6 +56,11 @@ public sealed class AC_70_AuthMatrixTests(RecipeWardenFactory factory) : IClassF
         ["/manage/kitchen"] = Access.Editor,
         ["/manage/recipes/{id:int}/cooked"] = Access.Editor,
         ["/manage/recipes/{id:int}/suggestions"] = Access.Editor,
+
+        // M4 (section 7.2; ADR 0022: /media is anonymous for published recipes' images only, checked by the page)
+        ["/manage/import"] = Access.Editor,
+        ["/manage/import/{id:int}/review"] = Access.Editor,
+        ["/media/{id}/{variant?}"] = Access.Anonymous,
     };
 
     public static TheoryData<string> ProtectedRoutes() =>

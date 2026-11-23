@@ -1,0 +1,63 @@
+@page "/manage/import/{id:int}/review"
+@model RecipeWarden.Web.Pages.Manage.Import.ReviewModel
+@using RecipeWarden.Infrastructure.Data
+@{
+    ViewData["Title"] = "Review " + (Model.Input.Title ?? "import");
+    var review = Model.Review!;
+}
+<p class="breadcrumb"><a href="/manage">Manage</a> › <a href="/manage/import">Import</a> ›</p>
+<h1>Review import</h1>
+<p class="hint">From @review.Kind: @review.SourceRef</p>
+
+@if (review.Batch.Count > 1)
+{
+    <nav class="import-batch" aria-label="Recipes in this import">
+        <p>This import found @review.Batch.Count recipes:</p>
+        <ol>
+            @foreach (var j in review.Batch)
+            {
+                <li>
+                    @if (j.Id == review.JobId) { <strong aria-current="page">@j.Title</strong> }
+                    else { <a href="/manage/import/@j.Id/review">@j.Title</a> }
+                    @if (j.Status != ImportStatus.Review) { <span class="badge">@j.Status</span> }
+                </li>
+            }
+        </ol>
+    </nav>
+}
+
+@if (review.Status != ImportStatus.Review)
+{
+    <p class="notice" role="status">@RecipeWarden.Web.Pages.Manage.Import.ReviewModel.AlreadyDone
+        @if (review.CreatedRecipeId is int saved) { <a href="/manage/recipes/@saved/edit">Open the recipe</a> }
+    </p>
+}
+
+@if (review.Duplicate is { } dup)
+{
+    <div class="notice duplicate" role="alert">
+        <p><strong>Possible duplicate:</strong> you already have <a href="/recipes/@dup.Slug">@dup.Title</a>.</p>
+        <p>Open the existing recipe, or tick “Save anyway” below to keep both.</p>
+    </div>
+}
+
+@if (review.Warnings.Count > 0)
+{
+    <section class="notice import-warnings" aria-labelledby="warnings-heading">
+        <h2 id="warnings-heading">Check before saving</h2>
+        <ul>
+            @foreach (var w in review.Warnings)
+            {
+                <li>@w.Message@if (w.Line is not null) { <text>: </text><q>@w.Line</q> }</li>
+            }
+        </ul>
+    </section>
+}
+
+@if (review.Status == ImportStatus.Review)
+{
+    <partial name="/Pages/Manage/Recipes/_EditorForm.cshtml" model="Model" />
+    <form method="post" action="/manage/import/@review.JobId/review?handler=Discard" asp-antiforgery="true" class="discard">
+        <button type="submit">Discard this import</button>
+    </form>
+}

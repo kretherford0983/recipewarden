@@ -51,6 +51,7 @@
         <option value="title" selected="@(Model.Criteria.Sort == SearchSort.Title)">Title</option>
         <option value="lastcooked" selected="@(Model.Criteria.Sort == SearchSort.LastCooked)">Last cooked</option>
     </select>
+    <label class="inline"><input type="checkbox" name="image" value="1" checked="@Model.Criteria.HasImage"> With a photo</label>
     @if (Model.ShowingDrafts)
     {
         <input type="hidden" name="status" value="draft">
@@ -80,6 +81,7 @@ else
         @foreach (var r in Model.Results.Items)
         {
             <li class="recipe-card">
+                @if (r.ImageId is not null) { <img class="thumb" src="/media/@r.ImageId/thumb" alt="" loading="lazy"> }
                 <a href="/recipes/@r.Slug"><h2>@r.Title</h2></a>
                 @if (r.Status == RecipeWarden.Core.Recipes.RecipeStatus.Draft) { <span class="badge">Draft</span> }
                 @if (r.Summary is not null) { <p>@r.Summary</p> }

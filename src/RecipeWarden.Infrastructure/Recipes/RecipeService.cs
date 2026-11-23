@@ -93,6 +93,8 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
             recipe.Slug = change.NewSlug;
         }
 
+        // ADR 0023: step photos follow their step across the save.
+        var oldPhotos = recipe.Steps.OrderBy(s => s.SortOrder).Select(s => (s.Text, s.ImageId)).ToList();
         db.IngredientGroups.RemoveRange(recipe.IngredientGroups);
         db.RecipeIngredients.RemoveRange(recipe.Ingredients);
         db.Steps.RemoveRange(recipe.Steps);
@@ -102,6 +104,15 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
         recipe.Steps.Clear();
         recipe.Tags.Clear();
         await ApplyAsync(recipe, edit, parsed, userId, now, cancellationToken).ConfigureAwait(false);
+        var newSteps = recipe.Steps.OrderBy(s => s.SortOrder).ToList();
+        var targets = StepPhotoRules.Follow(oldPhotos.Select(p => p.Text).ToList(), newSteps.Select(s => s.Text).ToList());
+        for (var i = 0; i < oldPhotos.Count; i++)
+        {
+            if (oldPhotos[i].ImageId is { } image && targets[i] is { } target)
+            {
+                newSteps[target].ImageId = image;
+            }
+        }
 
         try
         {
@@ -121,10 +132,50 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
         return Saved(recipe, parsed.Check);
     }
 
+    /// <summary>
+    /// ADR 0022: sets or clears the finish image. Photos do not change the recipe's version (BR-06), so an editor
+    /// with the form open can still save it.
+    /// </summary>
+    public async Task<bool> SetFinishImageAsync(int id, string? imageId, string userId, CancellationToken cancellationToken = default)
+    {
+        var recipe = await db.Recipes.FirstOrDefaultAsync(r => r.Id == id, cancellationToken).ConfigureAwait(false);
+        if (recipe is null)
+        {
+            return false;
+        }
+
+        recipe.FinishImageId = imageId;
+        recipe.UpdatedAt = clock.GetUtcNow();
+        recipe.UpdatedById = userId;
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return true;
+    }
+
+    /// <summary>ADR 0023: sets or clears the photo of the step at <paramref name="index"/> (0-based position).</summary>
+    public async Task<bool> SetStepImageAsync(int id, int index, string? imageId, string userId, CancellationToken cancellationToken = default)
+    {
+        var recipe = await db.Recipes.Include(r => r.Steps).FirstOrDefaultAsync(r => r.Id == id, cancellationToken).ConfigureAwait(false);
+        var step = recipe?.Steps.OrderBy(s => s.SortOrder).ElementAtOrDefault(index);
+        if (recipe is null || step is null || index < 0)
+        {
+            return false;
+        }
+
+        step.ImageId = imageId;
+        recipe.UpdatedAt = clock.GetUtcNow();
+        recipe.UpdatedById = userId;
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return true;
+    }
+
     public async Task<RecipeForEdit?> GetForEditAsync(int id, CancellationToken cancellationToken = default)
     {
         var r = await LoadAggregate(db.Recipes.AsNoTracking()).FirstOrDefaultAsync(x => x.Id == id, cancellationToken).ConfigureAwait(false);
-        return r is null ? null : new RecipeForEdit(r.Id, r.Slug, r.Status, r.Version, ToEdit(r));
+        return r is null ? null : new RecipeForEdit(r.Id, r.Slug, r.Status, r.Version, ToEdit(r))
+        {
+            FinishImageId = r.FinishImageId,
+            StepPhotos = r.Steps.OrderBy(s => s.SortOrder).Select((s, i) => new StepPhoto(i, s.Title, s.Text, s.ImageId)).ToList(),
+        };
     }
 
     /// <summary>FR-VIEW-01. Drafts are found only when <paramref name="canSeeDrafts"/> (ADR 0009); old slugs redirect (ADR 0008).</summary>
@@ -535,7 +586,7 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
         }
 
         var sections = ChunkBy(r.Steps.OrderBy(s => s.SortOrder), s => s.SectionName)
-            .Select(c => new StepSectionView(c[0].SectionName, c.Select(s => new StepView(s.Title, s.Text)).ToList()))
+            .Select(c => new StepSectionView(c[0].SectionName, c.Select(s => new StepView(s.Title, s.Text, s.ImageId)).ToList()))
             .ToList();
 
         var total = r.TotalMinutes is not null
@@ -570,6 +621,7 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
                 .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase).ToList(),
             Collections = collections,
             UpdatedAt = r.UpdatedAt,
+            FinishImageId = r.FinishImageId,
             YieldAmount = r.YieldAmount,
             YieldUnitCode = r.YieldUnitId is { } yu ? UnitCatalogCodes.GetValueOrDefault(yu) : null,
             YieldSource = Enum.TryParse<YieldSource>(r.YieldSource, out var ys) ? ys : null,

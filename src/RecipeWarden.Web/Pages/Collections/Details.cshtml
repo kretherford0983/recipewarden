@@ -24,6 +24,7 @@ else
         @foreach (var r in Model.Collection.Recipes)
         {
             <li class="recipe-card">
+                @if (r.ImageId is not null) { <img class="thumb" src="/media/@r.ImageId/thumb" alt="" loading="lazy"> }
                 <a href="/recipes/@r.Slug"><h2>@r.Title</h2></a>
                 @if (r.Status == RecipeWarden.Core.Recipes.RecipeStatus.Draft) { <span class="badge">Draft</span> }
                 @if (r.Summary is not null) { <p>@r.Summary</p> }
