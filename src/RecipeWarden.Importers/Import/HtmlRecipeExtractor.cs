@@ -3,6 +3,7 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
 using RecipeWarden.Core.Import;
+using RecipeWarden.Core.Nutrition;
 using RecipeWarden.Core.Organization;
 using RecipeWarden.Core.Recipes;
 
@@ -171,6 +172,9 @@ public static class HtmlRecipeExtractor
             ImageUrl = r.TryGetProperty("image", out var image) ? Absolute(ImageOf(image), pageUrl) : null,
             Remarks = remark is null ? [] : [remark],
             Method = ExtractionMethod.JsonLd,
+            Nutrition = r.TryGetProperty("nutrition", out var nutrition) && nutrition.ValueKind == JsonValueKind.Object
+                ? NutritionText.FromSchemaOrg(name => nutrition.TryGetProperty(name, out var v) ? Str(v) : null)
+                : null,
         };
     }
 

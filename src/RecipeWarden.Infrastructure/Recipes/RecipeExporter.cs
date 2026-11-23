@@ -14,7 +14,7 @@ namespace RecipeWarden.Infrastructure.Recipes;
 /// A scaled view exports its scaled lines and servings with <c>scale:</c>. In a bulk zip each recipe has its own
 /// folder (<c>{slug}/{slug}.md</c>, <c>{slug}/images/…</c>) so the relative image links are the same as in a single export.
 /// </summary>
-public sealed class RecipeExporter(AppDbContext db, RecipeService recipes, ImageStore images)
+public sealed class RecipeExporter(AppDbContext db, RecipeService recipes, ImageStore images, Nutrition.NutritionService nutrition)
 {
     public const string FinishImage = "images/finish.webp";
 
@@ -139,7 +139,17 @@ public sealed class RecipeExporter(AppDbContext db, RecipeService recipes, Image
         }
 
         var date = imported is { } at ? DateOnly.FromDateTime(at.UtcDateTime) : (DateOnly?)null;
-        var markdown = RecipeMarkdown.Write(edit, recipe.Slug, date, factor, finish, steps);
+
+        // ADR 0035/0036: allergens and the nutrition panel, as the recipe page shows them (per serving at any scale).
+        RecipeMdExtras? extras = null;
+        if (await nutrition.GetAsync(id, cancellationToken).ConfigureAwait(false) is { } n)
+        {
+            extras = new RecipeMdExtras(
+                n.Allergens.Keys.Order().Select(Core.Search.SearchCriteria.AllergenQuery).ToList(),
+                n.Panel?.PerServing, n.Panel?.Source.ToString().ToLowerInvariant(), n.Panel?.CompletenessPct);
+        }
+
+        var markdown = RecipeMarkdown.Write(edit, recipe.Slug, date, factor, finish, steps, extras);
         return new Export(recipe.Slug, markdown, files);
     }
 

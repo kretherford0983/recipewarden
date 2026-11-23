@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using RecipeWarden.Core.Import;
+using RecipeWarden.Core.Nutrition;
 using RecipeWarden.Core.Recipes;
 using RecipeWarden.Core.Security;
 using RecipeWarden.Importers.Import;
@@ -267,6 +268,14 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
         if (locked || job.SourceKind is not ImportSourceKind.Paste)
         {
             saved.SourceImportedAt = now;
+        }
+
+        if (parsed.Nutrition is { IsEmpty: false } nutrition)
+        {
+            // ADR 0035: the page's (or file's) panel is kept as the imported nutrition.
+            var facts = new NutritionFacts { RecipeId = outcome.Id, Source = NutritionSource.Imported, UpdatedAt = now, UpdatedById = userId };
+            facts.SetValues(nutrition);
+            db.NutritionFacts.Add(facts);
         }
 
         job.Status = ImportStatus.Saved;

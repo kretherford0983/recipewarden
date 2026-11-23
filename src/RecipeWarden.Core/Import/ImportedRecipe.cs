@@ -70,6 +70,9 @@ public sealed record ImportedRecipe
     /// <summary>recipe-md's <c>slug:</c>, used to match an AI reply to its recipe (ADR 0033).</summary>
     public string? Slug { get; init; }
 
+    /// <summary>ADR 0035: the page's or file's nutrition per serving, kept as the recipe's imported panel.</summary>
+    public Nutrition.NutrientValues? Nutrition { get; init; }
+
     /// <summary>recipe-md's "## Changes" section (BR-95); it is also added to <see cref="Notes"/>.</summary>
     public string? Changes { get; init; }
 

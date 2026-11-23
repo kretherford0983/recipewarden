@@ -156,6 +156,11 @@ public static partial class RecipeMarkdown
             Method = ExtractionMethod.RecipeMarkdown,
             Slug = Blank(meta.Text("slug")),
             Changes = ImportText.Block(changes, RecipeEdit.MaxNotesLength),
+            // ADR 0035: a calculated panel is worked out again here, so only manual or imported values are kept.
+            Nutrition = meta.Child("nutrition") is { } n && !string.Equals(n.Text("source"), "calculated", StringComparison.OrdinalIgnoreCase)
+                        && n.Child("per_serving") is { } perServing
+                ? Nutrition.NutritionText.FromRecipeMd(perServing.Text)
+                : null,
         };
     }
 
@@ -290,7 +295,7 @@ public static partial class RecipeMarkdown
     /// are relative paths inside an export .zip ("images/finish.webp"); without them no image lines are written.
     /// </summary>
     public static string Write(RecipeEdit recipe, string? slug = null, DateOnly? imported = null, decimal? scale = null,
-        string? finishImage = null, IReadOnlyList<string?>? stepImages = null)
+        string? finishImage = null, IReadOnlyList<string?>? stepImages = null, RecipeMdExtras? extras = null)
     {
         ArgumentNullException.ThrowIfNull(recipe);
         var sb = new StringBuilder();
@@ -337,6 +342,23 @@ public static partial class RecipeMarkdown
         if (imported is { } date)
         {
             sb.Append("  imported: ").Append(date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)).Append('\n');
+        }
+
+        if (extras?.Allergens is { Count: > 0 } allergens)
+        {
+            sb.Append("allergens: [").Append(string.Join(", ", allergens)).Append("]\n");
+        }
+
+        if (extras?.Nutrition is { IsEmpty: false } nutrition)
+        {
+            // ADR 0035: the panel shown on the recipe page, per serving.
+            sb.Append("nutrition:\n  source: ").Append(extras.NutritionSource ?? "calculated").Append('\n');
+            if (extras.CompletenessPct is { } pct)
+            {
+                sb.Append("  completeness_pct: ").Append(pct.ToString(CultureInfo.InvariantCulture)).Append('\n');
+            }
+
+            sb.Append("  per_serving: ").Append(Nutrition.NutritionText.ToRecipeMd(nutrition)).Append('\n');
         }
 
         sb.Append("---\n\n");
@@ -442,3 +464,7 @@ public static partial class RecipeMarkdown
     private static List<string> Lines(string text) =>
         text.TrimStart('﻿').Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n').ToList();
 }
+
+/// <summary>ADR 0035/0036: what an export adds to the front matter: allergen codes and the nutrition panel.</summary>
+public sealed record RecipeMdExtras(IReadOnlyList<string>? Allergens = null, Nutrition.NutrientValues? Nutrition = null,
+    string? NutritionSource = null, int? CompletenessPct = null);
