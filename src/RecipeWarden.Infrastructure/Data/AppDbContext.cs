@@ -38,6 +38,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
     public DbSet<ShoppingLine> ShoppingLines => Set<ShoppingLine>();
     public DbSet<ShoppingCheck> ShoppingChecks => Set<ShoppingCheck>();
     public DbSet<ShoppingListName> ShoppingListNames => Set<ShoppingListName>();
+    public DbSet<NutrientRef> NutrientRefs => Set<NutrientRef>();
+    public DbSet<NutrientDataset> NutrientDatasets => Set<NutrientDataset>();
+    public DbSet<NutritionFacts> NutritionFacts => Set<NutritionFacts>();
+    public DbSet<RecipeAllergen> RecipeAllergens => Set<RecipeAllergen>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -148,6 +152,48 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
             e.HasIndex(j => new { j.Status, j.CreatedAt });
             e.HasOne<Recipe>().WithMany().HasForeignKey(j => j.DuplicateOfRecipeId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne<Recipe>().WithMany().HasForeignKey(j => j.CreatedRecipeId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ADR 0034 to 0036: nutrition and allergens.
+        builder.Entity<NutrientRef>(e =>
+        {
+            e.HasIndex(n => n.FdcId).IsUnique();
+            e.HasIndex(n => n.NormalizedDescription);
+            e.Property(n => n.Source).HasMaxLength(16);
+            e.Property(n => n.DataType).HasMaxLength(32);
+            e.Property(n => n.Description).HasMaxLength(300);
+            e.Property(n => n.NormalizedDescription).HasMaxLength(600);
+            e.Property(n => n.Category).HasMaxLength(100);
+            e.Property(n => n.DatasetVersion).HasMaxLength(100);
+            e.Property(n => n.RemovedInVersion).HasMaxLength(100);
+            e.Property(n => n.PortionsJson).HasMaxLength(4000);
+            Real(e.Property(n => n.DensityGPerMl));
+            NutrientColumns(e);
+        });
+
+        builder.Entity<NutrientDataset>(e =>
+        {
+            e.Property(d => d.Version).HasMaxLength(100);
+            e.Property(d => d.FileSha256).HasMaxLength(64);
+            e.Property(d => d.AppliedBy).HasMaxLength(100);
+        });
+
+        builder.Entity<NutritionFacts>(e =>
+        {
+            e.HasKey(n => new { n.RecipeId, n.Source });
+            e.Property(n => n.Source).HasConversion<string>().HasMaxLength(16);
+            e.HasOne<Recipe>().WithMany().HasForeignKey(n => n.RecipeId).OnDelete(DeleteBehavior.Cascade);
+            NutrientColumns(e);
+        });
+
+        builder.Entity<RecipeAllergen>(e =>
+        {
+            e.HasKey(a => new { a.RecipeId, a.Allergen, a.Origin });
+            e.Property(a => a.Allergen).HasConversion<string>().HasMaxLength(16);
+            e.Property(a => a.Origin).HasConversion<string>().HasMaxLength(8);
+            e.Property(a => a.Status).HasConversion<string>().HasMaxLength(16);
+            e.HasIndex(a => new { a.Allergen, a.Status });
+            e.HasOne<Recipe>().WithMany().HasForeignKey(a => a.RecipeId).OnDelete(DeleteBehavior.Cascade);
         });
 
         // ADR 0028/0029: shopping lists.
@@ -269,6 +315,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
             Real(e.Property(f => f.DensityGPerMl));
             e.Property(f => f.Form).HasConversion<string>().HasMaxLength(16);
             Real(e.Property(f => f.PackageSize));
+            e.HasOne<NutrientRef>().WithMany().HasForeignKey(f => f.NutrientRefId).OnDelete(DeleteBehavior.SetNull);
             e.HasMany(f => f.Aliases).WithOne().HasForeignKey(a => a.FoodId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne<Unit>().WithMany().HasForeignKey(f => f.DefaultPurchaseUnitId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne<Unit>().WithMany().HasForeignKey(f => f.PackageUnitId).OnDelete(DeleteBehavior.Restrict);
@@ -352,6 +399,15 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
 
     // 8.1: quantities are REAL in the database (SQLite stores decimal as TEXT, which sorts and compares as text);
     // code works in decimal.
+    private static void NutrientColumns<T>(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<T> e)
+        where T : class
+    {
+        foreach (var name in new[] { "Calories", "FatG", "SatFatG", "CholesterolMg", "SodiumMg", "CarbsG", "FiberG", "SugarG", "ProteinG" })
+        {
+            e.Property<decimal?>(name).HasConversion<double?>();
+        }
+    }
+
     private static void Real(PropertyBuilder<decimal> p) => p.HasConversion<double>();
 
     private static void Real(PropertyBuilder<decimal?> p) => p.HasConversion<double?>();

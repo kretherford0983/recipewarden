@@ -1,4 +1,5 @@
 using System.Globalization;
+using RecipeWarden.Core.Nutrition;
 using RecipeWarden.Core.Recipes;
 
 namespace RecipeWarden.Core.Search;
@@ -25,12 +26,16 @@ public sealed record SearchInput
     public string? HasImage { get; init; }
     public string? Sort { get; init; }
     public string? Page { get; init; }
+
+    /// <summary>BR-53 (M6): allergen codes to leave out ("milk", "treenuts"…), and "1" to keep unverified recipes.</summary>
+    public IReadOnlyList<string>? FreeOf { get; init; }
+    public string? IncludeUnverified { get; init; }
 }
 
 /// <summary>
 /// FR-SRCH-01/02: checked search criteria. Every value is parsed against an allow-list or a range; anything else
 /// is dropped, so nothing from the query string reaches SQL except as a typed parameter.
-/// "Free of" allergens is M6 (ADR 0009).
+/// "Free of" allergens (BR-53) came with M6 (ADR 0036).
 /// </summary>
 public sealed record SearchCriteria
 {
@@ -53,6 +58,8 @@ public sealed record SearchCriteria
     public int? MaxTotalMinutes { get; init; }
     public int? MinRating { get; init; }
     public bool HasImage { get; init; }
+    public IReadOnlyList<AllergenCode> FreeOf { get; init; } = [];
+    public bool IncludeUnverified { get; init; }
     public SearchSort Sort { get; init; } = SearchSort.Newest;
     public int Page { get; init; } = 1;
 
@@ -78,10 +85,18 @@ public sealed record SearchCriteria
             MaxTotalMinutes = InRange(input.MaxMinutes, 1, MaxMinutesLimit),
             MinRating = InRange(input.MinRating, 1, 5),
             HasImage = input.HasImage == "1",
+            FreeOf = (input.FreeOf ?? []).Select(ParseAllergen).OfType<AllergenCode>().Distinct().Order().ToArray(),
+            IncludeUnverified = input.IncludeUnverified == "1",
             Sort = sort,
             Page = Math.Clamp(ParseWhole(input.Page) ?? 1, 1, MaxPage),
         };
     }
+
+    /// <summary>"milk", "TreeNuts" → the code; anything else is dropped.</summary>
+    public static AllergenCode? ParseAllergen(string? text) =>
+        Enum.TryParse<AllergenCode>(text, ignoreCase: true, out var code) && Enum.IsDefined(code) && !int.TryParse(text, out _) ? code : null;
+
+    public static string AllergenQuery(AllergenCode code) => code.ToString().ToLowerInvariant();
 
     private static int? InRange(string? text, int min, int max) =>
         ParseWhole(text) is { } n && n >= min && n <= max ? n : null;

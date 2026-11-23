@@ -3,6 +3,21 @@
 Each release has a `## <version> — unreleased` section until it ships; the GitHub release carries the publish date.
 The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.Build.props` and adds its section.
 
+## 0.6.0 — unreleased
+
+### M6 Nutrition and allergens
+- Version bumped to 0.6.0 (docs/branching.md).
+- ADRs 0034 to 0036 (owner chose the recommendations; details for review).
+- Bundled USDA SR Legacy nutrient data (7,793 foods), applied once at startup; no network (D-06).
+- Nutrition per serving on the recipe page: calculated (with % matched, "partial" below 70%), imported from the
+  page or recipe-md, or entered by hand (FR-NUT-01/02, AC-55).
+- Allergen badges (9 US majors + gluten) detected from ingredients, with editor overrides that survive edits, and a
+  "free of" filter on the recipe list and search (FR-ALG-01 to 03, BR-53, AC-56).
+- `/manage/nutrition`: unmatched-ingredient report, mapping by search, foods from package labels (FR-NUT-03/04, AC-57).
+- `recipewarden nutrition-import <zip>` applies a newer USDA dataset and keeps mappings (FR-NUT-05, AC-58).
+- Exports include allergens and the nutrition panel; pasted recipe-md keeps every field.
+- Migration `M6_Nutrition`.
+
 ## 0.5.0 — unreleased
 
 ### M5 Output

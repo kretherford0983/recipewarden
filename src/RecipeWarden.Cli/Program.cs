@@ -3,6 +3,7 @@ using RecipeWarden.Cli.Admin;
 using RecipeWarden.Cli.ApplyConfig;
 using RecipeWarden.Cli.Health;
 using RecipeWarden.Cli.Hosting;
+using RecipeWarden.Cli.Nutrition;
 
 var configOption = new Option<string?>("--config")
 {
@@ -58,5 +59,16 @@ applyConfig.SetAction(async (parse, ct) =>
         }, ct);
 });
 root.Subcommands.Add(applyConfig);
+
+// nutrition-import (FR-NUT-05, ADR 0034)
+var datasetFile = new Argument<string>("zip") { Description = "A USDA FoodData Central CSV .zip (SR Legacy or Foundation Foods)" };
+var datasetVersion = new Option<string?>("--version") { Description = "A name for this dataset, e.g. \"SR Legacy 2018-04\" (default: the file name)" };
+var nutritionImport = new Command("nutrition-import", "Apply a newer USDA nutrient dataset from a file (FR-NUT-05)") { datasetFile, datasetVersion };
+nutritionImport.SetAction(async (parse, ct) =>
+{
+    var config = CliConfig.Load(CliConfig.ResolvePath(parse.GetValue(configOption)));
+    return await NutritionImportCommand.RunAsync(config, parse.GetValue(datasetFile)!, parse.GetValue(datasetVersion), Console.Out, Console.Error, ct);
+});
+root.Subcommands.Add(nutritionImport);
 
 return await root.Parse(args).InvokeAsync();

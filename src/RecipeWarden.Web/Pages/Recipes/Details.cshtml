@@ -30,9 +30,22 @@
                 @foreach (var t in r.Tags) { <li><a href="/tags/@t.Slug">@t.Name</a></li> }
             </ul>
         }
+        @if (Model.Nutrition is { Allergens.Count: > 0 } n)
+        {
+            @* FR-ALG-01, ADR 0036 *@
+            <ul class="allergens" aria-label="Allergens (estimated)">
+                @foreach (var (code, status) in n.Allergens.OrderBy(a => a.Key))
+                {
+                    <li class="allergen @(status == RecipeWarden.Core.Nutrition.AllergenStatus.MayContain ? "may" : "contains")">@RecipeWarden.Core.Nutrition.AllergenRules.Label(code)@(status == RecipeWarden.Core.Nutrition.AllergenStatus.MayContain ? " (may contain)" : "")</li>
+                }
+            </ul>
+        }
         @if (Model.CanEdit)
         {
-            <p class="toolbar"><a class="button-link" href="/manage/recipes/@r.Id/edit">Edit</a></p>
+            <p class="toolbar">
+                <a class="button-link" href="/manage/recipes/@r.Id/edit">Edit</a>
+                <a class="button-link" href="/manage/recipes/@r.Id/nutrition">Nutrition and allergens</a>
+            </p>
         }
     </header>
 
@@ -329,6 +342,11 @@
             <h2 id="notes-heading">Notes</h2>
             <div class="prose">@MarkdownRenderer.Render(r.Notes)</div>
         </section>
+    }
+
+    @if (Model.Nutrition is { } nutrition)
+    {
+        <partial name="_NutritionPanel" model="nutrition" />
     }
 
     @if (r.Parent is { } parent)

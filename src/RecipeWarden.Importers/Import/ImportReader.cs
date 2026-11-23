@@ -38,7 +38,10 @@ public static class ImportReader
             return fromHtml is null ? ReadResult.Fail(NoRecipe) : new ReadResult([fromHtml], null);
         }
 
-        var recipes = TextRecipeExtractor.Extract(text);
+        // Pasted recipe-md (an export, or an AI reply's block) keeps every field, nutrition included (ADR 0035).
+        var recipes = RecipeMarkdown.IsRecipeMarkdown(text)
+            ? RecipeMarkdown.Read(text).Where(r => r.HasContent).ToList()
+            : TextRecipeExtractor.Extract(text);
         if (recipes.Count == 0)
         {
             return ReadResult.Fail(NoRecipe);

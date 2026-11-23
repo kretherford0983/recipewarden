@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using RecipeWarden.Core.Security;
 using RecipeWarden.Infrastructure.Kitchen;
 using RecipeWarden.Infrastructure.Measurement;
+using RecipeWarden.Infrastructure.Nutrition;
 using RecipeWarden.Infrastructure.Shopping;
 
 namespace RecipeWarden.Infrastructure.Data;
@@ -13,7 +14,8 @@ namespace RecipeWarden.Infrastructure.Data;
 /// have no food yet.
 /// </summary>
 public sealed class DatabaseInitializer(AppDbContext db, RoleManager<IdentityRole> roles, MeasurementSeeder seeder,
-    FoodCatalogService foods, KitchenSeeder kitchen, ShoppingSeeder shopping)
+    FoodCatalogService foods, KitchenSeeder kitchen, ShoppingSeeder shopping,
+    NutrientDatasetImporter nutrients, TimeProvider clock)
 {
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -37,7 +39,9 @@ public sealed class DatabaseInitializer(AppDbContext db, RoleManager<IdentityRol
         await seeder.ApplyAsync(cancellationToken).ConfigureAwait(false);
         await kitchen.ApplyAsync(cancellationToken).ConfigureAwait(false); // ADR 0021, ADR 0018 (after the foods exist)
         await shopping.ApplyAsync(cancellationToken).ConfigureAwait(false); // ADR 0030
+        await nutrients.ApplySeedAsync(cancellationToken).ConfigureAwait(false); // ADR 0034
         await foods.LinkUnmatchedAsync(cancellationToken).ConfigureAwait(false);
+        await RecipeAllergenIndex.BackfillAsync(db, clock, cancellationToken).ConfigureAwait(false); // ADR 0036
     }
 
     internal static string Describe(IdentityResult result) =>

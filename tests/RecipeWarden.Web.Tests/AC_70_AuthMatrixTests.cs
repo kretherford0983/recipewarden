@@ -77,6 +77,10 @@ public sealed class AC_70_AuthMatrixTests(RecipeWardenFactory factory) : IClassF
         ["/recipes/export-ai"] = Access.Anonymous,
         ["/collections/{slug}/export-ai"] = Access.Anonymous,
         ["/manage/import/ai-response"] = Access.Editor,
+
+        // M6 (section 7.2; ADR 0034 to 0036)
+        ["/manage/recipes/{id:int}/nutrition"] = Access.Editor,
+        ["/manage/nutrition"] = Access.Editor,
     };
 
     public static TheoryData<string> ProtectedRoutes() =>

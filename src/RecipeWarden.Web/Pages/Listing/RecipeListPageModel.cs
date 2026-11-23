@@ -36,6 +36,13 @@ public abstract class RecipeListPageModel(RecipeSearchService search, TagService
     [BindProperty(SupportsGet = true, Name = "sort")]
     public string? Sort { get; set; }
 
+    /// <summary>BR-53 (M6): allergen codes to leave out, and "1" to keep recipes with unmatched ingredients.</summary>
+    [BindProperty(SupportsGet = true, Name = "free")]
+    public string[]? FreeOf { get; set; }
+
+    [BindProperty(SupportsGet = true, Name = "unverified")]
+    public string? IncludeUnverified { get; set; }
+
     [BindProperty(SupportsGet = true, Name = "page")]
     public string? PageNumber { get; set; }
 
@@ -75,6 +82,8 @@ public abstract class RecipeListPageModel(RecipeSearchService search, TagService
             HasImage = HasImage,
             Sort = Sort,
             Page = PageNumber,
+            FreeOf = FreeOf,
+            IncludeUnverified = IncludeUnverified,
         });
         Results = await search.SearchAsync(Criteria, ShowingDrafts ? RecipeVisibility.Drafts : RecipeVisibility.Published, ct);
         AllTags = (await tags.ListAsync(cancellationToken: ct)).Where(t => t.RecipeCount > 0).ToList();
@@ -108,6 +117,12 @@ public abstract class RecipeListPageModel(RecipeSearchService search, TagService
         Add("time", MaxMinutes);
         Add("rating", MinRating);
         Add("image", HasImage);
+        foreach (var code in Criteria.FreeOf)
+        {
+            q.Add("free", SearchCriteria.AllergenQuery(code));
+        }
+
+        Add("unverified", IncludeUnverified);
         Add("sort", Sort);
         Add("status", ShowingDrafts ? "draft" : null);
         Add("page", key == "page" ? value : null);

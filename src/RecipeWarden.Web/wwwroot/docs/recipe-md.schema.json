@@ -18,7 +18,7 @@
     "pan": { "type": "string" },
     "finished_density": { "type": "number", "exclusiveMinimum": 0 },
     "tags": { "oneOf": [ { "type": "array", "items": { "type": "string", "maxLength": 100 } }, { "type": "string" } ] },
-    "allergens": { "type": "array", "items": { "type": "string" } },
+    "allergens": { "type": "array", "items": { "enum": ["milk", "egg", "fish", "shellfish", "treenuts", "peanuts", "wheat", "soy", "sesame", "gluten"] } },
     "image": { "type": "string", "pattern": "^(?!/)(?!.*\\.\\.)(?!.*:)[^\\\\]{1,200}$" },
     "scale": { "type": "number", "minimum": 0.1, "maximum": 100 },
     "source": {
@@ -32,7 +32,23 @@
       },
       "additionalProperties": true
     },
-    "nutrition": { "type": "object" }
+    "nutrition": {
+      "type": "object",
+      "properties": {
+        "source": { "enum": ["calculated", "imported", "manual"] },
+        "completeness_pct": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "per_serving": {
+          "type": "object",
+          "properties": {
+            "calories": { "type": "number", "minimum": 0 }, "fat_g": { "type": "number", "minimum": 0 },
+            "saturated_fat_g": { "type": "number", "minimum": 0 }, "cholesterol_mg": { "type": "number", "minimum": 0 },
+            "sodium_mg": { "type": "number", "minimum": 0 }, "carbs_g": { "type": "number", "minimum": 0 },
+            "fiber_g": { "type": "number", "minimum": 0 }, "sugar_g": { "type": "number", "minimum": 0 },
+            "protein_g": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    }
   },
   "additionalProperties": true,
   "$defs": {

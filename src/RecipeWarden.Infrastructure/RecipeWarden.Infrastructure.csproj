@@ -13,6 +13,7 @@
   <ItemGroup>
     <!-- ADR 0013: USDA public-domain seed, built by tools/seed/build-seed.py. -->
     <EmbeddedResource Include="Data/Seed/measurement-v1.json" LogicalName="RecipeWarden.Seed.measurement-v1.json" />
+    <EmbeddedResource Include="Data/Seed/fdc-sr-legacy-2018-04.zip" LogicalName="RecipeWarden.Seed.fdc-sr-legacy-2018-04.zip" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="RecipeWarden.Infrastructure.Tests" />

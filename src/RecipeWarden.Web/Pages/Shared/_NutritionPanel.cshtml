@@ -1,0 +1,41 @@
+@model RecipeWarden.Infrastructure.Nutrition.RecipeNutrition
+@using RecipeWarden.Core.Nutrition
+@* FR-NUT-01, FR-NUT-02, FR-ALG-03, BR-50, BR-51, AC-55, ADR 0035: per serving, labelled with its source. *@
+<section class="nutrition-panel" aria-labelledby="nutrition-heading">
+    <h2 id="nutrition-heading">Nutrition <span class="hint">per serving</span></h2>
+    @if (Model.Panel is { } p)
+    {
+        <p class="nutrition-source">
+            @(p.Source switch
+            {
+                NutritionSource.Manual => "Entered by hand",
+                NutritionSource.Imported => "From source",
+                _ => "Calculated from the ingredients",
+            })
+            @if (p.CompletenessPct is { } pct)
+            {
+                <span> · @pct% of ingredients matched</span>
+                @if (p.IsPartial) { <strong class="badge partial">partial</strong> }
+            }
+        </p>
+        var v = p.PerServing;
+        <table class="nutrition-facts">
+            <tbody>
+                <tr><th scope="row">Calories</th><td>@NutritionRules.Format(v.Calories)</td></tr>
+                <tr><th scope="row">Fat</th><td>@NutritionRules.Format(v.FatG, 1) g</td></tr>
+                <tr><th scope="row" class="sub">Saturated fat</th><td>@NutritionRules.Format(v.SatFatG, 1) g</td></tr>
+                <tr><th scope="row">Cholesterol</th><td>@NutritionRules.Format(v.CholesterolMg) mg</td></tr>
+                <tr><th scope="row">Sodium</th><td>@NutritionRules.Format(v.SodiumMg) mg</td></tr>
+                <tr><th scope="row">Carbohydrate</th><td>@NutritionRules.Format(v.CarbsG, 1) g</td></tr>
+                <tr><th scope="row" class="sub">Fibre</th><td>@NutritionRules.Format(v.FiberG, 1) g</td></tr>
+                <tr><th scope="row" class="sub">Sugar</th><td>@NutritionRules.Format(v.SugarG, 1) g</td></tr>
+                <tr><th scope="row">Protein</th><td>@NutritionRules.Format(v.ProteinG, 1) g</td></tr>
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="hint">No nutrition yet: none of the ingredients is matched to nutrition data.</p>
+    }
+    <p class="disclaimer">Nutrition and allergen information are estimates. Check product labels if it matters.</p>
+</section>
