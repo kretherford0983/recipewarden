@@ -8,8 +8,12 @@ using RecipeWarden.Infrastructure.Health;
 namespace RecipeWarden.Web.Pages.Admin;
 
 /// <summary>Section 7.2 /admin: backup status, disk, version and recent audit, with links to every admin page.</summary>
-public sealed class IndexModel(HealthService health, AppDbContext db, AuditLog audit, BackupKeyService keys, Infrastructure.Ai.AiParserService ai) : PageModel
+public sealed class IndexModel(HealthService health, AppDbContext db, AuditLog audit, BackupKeyService keys, Infrastructure.Ai.AiParserService ai,
+    Microsoft.AspNetCore.Identity.UserManager<AppUser> users) : PageModel
 {
+    /// <summary>SEC-04: Admins without two-factor sign-in are prompted to turn it on.</summary>
+    public bool PromptTwoFactor { get; private set; }
+
     public Core.AiParser.AiSettings Ai { get; private set; } = Core.AiParser.AiSettings.Off;
 
     /// <summary>FR-IMP-10: the monthly token total on the dashboard.</summary>
@@ -35,5 +39,6 @@ public sealed class IndexModel(HealthService health, AppDbContext db, AuditLog a
         Recent = await audit.RecentAsync(10, ct);
         Ai = await ai.GetSettingsAsync(ct);
         AiUsage = await ai.UsageThisMonthAsync(ct);
+        PromptTwoFactor = await users.GetUserAsync(User) is { TwoFactorEnabled: false };
     }
 }

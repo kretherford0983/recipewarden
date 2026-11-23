@@ -94,6 +94,12 @@ public sealed class AC_70_AuthMatrixTests(RecipeWardenFactory factory) : IClassF
         ["/admin/nutrition-data"] = Access.Admin,
         ["/health/ready"] = Access.Anonymous,
         ["/setup"] = Access.SetupToken,
+
+        // M8 (section 7.2; ADR 0042, 0043)
+        ["/admin/ai"] = Access.Admin,
+        ["/account/2fa"] = Access.SignedIn,
+        ["/account/password"] = Access.SignedIn,
+        ["/account/login-2fa"] = Access.Anonymous, // SEC-04: the second step; it needs the first step's cookie to do anything
     };
 
     public static TheoryData<string> ProtectedRoutes() =>

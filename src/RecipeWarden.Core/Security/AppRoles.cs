@@ -32,6 +32,47 @@ public static class AccountRules
     public const int MaxFailedAccessAttempts = 5;
     public static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
     public static readonly TimeSpan SessionSlidingExpiry = TimeSpan.FromHours(8);
+
+    /// <summary>SEC-03: "remember me" keeps a sign-in for at most 30 days (no sliding past that).</summary>
+    public static readonly TimeSpan RememberMeMaximum = TimeSpan.FromDays(30);
+
+    /// <summary>SEC-04: recovery codes generated when two-factor is turned on.</summary>
+    public const int RecoveryCodeCount = 10;
+
+    /// <summary>SEC-63: sign-in attempts per IP per minute (password and two-factor pages).</summary>
+    public const int SignInsPerMinute = 10;
+
+    /// <summary>
+    /// SEC-04: a code from an authenticator app is six digits; spaces and dashes typed with it are dropped. Null when
+    /// it cannot be a code.
+    /// </summary>
+    public static string? NormalizeTotp(string? code)
+    {
+        var digits = new string((code ?? string.Empty).Where(c => c is not (' ' or '-')).ToArray());
+        return digits.Length == 6 && digits.All(char.IsAsciiDigit) ? digits : null;
+    }
+
+    /// <summary>SEC-04: the shared key grouped in fours for typing into an authenticator app.</summary>
+    public static string FormatKey(string key)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        var sb = new System.Text.StringBuilder();
+        for (var i = 0; i < key.Length; i++)
+        {
+            if (i > 0 && i % 4 == 0)
+            {
+                sb.Append(' ');
+            }
+
+            sb.Append(char.ToLowerInvariant(key[i]));
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>SEC-04: the otpauth URI authenticator apps read from the QR code.</summary>
+    public static string AuthenticatorUri(string issuer, string email, string key) =>
+        $"otpauth://totp/{Uri.EscapeDataString(issuer)}:{Uri.EscapeDataString(email)}?secret={key}&issuer={Uri.EscapeDataString(issuer)}&digits=6";
     public static readonly TimeSpan SecurityStampValidationInterval = TimeSpan.FromMinutes(5);
 
     /// <summary>SEC-02: the only message shown for any failed sign-in.</summary>

@@ -1,0 +1,33 @@
+@page "/account/login-2fa"
+@model RecipeWarden.Web.Pages.Account.LoginTwoFactorModel
+@{
+    ViewData["Title"] = "Two-factor sign-in";
+}
+<h1>Two-factor sign-in</h1>
+@if (Model.ErrorMessage is not null)
+{
+    <div class="form-errors" role="alert">@Model.ErrorMessage</div>
+}
+@if (!Model.Pending && Model.ErrorMessage is null)
+{
+    <p>@RecipeWarden.Web.Pages.Account.LoginTwoFactorModel.NoPendingSignIn <a href="/account/login">Sign in</a></p>
+}
+else
+{
+    <form method="post" action="/account/login-2fa" class="form narrow" asp-antiforgery="true">
+        <input type="hidden" name="RememberMe" value="@(Model.RememberMe ? "true" : "false")">
+        <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl">
+        <div class="field">
+            <label for="code">The 6-digit code from your authenticator app</label>
+            <input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="9" autofocus>
+        </div>
+        <details>
+            <summary>Use a recovery code instead</summary>
+            <div class="field">
+                <label for="recovery">Recovery code</label>
+                <input id="recovery" name="recoveryCode" autocomplete="off" maxlength="40">
+            </div>
+        </details>
+        <button type="submit" class="primary">Sign in</button>
+    </form>
+}

@@ -26,6 +26,9 @@ public sealed class LoginModel(
         [Required, StringLength(1024)]
         [DataType(DataType.Password)]
         public string Password { get; set; } = string.Empty;
+
+        /// <summary>SEC-03: keep me signed in (30 days at most).</summary>
+        public bool RememberMe { get; set; }
     }
 
     [BindProperty]
@@ -56,7 +59,14 @@ public sealed class LoginModel(
             return Page();
         }
 
-        var result = await signInManager.PasswordSignInAsync(Input.Email, Input.Password, isPersistent: false, lockoutOnFailure: true);
+        var result = await signInManager.PasswordSignInAsync(Input.Email, Input.Password, isPersistent: Input.RememberMe, lockoutOnFailure: true);
+        if (result.RequiresTwoFactor)
+        {
+            // SEC-04, AC-73: the password was right; the second step asks for a code.
+            return Redirect("/account/login-2fa?rememberMe=" + (Input.RememberMe ? "true" : "false")
+                            + (Url.IsLocalUrl(ReturnUrl) ? "&returnUrl=" + Uri.EscapeDataString(ReturnUrl!) : string.Empty));
+        }
+
         if (!result.Succeeded)
         {
             // FR-ADM-01: failed sign-ins are audited with the address typed (never the password, SEC-72).

@@ -7,6 +7,10 @@
     var r = Model.Report;
 }
 <h1>Admin</h1>
+@if (Model.PromptTwoFactor)
+{
+    <div class="notice" role="note"><p><strong>Protect your Admin account:</strong> turn on <a href="/account/2fa">two-factor sign-in</a>, so a password alone cannot open it.</p></div>
+}
 <nav aria-label="Admin pages">
     <ul class="admin-links">
         <li><a href="/admin/backups">Backups</a></li>

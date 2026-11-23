@@ -18,6 +18,9 @@ public sealed class RateLimitOptions
     /// <summary>SEC-43: URL imports per user per hour.</summary>
     public int UrlImportsPerHour { get; set; } = 20;
 
+    /// <summary>SEC-63: sign-in attempts (password and two-factor) per IP per minute.</summary>
+    public int SignInsPerMinute { get; set; } = Core.Security.AccountRules.SignInsPerMinute;
+
     /// <summary>ADR 0028: shopping-list ticks per IP per minute (the one anonymous write).</summary>
     public int ShoppingChecksPerMinute { get; set; } = 120;
 }
@@ -32,6 +35,7 @@ internal static class RateLimits
     public const string SearchPolicy = "search";
     public const string UrlImportPolicy = "url-import";
     public const string ShoppingCheckPolicy = "shopping-check";
+    public const string SignInPolicy = "sign-in";
 
     /// <summary>The list page handler that ticks an item (ADR 0028); other handlers on that page are not counted here.</summary>
     public const string ShoppingCheckHandler = "Check";
@@ -78,6 +82,12 @@ internal static class RateLimits
                     && string.Equals(ctx.Request.Query["handler"], ShoppingCheckHandler, StringComparison.OrdinalIgnoreCase)
                     ? RateLimitPartition.GetFixedWindowLimiter("check:" + (ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
                         _ => Window(options.ShoppingChecksPerMinute))
+                    : RateLimitPartition.GetNoLimiter(string.Empty));
+
+            // SEC-63: only the POST that tries a password or a code counts; showing the form does not.
+            o.AddPolicy(SignInPolicy, ctx =>
+                HttpMethods.IsPost(ctx.Request.Method)
+                    ? RateLimitPartition.GetFixedWindowLimiter("signin:" + (ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown"), _ => Window(options.SignInsPerMinute))
                     : RateLimitPartition.GetNoLimiter(string.Empty));
 
             o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>

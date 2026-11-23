@@ -75,10 +75,11 @@ public sealed class NutritionModel(NutritionService nutrition, Infrastructure.Ai
             return Page();
         }
 
-        var (index, error) = await ai.SuggestMappingAsync(name, Choices.Select(c => c.Description).ToList(), HttpContext.RequestAborted);
+        var candidates = await nutrition.SuggestionCandidatesAsync(name, HttpContext.RequestAborted);
+        var (index, error) = await ai.SuggestMappingAsync(name, candidates.Select(c => c.Description).ToList(), HttpContext.RequestAborted);
         if (index is { } i)
         {
-            Suggestion = Choices[i];
+            Suggestion = candidates[i];
             Message = "Suggested by AI — check it before using it.";
         }
         else

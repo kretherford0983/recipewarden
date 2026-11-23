@@ -9,7 +9,7 @@ public sealed class AppInfoTests(RecipeWardenFactory factory) : IClassFixture<Re
     public void Version_drops_build_metadata()
     {
         AppInfo.Version.ShouldNotContain("+");
-        AppInfo.Version.ShouldStartWith("0.");
+        AppInfo.Version.ShouldMatch(@"^\d+\.\d+\.\d+(-[a-z]+\.\d+)?$");
     }
 
     [Fact]

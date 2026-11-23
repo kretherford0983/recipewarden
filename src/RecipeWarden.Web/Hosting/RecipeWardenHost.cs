@@ -85,6 +85,9 @@ public static class RecipeWardenHost
             o.Conventions.AllowAnonymousToPage("/Index");
             o.Conventions.AllowAnonymousToPage("/Error");
             o.Conventions.AllowAnonymousToPage("/Account/Login");
+            o.Conventions.AllowAnonymousToPage("/Account/LoginTwoFactor"); // SEC-04: the second step; the page needs the first step's cookie
+            o.Conventions.AddPageApplicationModelConvention("/Account/Login", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.SignInPolicy)));
+            o.Conventions.AddPageApplicationModelConvention("/Account/LoginTwoFactor", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.SignInPolicy)));
             o.Conventions.AllowAnonymousToPage("/Recipes/Index");
             o.Conventions.AllowAnonymousToPage("/Recipes/Details");
             o.Conventions.AllowAnonymousToPage("/Search");
@@ -176,6 +179,17 @@ public static class RecipeWardenHost
             o.AccessDeniedPath = "/account/login";
             o.Events = new CookieAuthenticationEvents
             {
+                OnSigningIn = ctx =>
+                {
+                    // SEC-03: "remember me" lasts at most 30 days and does not slide; otherwise 8 hours, sliding.
+                    if (ctx.Properties.IsPersistent)
+                    {
+                        ctx.Properties.ExpiresUtc = DateTimeOffset.UtcNow + AccountRules.RememberMeMaximum;
+                        ctx.Properties.AllowRefresh = false;
+                    }
+
+                    return Task.CompletedTask;
+                },
                 OnRedirectToLogin = ctx =>
                 {
                     if (HtmxRequest.WantsStatusCode(ctx.Request))

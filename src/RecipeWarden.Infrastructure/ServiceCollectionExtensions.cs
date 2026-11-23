@@ -110,7 +110,8 @@ public static class ServiceCollectionExtensions
     public static IdentityBuilder AddRecipeWardenIdentityCore(this IServiceCollection services) =>
         services.AddIdentityCore<AppUser>(ConfigureIdentity)
             .AddRoles<IdentityRole>()
-            .AddEntityFrameworkStores<AppDbContext>();
+            .AddEntityFrameworkStores<AppDbContext>()
+            .AddPasswordValidator<CommonPasswordValidator>(); // SEC-01
 
     internal static void ConfigureIdentity(IdentityOptions o)
     {
