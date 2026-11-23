@@ -1,6 +1,6 @@
 # RecipeWarden — requirements traceability
 
-Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.13. Keep in step with the spec and the test suite.
+Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.14. Keep in step with the spec and the test suite.
 
 Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and tagged with `[Trait("Req", "FR-SCL-01")]`, so CI can print coverage per requirement and fail if any Must requirement has no test.
 
@@ -14,9 +14,9 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | FR-IMP-06/07 | BR-04 | Review page (editor form), ImportRules duplicates | Core `AC_16_DuplicateRulesTests`; Infra `FR_IMP_01_ImportServiceTests`; Web `FR_IMP_01_ImportPageTests`; E2E W3/W4 | AC-16 |
 | FR-ORG-01/02 | — | Tag, Collection tables; `/collections` | Web.Tests Tags, Collections | AC-20 |
 | FR-SRCH-01/02 | SEC-21; BR-53 in M6 (ADR 0009) | RecipeSearch FTS5; `/search` | Infra.Tests Search; Web.Tests SearchInjection | AC-21, AC-22 |
-| FR-VIEW-01/02 | BR-10 | Recipe page anatomy (7.3); cook mode | E2E W1 | AC-23 |
-| FR-EXP-01 | BR-10, BR-28 | Print stylesheet; `/print` | E2E PrintLayout (PDF snapshot) | AC-24 |
-| FR-EXP-02/03 | BR-10 | recipe-md v1 (9.7) | Importers.Tests MarkdownRoundTrip | AC-25 |
+| FR-VIEW-01/02 | BR-10 | Recipe page anatomy (7.3); cook mode `/recipes/{slug}/cook`, `TimerRules` | E2E W1, `W6_ShoppingPrintCookTests`; Core `FR_VIEW_02_TimerRulesTests`; Web `FR_EXP_01_PrintCookExportPageTests` | AC-23 |
+| FR-EXP-01 | BR-10, BR-28 | Print layout and `print.css`; `/print` | E2E W6 one-page PDF; Web `FR_EXP_01_PrintCookExportPageTests` | AC-24 |
+| FR-EXP-02/03 | BR-10 | recipe-md v1 (9.7); `RecipeExporter`; `export.md`, `export.zip`, bulk zips | Core `FR_EXP_02_RecipeMarkdownWriteTests`; Infra `FR_EXP_02_RecipeExportTests`; Web `FR_EXP_01_PrintCookExportPageTests` | AC-25 |
 | FR-SCL-01/02/03 | BR-20, BR-29 | ScalingService | Core.Tests Scaling (property-based) | AC-30, AC-31 |
 | FR-MEAS-01/02 | BR-21–24, BR-28 | DisplayPlanner, Unit, Food.Density | Core.Tests DisplayPlanner | AC-32, AC-33 |
 | FR-MEAS-03 | BR-25 | Vague units | Core.Tests VagueQuantities | AC-34 |
@@ -24,7 +24,7 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | FR-MEAS-06 | BR-27 | Count rounding | Core.Tests CountItems | AC-36 |
 | FR-TOOL-01/02/03 | BR-30, BR-33 | KitchenRules, KitchenTools (Core); KitchenService, InventoryVersion, InventorySnapshot; `/manage/kitchen` | Core `FR_TOOL_01_KitchenRulesTests`; Infra `FR_TOOL_01_KitchenStoreTests`; Web `FR_TOOL_01_KitchenPageTests`; E2E W5 | AC-40 |
 | FR-TOOL-04/05 | BR-31, BR-32 | SuggestionEngine (Core), SuggestionService, RecipeSuggestionState; `/manage/recipes/{id}/suggestions` | Core `FR_TOOL_04_SuggestionEngineTests`; Infra `FR_TOOL_04_SuggestionStoreTests`; Web `FR_TOOL_04_SuggestionPageTests`; E2E `W5_KitchenTests` | AC-41, AC-42 |
-| FR-SHOP-01–04 | BR-40–42 | ShoppingList tables; `/shopping` | Core.Tests ListMerge; E2E W6 | AC-50, AC-51 |
+| FR-SHOP-01–04 | BR-40–42 | `ShoppingRules`, `ShoppingService`, shopping tables; `/shopping` | Core `FR_SHOP_02_ShoppingRulesTests`; Infra `FR_SHOP_01_ShoppingServiceTests`; Web `FR_SHOP_01_ShoppingPageTests`; E2E W6 | AC-50, AC-51 |
 | FR-NUT-01/02 | BR-50, BR-51 | NutritionFacts, NutrientRef | Core.Tests Nutrition | AC-55 |
 | FR-ALG-01/02/03 | BR-52, BR-53 | Allergen, FoodAllergen, RecipeAllergen | Core.Tests Allergens | AC-56 |
 | FR-HOME-01/02 | — | Home page; Recommendation rules | Web.Tests Home | AC-60 |
