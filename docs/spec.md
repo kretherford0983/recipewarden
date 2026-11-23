@@ -1,6 +1,6 @@
-# RecipeWarden — Specification v0.14
+# RecipeWarden — Specification v0.15
 
-Version 0.14 · 2026-11-23
+Version 0.15 · 2026-11-23
 
 ## 1. Overview
 
@@ -111,7 +111,7 @@ Requirements carry stable IDs (FR = functional, NFR = non-functional) used by th
 | FR-EXP-05 | "Import AI response": paste or upload the AI's reply; the app extracts recipe-md blocks, validates them, shows a field-by-field diff against the original, and saves as a linked variant (default) or, for Editors, as an update to the original. | M |
 | FR-EXP-06 | Publish a JSON Schema for recipe-md v1 front matter at /docs/recipe-md.schema.json so AI agents and tools can validate their output. | S |
 | FR-EXP-07 | Prompt builder in Export for AI: an optional "Why are you taking this to AI?" step where the user picks one or more goals from the catalogue (section 4.9), fills each goal's details (e.g. which flavour to reduce, which component to increase and by how much), adds what happened last time and any constraints, and gets a suggested prompt in an editable preview. Copy options: prompt only, or prompt + recipe file. | C |
-| FR-EXP-08 | Editors can edit the built-in goal templates and save custom ones; each recipe keeps a history of prompts generated for it, so a past prompt can be reused or refined. | C |
+| FR-EXP-08 | Editors can edit the built-in goal templates and save custom ones; each recipe keeps a history of prompts generated for it, so a past prompt can be reused or refined. Deferred (ADR 0033): templates are built in for now. | C |
 
 ### 3.5 Scaling and measurement intelligence (SCL / MEAS)
 
@@ -609,8 +609,9 @@ Three zones: public reading pages, `/manage` for editors, `/admin` for admins. T
 | `/account/theme`, `/account/preferences` | Save theme (FR-UI-01), unit system and default scale (FR-UI-02) to the profile; POST only | Signed in |
 | `/health` | Liveness ("ok" only) | Anonymous |
 | `/media/{id}`, `/media/{id}/thumb` | Image delivery (WebP). Anonymous for images of published recipes; other images need Editor, else 404 (ADR 0022) | Anonymous |
-| /recipes/{slug}/export-ai, /collections/{slug}/export-ai | Export for AI (goal picker, include-inventory option, download or copy) | Anonymous |
-| /manage/import/ai-response | Paste or upload AI reply, diff, save as variant | Editor |
+| /recipes/{slug}/export-ai, /collections/{slug}/export-ai, /recipes/export-ai | Export for AI (goal picker, include-inventory option, download or copy); GET only; readers get published recipes; collection and all share the search rate limit (ADR 0033) | Anonymous |
+| /manage/import/ai-response | Paste or upload AI reply, diff, save as variant (draft by default), publish it, or replace the original (ADR 0033) | Editor |
+| /docs/recipe-md.schema.json | JSON Schema for recipe-md v1 front matter (FR-EXP-06), a static file | Anonymous |
 | /admin/health | Health and capacity dashboard, maintenance actions | Admin |
 | /health/ready | Readiness: 200 OK or Warning, 503 Critical (no details) | Anonymous |
 | /setup | First run: create admin or restore from backup | Setup token, only before first admin (SEC-15) |
@@ -951,7 +952,7 @@ The repository is public (ADR 0005): GitHub-hosted Actions minutes are free and 
 4. **M3 Kitchen** — inventory, versioning, suggestions, display planner (FR-MEAS-02, AC-32, AC-33), container scaling (FR-SCL-04/05/06, AC-37–39), pan-size alternatives (FR-MEAS-07) (ADR 0012).
 5. **M4 Import** — finish and step images (upload, `/media/{id}`), safe fetcher, JSON-LD/heuristic URL import, paste fallback, Markdown, Docx, PDF, review, duplicates (ADR 0022 to 0026).
 6. **M5 Output** — print, Markdown export (single, zip with images, bulk), cook mode, shopping lists (ADR 0027 to 0032).
-7. **M5b AI exchange** — Export for AI, the recipe-md JSON Schema, AI-response import as a variant (ADR 0027).
+7. **M5b AI exchange** — Export for AI, the recipe-md JSON Schema, AI-response import as a variant (ADR 0027, ADR 0033; FR-EXP-08 deferred).
 8. **M6 Nutrition and allergens**.
 9. **M7 Operations** — backups, schedule, retention, restore (ad hoc, CLI and at install), audit, health and capacity dashboard, installer upgrade/rollback.
 10. **M8 Hardening** — optional AI parser (FR-IMP-09/10, FR-NUT-06, ADR 0026), security test pass, accessibility pass, performance at 5,000 recipes, v1.0 release.
@@ -992,7 +993,7 @@ This matrix seeds `docs/traceability.md` in the repo. Test classes are named aft
 | FR-BKP-01–05 | BR-60–63; SEC-54 | BackupService, BackupRecord; `/admin/backups` | Infra.Tests Backup, Retention, Restore; E2E W7 | AC-80, AC-81, AC-82 |
 | FR-INST-01–04 | SEC-60, SEC-70, SEC-71 | install.sh, unit file, `recipewarden admin create` | Installer container tests; Cli.Tests | AC-90, AC-91, AC-92, AC-93, AC-100 |
 | NFR-01/03/06 | — | — | Perf test (5,000 recipes); Playwright axe scan; coverage gate | AC-95, AC-96, AC-97 |
-| FR-EXP-04 to 08 | BR-90–97; BR-10 | AiExportBuilder, AI-response importer, recipe-md schema; /export-ai, /manage/import/ai-response | Importers.Tests AiExport, AiResponseImport; E2E W10 | AC-26 to AC-29 |
+| FR-EXP-04 to 08 | BR-90–97; BR-10 | AiPromptBuilder, AiReplyReader, RecipeMarkdownValidator, AiVariantRules (Core); AiExchangeService; /export-ai, /manage/import/ai-response, /docs/recipe-md.schema.json | Core.Tests AiPromptBuilder, AiReplyReader; Infra.Tests AiExchangeService; Web.Tests AiExchangePage; E2E W10 | AC-26 to AC-29 |
 | FR-BKP-06/07 | BR-62, BR-64–66; SEC-15, SEC-54 | install.sh --restore, /setup, CLI restore | Installer container tests (migration A to B); Web.Tests Setup; Cli.Tests Restore | AC-83, AC-84, AC-85 |
 | FR-OPS-02–05 | BR-80–85 | HealthMonitor service, StorageSnapshot, HealthCheckResult; /admin/health, /health/ready | Core.Tests HealthRules, Projection; Infra.Tests StorageProbe; E2E W9 | AC-98, AC-99 |
 | FR-SCL-04/05/06 | BR-110–114; BR-20, BR-21, BR-27 | ContainerRules; Recipe.Yield\*; KitchenTool (Container); recipe page; `/manage/recipes/{id}/cooked` | Core.Tests ContainerRules; Infra.Tests YieldAndPanStore; Web.Tests ContainerPage | AC-37, AC-38, AC-39 |
@@ -1189,6 +1190,7 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
+- v0.15 (2026-11-23): M5b AI exchange (ADR 0033, for owner review). Export for AI for a recipe, a collection or all recipes (7.2 adds `/recipes/export-ai`), with built-in goal templates; FR-EXP-08 (editable templates, prompt history) deferred. Import AI response saves a draft variant by default, keeps the original's source, adds the "Adapted with AI assistance" note, and can replace the original after a version check. 7.2 adds `/docs/recipe-md.schema.json`. The recipe page links variants and their parent.
 - v0.14 (2026-11-23): M5 Output. ADR 0027 — M5 split; AI exchange becomes M5b (9.10). ADR 0028 — anonymous check-off with antiforgery and a per-IP limit, finished lists removed after 15 minutes, remembered names (D-10, 7.2). ADR 0029 — lists store each recipe's lines and merge on view; 8.5 shopping tables. ADR 0030 — seed shopping-v1 for sections, pantry and package sizes; Food.PackageName (8.3). ADR 0031 — cook mode ticks on the device, print and export follow the view, bulk export (7.2). ADR 0032 — smaller M5 decisions for owner review.
 - v0.13 (2026-11-22): M4 Import. ADR 0022 — images re-encoded as WebP (2400 px) with a 640 px thumbnail; `/media` anonymous only for published recipes' images; 8.2 Image columns. ADR 0023 — step photos follow their step (8.2 Step note). ADR 0024 — browser-like User-Agent, paste fallback, imports run in the request; SEC-42 allows XHTML and caps after decompression. ADR 0025 — review page is the editor form; recipe-md reader and writer in Core; 9.7 optional keys; 8.5 ImportJob columns. ADR 0026 — AI parser moves to M8 (9.10). 7.2 import, review and media rows; 9.1 package names.
 - v0.12 (2026-11-22): M3 Kitchen. BR-31 reworded — suggestions are evaluated on view without writes; measures apply at once and a new scale is an offer (ADR 0017 and amendment). ADR 0018 — planner uses spoons and cups only, weight first by Food.Form or precision. ADR 0019 — yields and container scaling. ADR 0020 — recipe pan field. ADR 0021 — inventory scope and standard-set seed. 7.2 adds `/manage/recipes/{id}/suggestions` and `/cooked`; 8.2 Recipe pan columns; 8.3 Food.Form; 8.4 InventorySnapshot.

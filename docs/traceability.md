@@ -1,6 +1,6 @@
 # RecipeWarden — requirements traceability
 
-Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.14. Keep in step with the spec and the test suite.
+Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.15. Keep in step with the spec and the test suite.
 
 Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and tagged with `[Trait("Req", "FR-SCL-01")]`, so CI can print coverage per requirement and fail if any Must requirement has no test.
 
@@ -36,7 +36,7 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | FR-BKP-01–05 | BR-60–63; SEC-54 | BackupService, BackupRecord; `/admin/backups` | Infra.Tests Backup, Retention, Restore; E2E W7 | AC-80, AC-81, AC-82 |
 | FR-INST-01–04 | SEC-60, SEC-70, SEC-71 | install.sh, unit file | Installer container tests | AC-90, AC-91, AC-92, AC-93 |
 | NFR-01/03/06 | — | — | Perf test (5,000 recipes); Playwright axe scan; coverage gate | AC-95, AC-96, AC-97 |
-| FR-EXP-04 to 08 | BR-90–97; BR-10 | AiExportBuilder, AI-response importer, recipe-md schema; /export-ai, /manage/import/ai-response | Importers.Tests AiExport, AiResponseImport; E2E W10 | AC-26 to AC-29 |
+| FR-EXP-04 to 08 | BR-90–97; BR-10 | `AiPromptBuilder`, `AiReplyReader`, `RecipeMarkdownValidator`, `AiVariantRules` (Core); `AiExchangeService`; `/export-ai`, `/manage/import/ai-response`, `/docs/recipe-md.schema.json` | Core `FR_EXP_07_AiPromptBuilderTests`, `FR_EXP_05_AiReplyReaderTests`; Infra `FR_EXP_05_AiExchangeServiceTests`; Web `FR_EXP_04_AiExchangePageTests`; E2E `W10_AiExchangeTests` | AC-26 to AC-29 |
 | FR-BKP-06/07 | BR-62, BR-64–66; SEC-15, SEC-54 | install.sh --restore, /setup, CLI restore | Installer container tests (migration A to B); Web.Tests Setup; Cli.Tests Restore | AC-83, AC-84, AC-85 |
 | FR-OPS-02–05 | BR-80–85 | HealthMonitor service, StorageSnapshot, HealthCheckResult; /admin/health, /health/ready | Core.Tests HealthRules, Projection; Infra.Tests StorageProbe; E2E W9 | AC-98, AC-99 |
 | FR-SCL-04/05/06 | BR-110–114; BR-20, BR-21, BR-27 | ContainerRules (Core); Recipe.Yield\*; KitchenTool (Container); recipe page fit and how-many; `/manage/recipes/{id}/cooked` | Core `FR_SCL_04_ContainerRulesTests`; Infra `FR_SCL_06_YieldAndPanStoreTests`; Web `FR_SCL_04_ContainerPageTests` | AC-37, AC-38, AC-39 |
@@ -46,7 +46,7 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 
 ## Status by milestone
 
-**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** merged into `develop` (PR #10, 2026-11-22; dev build v0.2.0-dev.9). **M3 Kitchen:** merged into `develop` (PR #11, 2026-11-22); host test pending. **M4 Import:** merged into `develop` (PR #12, 2026-11-23); host test pending. **M5 Output:** built on `feature/m5-output` (0.5.0), PR into `develop` open; ADR 0032 awaits owner review. **Next:** M5b AI exchange.
+**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** merged into `develop` (PR #10, 2026-11-22; dev build v0.2.0-dev.9). **M3 Kitchen:** merged into `develop` (PR #11, 2026-11-22); host test pending. **M4 Import:** merged into `develop` (PR #12, 2026-11-23); host test pending. **M5 Output:** built on `feature/m5-output` (0.5.0), PR into `develop` open; ADR 0032 awaits owner review. **M5b AI exchange:** built on `feature/m5b-ai-exchange` (stacked on M5), PR into `develop` open; ADR 0033 awaits owner review.
 
 ### M0 Foundations (built 2026-11-17; deployed and verified 2026-11-20 — DONE)
 
@@ -204,6 +204,21 @@ bulk export), **ADR 0032 (smaller decisions made unattended — for owner review
 | AC-70 / AC-75 / AC-76 | Extended to the M5 routes, forms and list items | — | Web `AC_70_AuthMatrixTests`, `SEC_30_FormTokenTests`, `Item_text_is_encoded_on_the_page` |
 | Migration | `M5_Output`: ShoppingList, ShoppingListRecipe, ShoppingLine, ShoppingCheck, ShoppingListName; Food.PackageName | `Data/Migrations` | Infra store tests |
 
+### M5b AI exchange (built 2026-11-23 while the owner was away; stacked on M5 — owner review pending)
+
+Scope decisions: ADR 0027 (split), **ADR 0033 (scope and flow — for owner review)**. No new tables or packages.
+
+| ID | Status | Implementation | Tests |
+| --- | --- | --- | --- |
+| FR-EXP-04 / AC-26 / BR-90, BR-91 | Done: one recipe, a collection or all recipes; instruction header, goal(s), optional My Kitchen (tool names) and units, recipe-md with source; nothing personal; no AI calls | `AiPromptBuilder.Compose`, `AiExchangeService.RecipesAsync`/`KitchenAsync`, `/recipes/{slug}/export-ai`, `/collections/{slug}/export-ai`, `/recipes/export-ai` | Core `FR_EXP_07_AiPromptBuilderTests`; Infra `FR_EXP_05_AiExchangeServiceTests`; Web `FR_EXP_04_AiExchangePageTests` |
+| FR-EXP-07 / AC-28 / BR-94, BR-95, BR-97 | Done: goal picker with details, last time, constraints, ask-first; editable preview; Copy and Download use exactly the shown text; typed text quoted on one line | `AiPromptBuilder.Build`, `ai-export.js` | Core; Web; E2E W10 (edited preview copied to the clipboard) |
+| BR-96 / AC-29 | Done: reduce and increase of the same ingredient block the preview until "Keep both"; no goals → general prompt | `AiPromptBuilder.Conflicts` | Core; Web |
+| FR-EXP-05 / AC-27 / BR-92, BR-93 | Done: blocks found in chat text and code fences, matched by slug (or the page's recipe), checked, diffed field by field and line by line; saved as a draft variant (or published, or replacing the original after a version check); source kept from the original; Changes and the adapted note in the notes | `AiReplyReader`, `AiVariantRules`, `AiExchangeService.ReviewAsync`/`SaveAsync`, `/manage/import/ai-response`, `RecipeService.SetParentAsync` | Core `FR_EXP_05_AiReplyReaderTests`; Infra; Web; E2E W10 |
+| FR-EXP-06 / AC-25 | Done: `/docs/recipe-md.schema.json` (static), and matching Core rules that the export output passes | `wwwroot/docs/recipe-md.schema.json`, `RecipeMarkdownValidator` | Core `The_writers_output_passes_the_schema_rules…`; Infra export test; Web `The_schema_is_public_json` |
+| FR-REC-05 (links) | Done for AI variants: "Variant of …" and the variants list on the recipe page (readers see published ones) | `RecipeView.Parent`/`Variants` | Infra; Web |
+| FR-EXP-08 | **Deferred** (ADR 0033): templates are built in; no prompt history | — | — |
+| AC-70 / AC-75 / AC-76 | Extended to the M5b routes and forms; reply text and typed goals are encoded | — | Web `AC_70_AuthMatrixTests`, `SEC_30_FormTokenTests`, `Typed_text_is_quoted_and_encoded_on_the_page` |
+
 #### M0 deployment check (2026-11-20, test host)
 
 - `recipewarden.service` enabled and active; runs from `/opt/recipewarden/current` (release folder under `releases/`); ~60 MB RAM.
@@ -290,3 +305,9 @@ bulk export), **ADR 0032 (smaller decisions made unattended — for owner review
   - No new packages. Bulk and single zips are built in a temporary file that is deleted when the response ends.
   - Not exercised on the host yet: the M4→M5 migration and seed on a real database, printing from a real phone or
     desktop browser, and Wake Lock on the owner's phones.
+
+- **M5b notes (2026-11-23, built unattended):**
+  - Open points are in ADR 0033 for owner review; FR-EXP-08 is deferred there.
+  - No existing assertion changed; the access table and the form-token page list were extended.
+  - A bare (unfenced) recipe-md block runs to the next block or the end of the reply, so chat text after the last
+    bare block lands in its last section. Fenced blocks end at the fence. The review page shows what was read.
