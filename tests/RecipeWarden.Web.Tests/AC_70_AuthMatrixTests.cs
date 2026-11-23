@@ -21,6 +21,9 @@ public sealed class AC_70_AuthMatrixTests(RecipeWardenFactory factory) : IClassF
         SignedIn,
         Editor,
         Admin,
+
+        /// <summary>SEC-15: /setup needs the installer's one-time token and is 404 otherwise (SEC_15_SetupPageTests).</summary>
+        SetupToken,
     }
 
     /// <summary>Section 7.2, restricted to the routes that exist so far.</summary>
@@ -81,10 +84,20 @@ public sealed class AC_70_AuthMatrixTests(RecipeWardenFactory factory) : IClassF
         // M6 (section 7.2; ADR 0034 to 0036)
         ["/manage/recipes/{id:int}/nutrition"] = Access.Editor,
         ["/manage/nutrition"] = Access.Editor,
+
+        // M7 (section 7.2; ADR 0037 to 0041)
+        ["/admin/users"] = Access.Admin,
+        ["/admin/audit"] = Access.Admin,
+        ["/admin/settings"] = Access.Admin,
+        ["/admin/backups"] = Access.Admin,
+        ["/admin/health"] = Access.Admin,
+        ["/admin/nutrition-data"] = Access.Admin,
+        ["/health/ready"] = Access.Anonymous,
+        ["/setup"] = Access.SetupToken,
     };
 
     public static TheoryData<string> ProtectedRoutes() =>
-        new(Expected.Where(e => e.Value != Access.Anonymous).Select(e => e.Key));
+        new(Expected.Where(e => e.Value is not (Access.Anonymous or Access.SetupToken)).Select(e => e.Key));
 
     public static TheoryData<string> AnonymousRoutes() =>
         new(Expected.Where(e => e.Value == Access.Anonymous).Select(e => e.Key));

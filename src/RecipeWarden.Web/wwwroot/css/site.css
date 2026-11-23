@@ -8,6 +8,9 @@
   --accent-text: #ffffff;
   --border: #d9d3c7;
   --focus: #1d4ed8;
+  --error: #b42318;
+  --warning: #8a5a00;
+  --ok: #1e7a3a;
   --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color-scheme: light;
 }
@@ -21,6 +24,9 @@
   --accent-text: #1a1008;
   --border: #3d3832;
   --focus: #93c5fd;
+  --error: #fca5a5;
+  --warning: #fcd34d;
+  --ok: #86efac;
   color-scheme: dark;
 }
 
@@ -34,6 +40,9 @@
     --accent-text: #1a1008;
     --border: #3d3832;
     --focus: #93c5fd;
+    --error: #fca5a5;
+    --warning: #fcd34d;
+    --ok: #86efac;
     color-scheme: dark;
   }
 }
@@ -300,3 +309,21 @@ form.discard { margin-top: 1rem; }
 .disclaimer { font-size: .85rem; color: var(--muted); }
 .nutrition-form label { display: inline-block; min-width: 10rem; margin-top: .35rem; }
 .free-of { margin: .5rem 0; }
+
+/* M7 Operations: admin pages, banners, health status (ADR 0037) */
+.admin-banner { padding: .5rem 1rem; border-left: 4px solid var(--accent, #2b6cb0); background: var(--surface, transparent); }
+.admin-banner.status-critical, .status-critical { color: var(--error, #b42318); }
+.admin-banner.status-warning, .status-warning { color: var(--warning, #8a5a00); }
+.status-ok { color: var(--ok, #1e7a3a); }
+.admin-links { display: flex; flex-wrap: wrap; gap: 1rem; list-style: none; padding-left: 0; }
+.dashboard { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: .25rem 1rem; }
+.facts dt { font-weight: 600; }
+.facts dd { margin: 0; overflow-wrap: anywhere; }
+.inline-form { display: inline-flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.pager { display: flex; gap: 1rem; margin: 1rem 0; }
+.chart svg { max-width: 100%; color: var(--accent, #2b6cb0); }
+.guide summary h2 { display: inline; font-size: 1.25rem; }
+.setup-choices { display: grid; gap: 2rem; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); }
+table.audit code { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .85rem; }
+.restore-report { border: 2px solid var(--error, #b42318); border-radius: .375rem; padding: 1rem; margin: 1rem 0; }

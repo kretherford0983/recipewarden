@@ -1,6 +1,57 @@
 @page
+@model RecipeWarden.Web.Pages.Admin.IndexModel
+@using RecipeWarden.Core.Health
+@using RecipeWarden.Infrastructure.Data
 @{
     ViewData["Title"] = "Admin";
+    var r = Model.Report;
 }
 <h1>Admin</h1>
-<p class="empty-state">The admin dashboard arrives in milestone M7.</p>
+<nav aria-label="Admin pages">
+    <ul class="admin-links">
+        <li><a href="/admin/backups">Backups</a></li>
+        <li><a href="/admin/health">Health</a></li>
+        <li><a href="/admin/users">Users</a></li>
+        <li><a href="/admin/settings">Settings</a></li>
+        <li><a href="/admin/audit">Audit log</a></li>
+        <li><a href="/admin/nutrition-data">Nutrition data</a></li>
+    </ul>
+</nav>
+<div class="dashboard">
+    <section aria-labelledby="d-health">
+        <h2 id="d-health">Health</h2>
+        <p class="@RecipeWarden.Web.Pages.Admin.HealthModel.CssStatus(r.Status)"><strong>@r.Status</strong></p>
+        @foreach (var c in r.Checks.Where(c => c.Status != HealthStatus.OK)) { <p>@c.Name: @c.Message</p> }
+        @foreach (var v in r.Volumes) { <p>@v.Label: @HealthRules.FormatBytes(v.FreeBytes) free of @HealthRules.FormatBytes(v.TotalBytes)</p> }
+    </section>
+    <section aria-labelledby="d-backup">
+        <h2 id="d-backup">Backups</h2>
+        @if (Model.LastBackup is { } b)
+        {
+            <p>Last run @b.StartedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"): <strong>@(b.Status == BackupStatus.Succeeded ? "succeeded" : "FAILED")</strong>@(b.Error is null ? "" : " — " + b.Error)</p>
+        }
+        else
+        {
+            <p>No backups yet.</p>
+        }
+        <p>Next scheduled: @(Model.NextScheduled?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "no schedule")</p>
+        <p>@(Model.Encrypted ? "Backups are encrypted." : "Backups are not encrypted yet.")</p>
+    </section>
+    <section aria-labelledby="d-version">
+        <h2 id="d-version">Version</h2>
+        <p>RecipeWarden @RecipeWarden.Web.Hosting.AppInfo.Version</p>
+        <p>Database @r.Database.SchemaVersion</p>
+    </section>
+</div>
+<h2>Recent changes</h2>
+@if (Model.Recent.Count == 0)
+{
+    <p class="empty-state">Nothing yet.</p>
+}
+else
+{
+    <ul class="recent-audit">
+        @foreach (var e in Model.Recent) { <li><time datetime="@e.At.ToString("O")">@e.At.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</time> @e.UserName — @e.Action @e.EntityId</li> }
+    </ul>
+    <p><a href="/admin/audit">Full audit log</a></p>
+}

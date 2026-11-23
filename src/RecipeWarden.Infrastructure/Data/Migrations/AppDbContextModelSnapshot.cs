@@ -144,6 +144,22 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.AppSetting", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("AppSettings");
+                });
+
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.AppUser", b =>
                 {
                     b.Property<string>("Id")
@@ -206,6 +222,186 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.AuditEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("At")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DetailsJson")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EntityId")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EntityType")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Ip")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("At");
+
+                    b.HasIndex("EntityType", "EntityId");
+
+                    b.ToTable("AuditEntries");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.BackupRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("Bytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CompletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DestinationFolder")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Encrypted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("KeyFingerprint")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ScheduleId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Sha256")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StartedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StartedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StartedAt");
+
+                    b.HasIndex("ScheduleId", "Status");
+
+                    b.ToTable("BackupRecords");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.BackupSchedule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Cron")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DestinationFolder")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("KeepDaily")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("KeepLast")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("KeepMonthly")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("KeepWeekly")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LastRunAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NextRetryAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NextRunAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RetryAttempt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UpdatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BackupSchedules");
                 });
 
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.CollectionRecipe", b =>
@@ -346,6 +542,41 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("FoodAliases");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.HealthCheckResult", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CheckName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DurationMs")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RanAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CheckName", "RanAt");
+
+                    b.ToTable("HealthCheckResults");
                 });
 
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Image", b =>
@@ -1407,6 +1638,56 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.HasIndex("ShoppingListId");
 
                     b.ToTable("ShoppingListRecipes");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.StorageSnapshot", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("BackupBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("BackupVolumeFree")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("BackupVolumeTotal")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("DataVolumeFree")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("DataVolumeTotal")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("DbBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("FreePages")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("ImportBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("LogBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("MediaBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("TakenAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("WalBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TakenAt");
+
+                    b.ToTable("StorageSnapshots");
                 });
 
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Tag", b =>

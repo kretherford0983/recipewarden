@@ -20,6 +20,10 @@ internal interface ISystemd
     Task<bool> DaemonReloadAsync(CancellationToken cancellationToken);
 
     Task<bool> RestartAsync(string unit, CancellationToken cancellationToken);
+
+    Task<bool> StopAsync(string unit, CancellationToken cancellationToken);
+
+    Task<bool> StartAsync(string unit, CancellationToken cancellationToken);
 }
 
 /// <summary>Waits for the service's /health to answer "ok".</summary>

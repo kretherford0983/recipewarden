@@ -1,0 +1,220 @@
+@page "/admin/backups"
+@model RecipeWarden.Web.Pages.Admin.BackupsModel
+@using RecipeWarden.Core.Backup
+@using RecipeWarden.Core.Health
+@using RecipeWarden.Infrastructure.Data
+@{
+    ViewData["Title"] = "Backups";
+    var editing = Model.Editing;
+    var picker = BackupScheduleRules.FromCron(editing?.Cron ?? "30 2 * * *");
+    var retention = editing?.Retention ?? RetentionPolicy.Default;
+}
+<p><a href="/admin">Admin</a></p>
+<h1>Backups</h1>
+@if (Model.Message is not null) { <div class="notice" role="status"><p>@Model.Message</p></div> }
+@if (Model.Error is not null) { <div class="form-errors" role="alert"><p>@Model.Error</p></div> }
+
+@if (Model.Prepared is { } p)
+{
+    <section class="restore-report" aria-labelledby="restore-h">
+        <h2 id="restore-h">Ready to restore</h2>
+        <p>The archive passed every check: its files match their checksums, nothing points outside the restore folder, and the database is sound.</p>
+        <dl class="facts">
+            <dt>Made</dt><dd>@p.Manifest.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm") by RecipeWarden @p.Manifest.AppVersion (@p.Manifest.Kind)</dd>
+            <dt>Contents</dt><dd>@p.Recipes recipes, @p.Users accounts, @p.MediaFiles image files</dd>
+            <dt>Database version</dt><dd>@p.Manifest.SchemaVersion (migrated forward after the restore if older)</dd>
+        </dl>
+        <p><strong>Everything on this site now will be replaced</strong> by the archive's recipes, images, accounts, kitchen and settings.
+            A backup of the current data is made first. Network settings stay as they are on this server. The site shows a
+            maintenance page while it runs.</p>
+        <form method="post" action="/admin/backups?handler=ConfirmRestore" asp-antiforgery="true" class="form narrow">
+            <input type="hidden" name="restoreId" value="@p.Id">
+            <div class="field">
+                <label for="confirm-word">Type @RestoreRules.ConfirmationWord to confirm</label>
+                <input id="confirm-word" name="confirmation" autocomplete="off" required>
+            </div>
+            <button type="submit" class="danger">Restore now</button> <a href="/admin/backups">Cancel</a>
+        </form>
+    </section>
+}
+
+<section aria-labelledby="now-h">
+    <h2 id="now-h">Back up now</h2>
+    <form method="post" action="/admin/backups?handler=BackupNow" asp-antiforgery="true" class="inline-form">
+        <label for="now-folder">Folder</label>
+        <select id="now-folder" name="folder">
+            @foreach (var f in Model.Folders)
+            {
+                <option value="@f">@f@(f == Model.LocalFolder ? " (on this server)" : "")</option>
+            }
+        </select>
+        <button type="submit">Back up now</button>
+        <button type="submit" formaction="/admin/backups?handler=Test">Test folder</button>
+    </form>
+    <p>Only the folders in <code>Backup:AllowedFolders</code> can be used. To add a share, follow "Backup folders" in the deployment guide:
+        mount it, create the marker file <code>@BackupDestinationRules.MarkerFileName</code>, add it to the list, and run
+        <code>sudo recipewarden apply-config</code>.</p>
+</section>
+
+<section aria-labelledby="key-h">
+    <h2 id="key-h">Encryption</h2>
+    @if (Model.Key.HasKey)
+    {
+        <p>Backups are encrypted with key <code>@Model.Key.Fingerprint</code>@(Model.Key.CreatedAt is { } c ? ", created " + c.ToLocalTime().ToString("yyyy-MM-dd") : "").
+            Restoring needs that key's recovery kit and its passphrase.</p>
+    }
+    else
+    {
+        <p><strong>Backups are not encrypted yet</strong>, so they can only go to the folder on this server. Create a key to encrypt every backup and
+            to send backups to other folders such as a NAS (FR-BKP-15).</p>
+    }
+    <details class="confirm" open="@(!Model.Key.HasKey)">
+        <summary>@(Model.Key.HasKey ? "Replace the key…" : "Create the encryption key…")</summary>
+        <form method="post" action="/admin/backups?handler=CreateKey" asp-antiforgery="true" class="form narrow">
+            <p>Your browser downloads a <strong>recovery kit</strong> once. The server keeps only the public half of the key, so without the kit and
+                its passphrase no backup can be read — store both somewhere safe, away from the server.</p>
+            <div class="field"><label for="kit-pass">Passphrase (at least @RestoreRules.MinPassphraseLength characters)</label>
+                <input id="kit-pass" name="passphrase" type="password" autocomplete="new-password" minlength="@RestoreRules.MinPassphraseLength" required></div>
+            <div class="field"><label for="kit-pass2">Passphrase again</label>
+                <input id="kit-pass2" name="confirm" type="password" autocomplete="new-password" required></div>
+            @if (Model.Key.HasKey)
+            {
+                <label><input type="checkbox" name="replace" value="true"> Replace the key (keep the old kit for archives made before today)</label>
+            }
+            <button type="submit">Create key and download the recovery kit</button>
+        </form>
+    </details>
+</section>
+
+<section aria-labelledby="sched-h">
+    <h2 id="sched-h">Schedules</h2>
+    @if (Model.Schedules.Count == 0)
+    {
+        <p class="empty-state">No schedules yet.</p>
+    }
+    else
+    {
+        <table class="list">
+            <thead><tr><th scope="col">Name</th><th scope="col">When and where</th><th scope="col">Keeps</th><th scope="col">Next run</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+            <tbody>
+            @foreach (var s in Model.Schedules)
+            {
+                <tr>
+                    <td>@s.Name@(s.IsEnabled ? "" : " (off)")</td>
+                    <td>@Model.Describe(s)</td>
+                    <td>@s.Retention</td>
+                    <td>@(s.NextRunAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "—")@(s.NextRetryAt is { } r ? ", retry " + r.ToLocalTime().ToString("HH:mm") : "")</td>
+                    <td class="actions">
+                        <form method="post" action="/admin/backups?handler=RunSchedule" asp-antiforgery="true"><input type="hidden" name="id" value="@s.Id"><button type="submit">Run now</button></form>
+                        <a href="/admin/backups?edit=@s.Id#schedule-form">Edit</a>
+                        <form method="post" action="/admin/backups?handler=DeleteSchedule" asp-antiforgery="true"><input type="hidden" name="id" value="@s.Id"><button type="submit" class="danger">Delete</button></form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+    <h3 id="schedule-form">@(editing is null ? "Add a schedule" : "Edit \"" + editing.Name + "\"")</h3>
+    <form method="post" action="/admin/backups?handler=SaveSchedule" asp-antiforgery="true" class="form">
+        @if (editing is not null) { <input type="hidden" name="id" value="@editing.Id"> }
+        <div class="field-row">
+            <div class="field"><label for="s-name">Name</label><input id="s-name" name="name" value="@editing?.Name" maxlength="@BackupScheduleRules.MaxNameLength" required placeholder="Nightly to the NAS"></div>
+            <div class="field">
+                <label for="s-folder">Folder</label>
+                <select id="s-folder" name="folder">
+                    @foreach (var f in Model.Folders) { <option value="@f" selected="@(f == editing?.DestinationFolder)">@f</option> }
+                </select>
+            </div>
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <label for="s-freq">How often</label>
+                <select id="s-freq" name="frequency">
+                    <option value="Daily" selected="@(picker.Frequency == ScheduleFrequency.Daily)">Daily</option>
+                    <option value="Weekly" selected="@(picker.Frequency == ScheduleFrequency.Weekly)">Weekly</option>
+                    <option value="Cron" selected="@(picker.Frequency == ScheduleFrequency.Cron)">Cron expression</option>
+                </select>
+            </div>
+            <div class="field"><label for="s-time">Time (server time)</label><input id="s-time" name="time" type="time" value="@picker.At.ToString("HH:mm")"></div>
+            <div class="field">
+                <label for="s-day">Day (weekly)</label>
+                <select id="s-day" name="day">
+                    @foreach (var d in Enum.GetValues<DayOfWeek>()) { <option value="@d" selected="@(d == picker.Day)">@d</option> }
+                </select>
+            </div>
+            <div class="field"><label for="s-cron">Cron (if chosen)</label><input id="s-cron" name="cron" value="@(picker.Frequency == ScheduleFrequency.Cron ? editing?.Cron : "")" placeholder="0 3 * * 1-5" maxlength="@BackupScheduleRules.MaxCronLength"></div>
+        </div>
+        <fieldset>
+            <legend>Keep (this schedule's own archives only)</legend>
+            <div class="field-row">
+                <div class="field"><label for="k-last">Newest</label><input id="k-last" name="keepLast" type="number" min="0" max="1000" value="@retention.KeepLast"></div>
+                <div class="field"><label for="k-day">Daily</label><input id="k-day" name="keepDaily" type="number" min="0" max="1000" value="@retention.Daily"></div>
+                <div class="field"><label for="k-week">Weekly</label><input id="k-week" name="keepWeekly" type="number" min="0" max="1000" value="@retention.Weekly"></div>
+                <div class="field"><label for="k-month">Monthly</label><input id="k-month" name="keepMonthly" type="number" min="0" max="1000" value="@retention.Monthly"></div>
+            </div>
+        </fieldset>
+        <label><input type="checkbox" name="enabled" value="true" checked="@(editing?.IsEnabled ?? true)"> On</label>
+        <div class="actions"><button type="submit">Save schedule</button>@if (editing is not null) { <a href="/admin/backups">Cancel</a> }</div>
+    </form>
+</section>
+
+<section aria-labelledby="hist-h">
+    <h2 id="hist-h">Archives and run history</h2>
+    @if (Model.Records.Count == 0)
+    {
+        <p class="empty-state">No backups yet.</p>
+    }
+    else
+    {
+        <table class="list">
+            <thead><tr><th scope="col">Started</th><th scope="col">Kind</th><th scope="col">Folder</th><th scope="col">Result</th><th scope="col">Size</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+            <tbody>
+            @foreach (var r in Model.Records)
+            {
+                <tr>
+                    <td><time datetime="@r.StartedAt.ToString("O")">@r.StartedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</time></td>
+                    <td>@r.Kind@(r.Encrypted ? ", encrypted" : "")</td>
+                    <td>@r.DestinationFolder</td>
+                    <td>
+                        @if (r.Status == BackupStatus.Failed) { <span class="status-critical">Failed:</span> @r.Error }
+                        else if (r.DeletedAt is not null) { <span>Removed @r.DeletedAt.Value.ToLocalTime().ToString("yyyy-MM-dd")</span> }
+                        else { <span>@r.Status</span> <code title="SHA-256">@r.FileName</code> }
+                    </td>
+                    <td>@(r.Bytes > 0 ? HealthRules.FormatBytes(r.Bytes) : "")</td>
+                    <td class="actions">
+                        @if (r.Status == BackupStatus.Succeeded && r.DeletedAt is null && r.FileName is not null)
+                        {
+                            <a href="/admin/backups?handler=Download&amp;id=@r.Id">Download</a>
+                            <details class="confirm">
+                                <summary>Restore…</summary>
+                                <form method="post" action="/admin/backups?handler=PrepareRestore" asp-antiforgery="true" enctype="multipart/form-data" class="form">
+                                    <input type="hidden" name="recordId" value="@r.Id">
+                                    @if (r.Encrypted)
+                                    {
+                                        <div class="field"><label for="kit-@r.Id">Recovery kit file</label><input id="kit-@r.Id" name="kitFile" type="file" accept=".txt,text/plain"></div>
+                                        <div class="field"><label for="pass-@r.Id">Passphrase</label><input id="pass-@r.Id" name="passphrase" type="password" autocomplete="off"></div>
+                                    }
+                                    <button type="submit">Check this archive</button>
+                                </form>
+                            </details>
+                            <form method="post" action="/admin/backups?handler=DeleteArchive" asp-antiforgery="true"><input type="hidden" name="id" value="@r.Id"><button type="submit" class="danger">Delete</button></form>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+</section>
+
+<section aria-labelledby="upload-h">
+    <h2 id="upload-h">Restore from a file</h2>
+    <p>Up to @HealthRules.FormatBytes(Model.MaxUploadBytes) through the browser (Cloudflare limits larger uploads). For a bigger archive, copy it to the
+        server and run <code>sudo recipewarden restore &lt;file&gt;</code>.</p>
+    <form method="post" action="/admin/backups?handler=PrepareRestore" asp-antiforgery="true" enctype="multipart/form-data" class="form narrow">
+        <div class="field"><label for="up-archive">Backup archive (.tar.gz or .tar.gz.rwenc)</label><input id="up-archive" name="archive" type="file" required accept=".gz,.tgz,.rwenc"></div>
+        <div class="field"><label for="up-kit">Recovery kit file (encrypted archives)</label><input id="up-kit" name="kitFile" type="file" accept=".txt,text/plain"></div>
+        <div class="field"><label for="up-pass">Passphrase</label><input id="up-pass" name="passphrase" type="password" autocomplete="off"></div>
+        <button type="submit">Check this archive</button>
+    </form>
+</section>

@@ -30,12 +30,18 @@ public sealed partial class RecipeWardenFactory : WebApplicationFactory<Program>
     /// <summary>Extra settings a test class can add before the host starts.</summary>
     public Dictionary<string, string?> Settings { get; } = new();
 
+    /// <summary>Extra service registrations a test class can add before the host starts (e.g. a fake disk, AC-99).</summary>
+    public List<Action<IServiceCollection>> ExtraServices { get; } = [];
+
+    public string DataDirectory => dataDirectory;
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         TestDatabaseTemplate.CopyTo(dataDirectory); // migrated once per test process (docs/testing.md)
         builder.UseEnvironment("Testing");
         builder.UseSetting("Data:Directory", dataDirectory);
         builder.UseSetting("Serilog:MinimumLevel:Default", "Warning");
+        builder.UseSetting("Operations:Background", "false"); // M7: tests run the scheduler and health monitor by hand
         foreach (var (key, value) in Settings)
         {
             builder.UseSetting(key, value);
@@ -47,6 +53,11 @@ public sealed partial class RecipeWardenFactory : WebApplicationFactory<Program>
             s.UseFastPasswordHashing();
             s.AddSingleton<IDnsResolver>(Web);
             s.AddSingleton<ISocketConnector>(Web);
+            s.AddSingleton<Infrastructure.Health.IVolumeProbe>(new RoomyDisk()); // tests never depend on the build machine's disk
+            foreach (var extra in ExtraServices)
+            {
+                extra(s);
+            }
         });
     }
 
@@ -133,6 +144,12 @@ public sealed partial class RecipeWardenFactory : WebApplicationFactory<Program>
 
     [GeneratedRegex("<meta name=\"rw-csrf\" content=\"([^\"]+)\"")]
     private static partial Regex CsrfMeta();
+
+    /// <summary>A 100 GB volume with 60 GB free.</summary>
+    private sealed class RoomyDisk : Infrastructure.Health.IVolumeProbe
+    {
+        public (long Total, long Free) Measure(string path) => (100L * 1024 * 1024 * 1024, 60L * 1024 * 1024 * 1024);
+    }
 
     /// <summary>TestServer has no socket; give each request a remote IP (loopback unless a test overrides it).</summary>
     private sealed class TestRemoteIpStartupFilter : IStartupFilter

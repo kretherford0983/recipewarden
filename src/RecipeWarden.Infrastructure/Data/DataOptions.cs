@@ -18,5 +18,14 @@ public sealed class DataOptions
     /// <summary>ADR 0024, FR-IMP-08: raw import payloads, kept 30 days.</summary>
     public string ImportsDirectory => Path.Combine(Directory, "imports");
 
+    /// <summary>Section 9.5: the built-in local backup folder, always allowed (FR-BKP-08).</summary>
+    public string BackupsDirectory => Path.Combine(Directory, "backups");
+
+    /// <summary>Work space for backups and restores, on the data volume (the service has a private /tmp).</summary>
+    public string WorkDirectory => Path.Combine(Directory, "tmp");
+
+    /// <summary>SEC-15: the setup token hash and the "setup complete" marker.</summary>
+    public string SetupDirectory => Path.Combine(Directory, "setup");
+
     public string ConnectionString => $"Data Source={DatabasePath};Foreign Keys=True;Pooling=True";
 }

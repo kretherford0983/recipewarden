@@ -42,6 +42,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
     public DbSet<NutrientDataset> NutrientDatasets => Set<NutrientDataset>();
     public DbSet<NutritionFacts> NutritionFacts => Set<NutritionFacts>();
     public DbSet<RecipeAllergen> RecipeAllergens => Set<RecipeAllergen>();
+    public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
+    public DbSet<BackupRecord> BackupRecords => Set<BackupRecord>();
+    public DbSet<BackupSchedule> BackupSchedules => Set<BackupSchedule>();
+    public DbSet<AppSetting> AppSettings => Set<AppSetting>();
+    public DbSet<StorageSnapshot> StorageSnapshots => Set<StorageSnapshot>();
+    public DbSet<HealthCheckResult> HealthCheckResults => Set<HealthCheckResult>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -380,6 +386,61 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         {
             e.HasKey(r => r.Name);
             e.Property(r => r.Name).HasMaxLength(64);
+        });
+
+        // M7 Operations (8.5, ADR 0037 to 0041)
+        builder.Entity<AuditEntry>(e =>
+        {
+            e.HasIndex(a => a.At);
+            e.HasIndex(a => new { a.EntityType, a.EntityId });
+            e.Property(a => a.UserId).HasMaxLength(64);
+            e.Property(a => a.UserName).HasMaxLength(256);
+            e.Property(a => a.Action).HasMaxLength(64);
+            e.Property(a => a.EntityType).HasMaxLength(64);
+            e.Property(a => a.EntityId).HasMaxLength(128);
+            e.Property(a => a.Ip).HasMaxLength(64);
+            e.Property(a => a.DetailsJson).HasMaxLength(4000);
+        });
+
+        builder.Entity<BackupRecord>(e =>
+        {
+            e.HasIndex(b => b.StartedAt);
+            e.HasIndex(b => new { b.ScheduleId, b.Status });
+            e.Property(b => b.Kind).HasConversion<string>().HasMaxLength(16);
+            e.Property(b => b.Status).HasConversion<string>().HasMaxLength(16);
+            e.Property(b => b.DestinationFolder).HasMaxLength(1024);
+            e.Property(b => b.FileName).HasMaxLength(255);
+            e.Property(b => b.Sha256).HasMaxLength(64);
+            e.Property(b => b.KeyFingerprint).HasMaxLength(128);
+            e.Property(b => b.Error).HasMaxLength(2000);
+            e.Property(b => b.StartedBy).HasMaxLength(256);
+            e.Ignore(b => b.FullPath);
+        });
+
+        builder.Entity<BackupSchedule>(e =>
+        {
+            e.Property(s => s.Name).HasMaxLength(80);
+            e.Property(s => s.Cron).HasMaxLength(120);
+            e.Property(s => s.DestinationFolder).HasMaxLength(1024);
+            e.Ignore(s => s.Retention);
+            e.Ignore(s => s.Timing);
+        });
+
+        builder.Entity<AppSetting>(e =>
+        {
+            e.HasKey(s => s.Key);
+            e.Property(s => s.Key).HasMaxLength(64);
+            e.Property(s => s.Value).HasMaxLength(4000);
+        });
+
+        builder.Entity<StorageSnapshot>(e => e.HasIndex(s => s.TakenAt));
+
+        builder.Entity<HealthCheckResult>(e =>
+        {
+            e.HasIndex(h => new { h.CheckName, h.RanAt });
+            e.Property(h => h.CheckName).HasMaxLength(128);
+            e.Property(h => h.Status).HasConversion<string>().HasMaxLength(16);
+            e.Property(h => h.Message).HasMaxLength(1000);
         });
 
         builder.Entity<CollectionRecipe>(e =>

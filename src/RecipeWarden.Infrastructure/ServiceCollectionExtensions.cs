@@ -3,6 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using RecipeWarden.Infrastructure.Audit;
+using RecipeWarden.Infrastructure.Backup;
+using RecipeWarden.Infrastructure.Health;
+using RecipeWarden.Infrastructure.Settings;
+using RecipeWarden.Infrastructure.Setup;
 using RecipeWarden.Core.Security;
 using RecipeWarden.Infrastructure.Data;
 using RecipeWarden.Infrastructure.Identity;
@@ -29,9 +35,12 @@ public static class ServiceCollectionExtensions
 
         Directory.CreateDirectory(Path.GetDirectoryName(data.DatabasePath)!);
 
-        services.AddDbContext<AppDbContext>(o => o
+        // FR-ADM-01, ADR 0041: every write is audited by the interceptor (the actor comes from the request in Web).
+        services.TryAddSingleton<IAuditActor, SystemAuditActor>();
+        services.AddScoped<AuditInterceptor>();
+        services.AddDbContext<AppDbContext>((sp, o) => o
             .UseSqlite(data.ConnectionString)
-            .AddInterceptors(new SqlitePragmaInterceptor())
+            .AddInterceptors(new SqlitePragmaInterceptor(), sp.GetRequiredService<AuditInterceptor>())
             // Child rows of a soft-deleted recipe are only reached through the recipe, which the filter hides.
             .ConfigureWarnings(w => w.Ignore(CoreEventId.PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning)));
 
@@ -64,6 +73,25 @@ public static class ServiceCollectionExtensions
         services.AddScoped<AiExchange.AiExchangeService>();
         services.AddScoped<Nutrition.NutritionService>();
         services.AddScoped<Nutrition.NutrientDatasetImporter>();
+
+        // M7 Operations (ADR 0037 to 0041)
+        services.AddScoped<AuditLog>();
+        services.AddScoped<SettingsStore>();
+        services.AddSingleton(BackupOptions.From(configuration));
+        services.AddSingleton<BackupFolders>();
+        services.AddSingleton<BackupGate>();
+        services.AddSingleton<MaintenanceMode>();
+        services.AddScoped<BackupService>();
+        services.AddScoped<BackupKeyService>();
+        services.AddScoped<BackupScheduleService>();
+        services.AddScoped<RestoreService>();
+        services.AddScoped<SetupService>();
+        services.AddSingleton<IVolumeProbe, DriveInfoVolumeProbe>();
+        var health = new HealthOptions();
+        configuration.GetSection(HealthOptions.SectionName).Bind(health);
+        services.AddSingleton(health);
+        services.AddSingleton<HealthState>();
+        services.AddScoped<HealthService>();
         return services;
     }
 

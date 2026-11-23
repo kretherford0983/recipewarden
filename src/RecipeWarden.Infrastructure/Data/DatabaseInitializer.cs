@@ -19,6 +19,8 @@ public sealed class DatabaseInitializer(AppDbContext db, RoleManager<IdentityRol
 {
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
+        // ADR 0041: migrations and seed data are not writes by anyone, so they are not audited.
+        using var quiet = Audit.AuditScope.Suppress();
         await db.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
 
         // journal_mode is persistent in the database file, so setting it once is enough.
