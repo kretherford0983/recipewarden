@@ -22,3 +22,7 @@
 
 ## Consequences
 Section 7.2 gains `/recipes/{slug}/cook` (already listed in spirit) and the bulk export routes.
+
+## Amendment (2026-11-23, while building; owner review in ADR 0032)
+A bulk zip puts each recipe in its own folder (`{slug}/{slug}.md`, `{slug}/images/…`), so its links match a single
+export. Print leaves out images to stay on one page.

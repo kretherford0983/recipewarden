@@ -7,6 +7,16 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 
 ### M5 Output
 - Version bumped to 0.5.0 (docs/branching.md).
+- ADRs 0027 to 0031 (owner decisions) and 0032 (smaller decisions made while the owner was away, for review).
+- Shopping lists (FR-SHOP-01 to 04, AC-50, AC-51): named lists, recipes added at the shown scale, manual items,
+  merging with unit conversion and package counts ("1¼ cups (2½ sticks)"), store sections, pantry staples,
+  anonymous check-off with antiforgery and a per-IP limit, finished lists removed after 15 minutes with Undo,
+  remembered names for "Start again"; print, text and Markdown.
+- Seed `shopping-v1`: store sections, starter pantry and package sizes; editable on `/manage/conversions`.
+- Print layout (FR-EXP-01, AC-24): one Letter page for a 15-ingredient, 10-step recipe at the view's scale and units.
+- Markdown export (FR-EXP-02/03, AC-25): `export.md`, `export.zip` with images, bulk zips for all recipes or a collection.
+- Cook mode (FR-VIEW-02, AC-23): ticks kept on the device, screen kept awake, timers from step text.
+- Migration `M5_Output`.
 
 ## 0.4.0 — unreleased
 
