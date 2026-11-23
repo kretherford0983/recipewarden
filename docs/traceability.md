@@ -46,7 +46,7 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 
 ## Status by milestone
 
-**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** merged into `develop` (PR #10, 2026-11-22; dev build v0.2.0-dev.9). **M3 Kitchen:** built on `feature/m3-kitchen` (0.3.0), PR into `develop` open; includes the display planner, container scaling and pan sizes moved from M2 (ADR 0012).
+**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** merged into `develop` (PR #10, 2026-11-22; dev build v0.2.0-dev.9). **M3 Kitchen:** merged into `develop` (PR #11, 2026-11-22); host test pending. **In progress:** M4 Import on `feature/m4-import` (0.4.0).
 
 ### M0 Foundations (built 2026-11-17; deployed and verified 2026-11-20 — DONE)
 
@@ -139,7 +139,7 @@ Scope decisions: ADR 0012 (display planner, container scaling and pan sizes move
 | FR-SCL-04/05/06, AC-37–39 | **Moved to M3** (ADR 0012) | — | — |
 | AC-70 / SEC-30 | Extended to `/manage/conversions`, `/account/preferences` and the scaled recipe page | — | Web `AC_70_AuthMatrixTests`, `SEC_30_FormTokenTests` |
 
-### M3 Kitchen (built 2026-11-22; PR into `develop`)
+### M3 Kitchen (built 2026-11-22; merged into `develop` 2026-11-22, PR #11 — DONE, host test pending)
 
 Scope decisions: ADR 0017 (suggestions without writes on view; amendment: only a new scale is an offer), ADR 0018
 (planner uses spoons and cups, jugs ignored; weight first by precision or Food.Form), ADR 0019 (yields: editors save,
