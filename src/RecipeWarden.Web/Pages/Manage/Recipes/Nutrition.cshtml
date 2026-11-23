@@ -1,0 +1,87 @@
+@page "/manage/recipes/{id:int}/nutrition"
+@model RecipeWarden.Web.Pages.Manage.Recipes.NutritionModel
+@using RecipeWarden.Core.Nutrition
+@{
+    var r = Model.Recipe!;
+    var d = Model.Data!;
+    ViewData["Title"] = "Nutrition and allergens: " + r.Edit.Title;
+    string Label(NutritionLineState s) => s switch
+    {
+        NutritionLineState.Matched => "counted",
+        NutritionLineState.NoNutrients => "no nutrition data",
+        NutritionLineState.NoWeight => "can't be weighed",
+        _ => "not counted",
+    };
+    string? Detected(AllergenCode code) => d.Detected.TryGetValue(code, out var s) ? (s == AllergenStatus.MayContain ? "may contain" : "contains") : null;
+}
+<p class="breadcrumb"><a href="/recipes/@r.Slug">@r.Edit.Title</a> ›</p>
+<h1>Nutrition and allergens</h1>
+@if (Model.Saved is not null) { <p class="notice" role="status">@Model.Saved</p> }
+@if (Model.Error is not null) { <p class="notice error" role="alert">@Model.Error</p> }
+
+<partial name="_NutritionPanel" model="d" />
+
+<section aria-labelledby="lines-heading">
+    <h2 id="lines-heading">How each ingredient counted</h2>
+    <p class="hint">@d.Calculated.Matched of @d.Calculated.Counted ingredients counted (@d.Calculated.CompletenessPct%). Map missing ones on <a href="/manage/nutrition">the nutrition report</a>.</p>
+    <table class="list">
+        <thead><tr><th scope="col">Ingredient</th><th scope="col">Weight</th><th scope="col">Calories</th><th scope="col">Status</th></tr></thead>
+        <tbody>
+            @foreach (var line in d.Calculated.Lines)
+            {
+                <tr class="line-@line.State.ToString().ToLowerInvariant()">
+                    <td>@line.Text</td>
+                    <td>@(line.Grams is { } g ? NutritionRules.Format(g) + " g" : "—")</td>
+                    <td>@NutritionRules.Format(line.Values?.Calories)</td>
+                    <td>@Label(line.State)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</section>
+
+<section aria-labelledby="manual-heading">
+    <h2 id="manual-heading">Enter nutrition by hand</h2>
+    <p class="hint">Per serving. A manual panel is shown instead of imported or calculated values (BR-50).@(d.Imported is not null ? " This recipe also has imported values from its source." : "")</p>
+    <form method="post" action="/manage/recipes/@r.Id/nutrition?handler=Panel" class="nutrition-form" asp-antiforgery="true">
+        @foreach (var (name, label) in new[] { ("Calories", "Calories"), ("FatG", "Fat (g)"), ("SatFatG", "Saturated fat (g)"), ("CholesterolMg", "Cholesterol (mg)"), ("SodiumMg", "Sodium (mg)"), ("CarbsG", "Carbohydrate (g)"), ("FiberG", "Fibre (g)"), ("SugarG", "Sugar (g)"), ("ProteinG", "Protein (g)") })
+        {
+            var value = Model.Input.Get(name);
+            <label for="n-@name">@label</label>
+            <input id="n-@name" name="Input.@name" value="@value" inputmode="decimal" size="6">
+        }
+        <p>
+            <button type="submit" class="primary">Save</button>
+            @if (d.Manual is not null) { <button type="submit" name="clear" value="1">Clear manual values</button> }
+        </p>
+    </form>
+</section>
+
+<section aria-labelledby="allergen-heading">
+    <h2 id="allergen-heading">Allergens</h2>
+    <p class="hint">Detected from the ingredient names. A choice here is kept when the recipe changes (BR-52).</p>
+    <form method="post" action="/manage/recipes/@r.Id/nutrition?handler=Allergens" asp-antiforgery="true">
+        <table class="list">
+            <thead><tr><th scope="col">Allergen</th><th scope="col">Detected</th><th scope="col">Show as</th></tr></thead>
+            <tbody>
+                @foreach (var code in AllergenRules.All)
+                {
+                    var choice = RecipeWarden.Web.Pages.Manage.Recipes.NutritionModel.Choice(d, code);
+                    <tr>
+                        <th scope="row"><label for="a-@code">@AllergenRules.Label(code)</label></th>
+                        <td>@(Detected(code) ?? "—")</td>
+                        <td>
+                            <select id="a-@code" name="a_@code">
+                                <option value="auto" selected="@(choice == "auto")">As detected</option>
+                                <option value="contains" selected="@(choice == "contains")">Contains</option>
+                                <option value="may" selected="@(choice == "may")">May contain</option>
+                                <option value="none" selected="@(choice == "none")">Not present</option>
+                            </select>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <button type="submit" class="primary">Save allergens</button>
+    </form>
+</section>

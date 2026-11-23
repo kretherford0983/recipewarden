@@ -52,6 +52,16 @@
         <option value="lastcooked" selected="@(Model.Criteria.Sort == SearchSort.LastCooked)">Last cooked</option>
     </select>
     <label class="inline"><input type="checkbox" name="image" value="1" checked="@Model.Criteria.HasImage"> With a photo</label>
+    <details class="free-of" open="@(Model.Criteria.FreeOf.Count > 0)">
+        @* BR-53, ADR 0036 *@
+        <summary>Free of@(Model.Criteria.FreeOf.Count > 0 ? " (" + Model.Criteria.FreeOf.Count + ")" : "")</summary>
+        @foreach (var code in RecipeWarden.Core.Nutrition.AllergenRules.All)
+        {
+            <label class="inline"><input type="checkbox" name="free" value="@RecipeWarden.Core.Search.SearchCriteria.AllergenQuery(code)" checked="@Model.Criteria.FreeOf.Contains(code)"> @RecipeWarden.Core.Nutrition.AllergenRules.Label(code)</label>
+        }
+        <label class="inline"><input type="checkbox" name="unverified" value="1" checked="@Model.Criteria.IncludeUnverified"> Include recipes with unmatched ingredients</label>
+        <p class="hint">Allergens are estimated from ingredient names; check labels.</p>
+    </details>
     @if (Model.ShowingDrafts)
     {
         <input type="hidden" name="status" value="draft">
