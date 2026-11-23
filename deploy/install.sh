@@ -570,7 +570,7 @@ remove_firewall() {
     rm -f "$ETC/firewall.ufw"
   fi
   if [[ -f $ETC/firewall.nft ]]; then
-    command -v nft >/dev/null && nft delete table inet "$APP" 2>/dev/null || true
+    if command -v nft >/dev/null; then nft delete table inet "$APP" 2>/dev/null || true; fi
     rm -f "$ETC/firewall.nft" "$DROPIN_DIR/firewall.conf"
   fi
 }
