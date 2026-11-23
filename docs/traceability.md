@@ -46,7 +46,7 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 
 ## Status by milestone
 
-**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** merged into `develop` (PR #10, 2026-11-22; dev build v0.2.0-dev.9). **M3 Kitchen:** merged into `develop` (PR #11, 2026-11-22); host test pending. **M4 Import:** merged into `develop` (PR #12, 2026-11-23); host test pending. **M5 Output:** built on `feature/m5-output` (0.5.0), PR into `develop` open; ADR 0032 awaits owner review. **M5b AI exchange:** built on `feature/m5b-ai-exchange` (stacked on M5), PR into `develop` open; ADR 0033 awaits owner review.
+**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** merged into `develop` (PR #10, 2026-11-22; dev build v0.2.0-dev.9). **M3 Kitchen:** merged into `develop` (PR #11, 2026-11-22); host test pending. **M4 Import:** merged into `develop` (PR #12, 2026-11-23); host test pending. **M5 Output and M5b AI exchange:** merged into `develop` (PR #13, #14, 2026-11-23); ADR 0032 and 0033 await owner review. **In progress:** M6 Nutrition and allergens on `feature/m6-nutrition` (0.6.0).
 
 ### M0 Foundations (built 2026-11-17; deployed and verified 2026-11-20 — DONE)
 
@@ -180,7 +180,7 @@ photos follow their step), ADR 0024 (browser-like User-Agent, paste fallback, im
 | AC-70 / AC-75 / AC-76 | Extended to `/manage/import`, the review page and `/media` | — | Web `AC_70_AuthMatrixTests`, `SEC_30_FormTokenTests`, `Markup_from_a_page_is_shown_as_text` |
 | Migration | `M4_Import`: Image, ImportJob, Recipe.FinishImageId, Step.ImageId | `Data/Migrations` | Infra store tests |
 
-### M5 Output (built 2026-11-23 while the owner was away; PR into `develop` — owner review pending)
+### M5 Output (built 2026-11-23 while the owner was away; merged PR #13 — owner review of ADR 0032 pending)
 
 Scope decisions: ADR 0027 (M5 split; AI exchange is M5b), ADR 0028 (anonymous check-off, finished lists removed after
 15 minutes, remembered names), ADR 0029 (lines stored per recipe, merged on view), ADR 0030 (seed shopping-v1;
@@ -204,7 +204,7 @@ bulk export), **ADR 0032 (smaller decisions made unattended — for owner review
 | AC-70 / AC-75 / AC-76 | Extended to the M5 routes, forms and list items | — | Web `AC_70_AuthMatrixTests`, `SEC_30_FormTokenTests`, `Item_text_is_encoded_on_the_page` |
 | Migration | `M5_Output`: ShoppingList, ShoppingListRecipe, ShoppingLine, ShoppingCheck, ShoppingListName; Food.PackageName | `Data/Migrations` | Infra store tests |
 
-### M5b AI exchange (built 2026-11-23 while the owner was away; stacked on M5 — owner review pending)
+### M5b AI exchange (built 2026-11-23 while the owner was away; merged PR #14 — owner review of ADR 0033 pending)
 
 Scope decisions: ADR 0027 (split), **ADR 0033 (scope and flow — for owner review)**. No new tables or packages.
 
