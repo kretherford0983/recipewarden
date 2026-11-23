@@ -5,6 +5,7 @@ using RecipeWarden.Core.Kitchen;
 using RecipeWarden.Core.Measurement;
 using RecipeWarden.Core.Organization;
 using RecipeWarden.Core.Recipes;
+using RecipeWarden.Core.Shopping;
 
 namespace RecipeWarden.Infrastructure.Data;
 
@@ -32,6 +33,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
     public DbSet<RecipeSuggestionState> RecipeSuggestionStates => Set<RecipeSuggestionState>();
     public DbSet<Image> Images => Set<Image>();
     public DbSet<ImportJob> ImportJobs => Set<ImportJob>();
+    public DbSet<ShoppingList> ShoppingLists => Set<ShoppingList>();
+    public DbSet<ShoppingListRecipe> ShoppingListRecipes => Set<ShoppingListRecipe>();
+    public DbSet<ShoppingLine> ShoppingLines => Set<ShoppingLine>();
+    public DbSet<ShoppingCheck> ShoppingChecks => Set<ShoppingCheck>();
+    public DbSet<ShoppingListName> ShoppingListNames => Set<ShoppingListName>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -144,6 +150,50 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
             e.HasOne<Recipe>().WithMany().HasForeignKey(j => j.CreatedRecipeId).OnDelete(DeleteBehavior.SetNull);
         });
 
+        // ADR 0028/0029: shopping lists.
+        builder.Entity<ShoppingList>(e =>
+        {
+            e.Property(l => l.Name).HasMaxLength(ShoppingRules.MaxListNameLength);
+            e.HasIndex(l => l.FinishedAt);
+            e.HasMany(l => l.Recipes).WithOne().HasForeignKey(r => r.ShoppingListId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(l => l.Lines).WithOne().HasForeignKey(r => r.ShoppingListId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(l => l.Checks).WithOne().HasForeignKey(r => r.ShoppingListId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<ShoppingListRecipe>(e =>
+        {
+            e.Property(r => r.Title).HasMaxLength(PublishRules.MaxTitleLength);
+            Real(e.Property(r => r.Scale));
+            e.HasOne<Recipe>().WithMany().HasForeignKey(r => r.RecipeId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<ShoppingLine>(e =>
+        {
+            e.Property(l => l.Name).HasMaxLength(ShoppingRules.MaxItemLength);
+            e.Property(l => l.RawText).HasMaxLength(ShoppingRules.MaxItemLength * 2);
+            e.Property(l => l.CountUnit).HasMaxLength(16);
+            e.Property(l => l.Kind).HasConversion<string>().HasMaxLength(16);
+            Real(e.Property(l => l.Amount));
+            Real(e.Property(l => l.AmountMax));
+            e.HasIndex(l => new { l.ShoppingListId, l.Position });
+            e.HasOne<ShoppingListRecipe>().WithMany().HasForeignKey(l => l.ListRecipeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Food>().WithMany().HasForeignKey(l => l.FoodId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<ShoppingCheck>(e =>
+        {
+            e.HasKey(c => new { c.ShoppingListId, c.ItemKey });
+            e.Property(c => c.ItemKey).HasMaxLength(ShoppingRules.MaxItemLength + 2);
+        });
+
+        builder.Entity<ShoppingListName>(e =>
+        {
+            e.Property(n => n.Name).HasMaxLength(ShoppingRules.MaxListNameLength);
+            e.Property(n => n.NormalizedName).HasMaxLength(ShoppingRules.MaxListNameLength * 2);
+            e.HasIndex(n => n.NormalizedName).IsUnique();
+            e.HasIndex(n => n.LastUsedAt);
+        });
+
         builder.Entity<RecipeSlugAlias>(e =>
         {
             e.HasKey(a => a.Slug);
@@ -214,7 +264,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
             e.Property(f => f.Category).HasMaxLength(40);
             e.Property(f => f.Source).HasMaxLength(16);
             e.Property(f => f.SourceNote).HasMaxLength(500);
-            e.Property(f => f.StoreSection).HasMaxLength(40);
+            e.Property(f => f.StoreSection).HasMaxLength(ShoppingRules.MaxSectionLength);
+            e.Property(f => f.PackageName).HasMaxLength(ShoppingRules.MaxPackageNameLength);
             Real(e.Property(f => f.DensityGPerMl));
             e.Property(f => f.Form).HasConversion<string>().HasMaxLength(16);
             Real(e.Property(f => f.PackageSize));

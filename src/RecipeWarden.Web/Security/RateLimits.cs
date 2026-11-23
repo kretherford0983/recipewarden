@@ -17,16 +17,24 @@ public sealed class RateLimitOptions
 
     /// <summary>SEC-43: URL imports per user per hour.</summary>
     public int UrlImportsPerHour { get; set; } = 20;
+
+    /// <summary>ADR 0028: shopping-list ticks per IP per minute (the one anonymous write).</summary>
+    public int ShoppingChecksPerMinute { get; set; } = 120;
 }
 
 /// <summary>
-/// SEC-63: search 60/min per IP; writes 120/min per user. SEC-43: URL imports 20 an hour per user. Over the limit:
+/// SEC-63: search 60/min per IP; writes 120/min per user; shopping ticks 120/min per IP (ADR 0028). SEC-43: URL
+/// imports 20 an hour per user. Over the limit:
 /// 429 with Retry-After.
 /// </summary>
 internal static class RateLimits
 {
     public const string SearchPolicy = "search";
     public const string UrlImportPolicy = "url-import";
+    public const string ShoppingCheckPolicy = "shopping-check";
+
+    /// <summary>The list page handler that ticks an item (ADR 0028); other handlers on that page are not counted here.</summary>
+    public const string ShoppingCheckHandler = "Check";
 
     /// <summary>The import page handler that fetches a URL (SEC-43); other handlers on that page are not counted.</summary>
     public const string UrlImportHandler = "Url";
@@ -62,6 +70,14 @@ internal static class RateLimits
                         QueueLimit = 0,
                         AutoReplenishment = true,
                     })
+                    : RateLimitPartition.GetNoLimiter(string.Empty));
+
+            // ADR 0028: ticking an item is open to anonymous readers, so it is limited per IP.
+            o.AddPolicy(ShoppingCheckPolicy, ctx =>
+                HttpMethods.IsPost(ctx.Request.Method)
+                    && string.Equals(ctx.Request.Query["handler"], ShoppingCheckHandler, StringComparison.OrdinalIgnoreCase)
+                    ? RateLimitPartition.GetFixedWindowLimiter("check:" + (ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
+                        _ => Window(options.ShoppingChecksPerMinute))
                     : RateLimitPartition.GetNoLimiter(string.Empty));
 
             o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>

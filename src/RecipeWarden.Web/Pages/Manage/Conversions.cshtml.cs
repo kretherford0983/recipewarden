@@ -54,6 +54,19 @@ public sealed class ConversionsModel(FoodCatalogService foods) : PageModel
         return await ResultAsync(await foods.UpdateFoodAsync(id, d, aliases, parsedForm, UserId, HttpContext.RequestAborted), "saved", q);
     }
 
+    /// <summary>ADR 0030: store section, pantry staple and package size for shopping lists.</summary>
+    public async Task<IActionResult> OnPostUpdateShoppingAsync(int id, string? section, bool pantry, string? packageSize, string? packageUnit,
+        string? packageName, string? q)
+    {
+        if (!TryNumber(packageSize, out var size))
+        {
+            return await FailAsync(BadNumber, q);
+        }
+
+        return await ResultAsync(await foods.UpdateShoppingAsync(id, section, pantry, size, packageUnit, packageName, UserId,
+            HttpContext.RequestAborted), "saved", q);
+    }
+
     public async Task<IActionResult> OnPostDeleteFoodAsync(int id)
     {
         await foods.DeleteFoodAsync(id, HttpContext.RequestAborted);

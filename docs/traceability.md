@@ -1,6 +1,6 @@
 # RecipeWarden — requirements traceability
 
-Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.13. Keep in step with the spec and the test suite.
+Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.14. Keep in step with the spec and the test suite.
 
 Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and tagged with `[Trait("Req", "FR-SCL-01")]`, so CI can print coverage per requirement and fail if any Must requirement has no test.
 
@@ -14,9 +14,9 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | FR-IMP-06/07 | BR-04 | Review page (editor form), ImportRules duplicates | Core `AC_16_DuplicateRulesTests`; Infra `FR_IMP_01_ImportServiceTests`; Web `FR_IMP_01_ImportPageTests`; E2E W3/W4 | AC-16 |
 | FR-ORG-01/02 | — | Tag, Collection tables; `/collections` | Web.Tests Tags, Collections | AC-20 |
 | FR-SRCH-01/02 | SEC-21; BR-53 in M6 (ADR 0009) | RecipeSearch FTS5; `/search` | Infra.Tests Search; Web.Tests SearchInjection | AC-21, AC-22 |
-| FR-VIEW-01/02 | BR-10 | Recipe page anatomy (7.3); cook mode | E2E W1 | AC-23 |
-| FR-EXP-01 | BR-10, BR-28 | Print stylesheet; `/print` | E2E PrintLayout (PDF snapshot) | AC-24 |
-| FR-EXP-02/03 | BR-10 | recipe-md v1 (9.7) | Importers.Tests MarkdownRoundTrip | AC-25 |
+| FR-VIEW-01/02 | BR-10 | Recipe page anatomy (7.3); cook mode `/recipes/{slug}/cook`, `TimerRules` | E2E W1, `W6_ShoppingPrintCookTests`; Core `FR_VIEW_02_TimerRulesTests`; Web `FR_EXP_01_PrintCookExportPageTests` | AC-23 |
+| FR-EXP-01 | BR-10, BR-28 | Print layout and `print.css`; `/print` | E2E W6 one-page PDF; Web `FR_EXP_01_PrintCookExportPageTests` | AC-24 |
+| FR-EXP-02/03 | BR-10 | recipe-md v1 (9.7); `RecipeExporter`; `export.md`, `export.zip`, bulk zips | Core `FR_EXP_02_RecipeMarkdownWriteTests`; Infra `FR_EXP_02_RecipeExportTests`; Web `FR_EXP_01_PrintCookExportPageTests` | AC-25 |
 | FR-SCL-01/02/03 | BR-20, BR-29 | ScalingService | Core.Tests Scaling (property-based) | AC-30, AC-31 |
 | FR-MEAS-01/02 | BR-21–24, BR-28 | DisplayPlanner, Unit, Food.Density | Core.Tests DisplayPlanner | AC-32, AC-33 |
 | FR-MEAS-03 | BR-25 | Vague units | Core.Tests VagueQuantities | AC-34 |
@@ -24,7 +24,7 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | FR-MEAS-06 | BR-27 | Count rounding | Core.Tests CountItems | AC-36 |
 | FR-TOOL-01/02/03 | BR-30, BR-33 | KitchenRules, KitchenTools (Core); KitchenService, InventoryVersion, InventorySnapshot; `/manage/kitchen` | Core `FR_TOOL_01_KitchenRulesTests`; Infra `FR_TOOL_01_KitchenStoreTests`; Web `FR_TOOL_01_KitchenPageTests`; E2E W5 | AC-40 |
 | FR-TOOL-04/05 | BR-31, BR-32 | SuggestionEngine (Core), SuggestionService, RecipeSuggestionState; `/manage/recipes/{id}/suggestions` | Core `FR_TOOL_04_SuggestionEngineTests`; Infra `FR_TOOL_04_SuggestionStoreTests`; Web `FR_TOOL_04_SuggestionPageTests`; E2E `W5_KitchenTests` | AC-41, AC-42 |
-| FR-SHOP-01–04 | BR-40–42 | ShoppingList tables; `/shopping` | Core.Tests ListMerge; E2E W6 | AC-50, AC-51 |
+| FR-SHOP-01–04 | BR-40–42 | `ShoppingRules`, `ShoppingService`, shopping tables; `/shopping` | Core `FR_SHOP_02_ShoppingRulesTests`; Infra `FR_SHOP_01_ShoppingServiceTests`; Web `FR_SHOP_01_ShoppingPageTests`; E2E W6 | AC-50, AC-51 |
 | FR-NUT-01/02 | BR-50, BR-51 | NutritionFacts, NutrientRef | Core.Tests Nutrition | AC-55 |
 | FR-ALG-01/02/03 | BR-52, BR-53 | Allergen, FoodAllergen, RecipeAllergen | Core.Tests Allergens | AC-56 |
 | FR-HOME-01/02 | — | Home page; Recommendation rules | Web.Tests Home | AC-60 |
@@ -46,7 +46,7 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 
 ## Status by milestone
 
-**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** merged into `develop` (PR #10, 2026-11-22; dev build v0.2.0-dev.9). **M3 Kitchen:** merged into `develop` (PR #11, 2026-11-22); host test pending. **M4 Import:** built on `feature/m4-import` (0.4.0), PR into `develop` open.
+**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** merged into `develop` (PR #10, 2026-11-22; dev build v0.2.0-dev.9). **M3 Kitchen:** merged into `develop` (PR #11, 2026-11-22); host test pending. **M4 Import:** merged into `develop` (PR #12, 2026-11-23); host test pending. **M5 Output:** built on `feature/m5-output` (0.5.0), PR into `develop` open; ADR 0032 awaits owner review. **Next:** M5b AI exchange.
 
 ### M0 Foundations (built 2026-11-17; deployed and verified 2026-11-20 — DONE)
 
@@ -157,7 +157,7 @@ readers try), ADR 0020 (pan field prefilled from the steps), ADR 0021 (appliance
 | AC-70 / SEC-30 | Extended to `/manage/kitchen`, `/manage/recipes/{id}/cooked` and `/suggestions` | — | Web `AC_70_AuthMatrixTests`, `SEC_30_FormTokenTests` |
 | Migration | `M3_Kitchen`: KitchenTool, InventoryVersion, InventorySnapshot, RecipeSuggestionState; Recipe pan columns; Food.Form (default `Other`, then `food-form-v1` seed) | `Data/Migrations` | Infra store tests |
 
-### M4 Import (built 2026-11-22; PR into `develop`)
+### M4 Import (built 2026-11-22; merged into `develop` 2026-11-23, PR #12 — DONE, host test pending)
 
 Scope decisions: ADR 0022 (WebP + thumbnail; `/media` anonymous only for published recipes' images), ADR 0023 (step
 photos follow their step), ADR 0024 (browser-like User-Agent, paste fallback, imports in the request), ADR 0025
@@ -180,6 +180,30 @@ photos follow their step), ADR 0024 (browser-like User-Agent, paste fallback, im
 | AC-70 / AC-75 / AC-76 | Extended to `/manage/import`, the review page and `/media` | — | Web `AC_70_AuthMatrixTests`, `SEC_30_FormTokenTests`, `Markup_from_a_page_is_shown_as_text` |
 | Migration | `M4_Import`: Image, ImportJob, Recipe.FinishImageId, Step.ImageId | `Data/Migrations` | Infra store tests |
 
+### M5 Output (built 2026-11-23 while the owner was away; PR into `develop` — owner review pending)
+
+Scope decisions: ADR 0027 (M5 split; AI exchange is M5b), ADR 0028 (anonymous check-off, finished lists removed after
+15 minutes, remembered names), ADR 0029 (lines stored per recipe, merged on view), ADR 0030 (seed shopping-v1;
+editable sections, pantry and packages), ADR 0031 (cook mode ticks on the device; print and export follow the view;
+bulk export), **ADR 0032 (smaller decisions made unattended — for owner review)**.
+
+| ID | Status | Implementation | Tests |
+| --- | --- | --- | --- |
+| FR-SHOP-01 / BR-42 | Done: named lists; add a recipe at the shown scale from its page (Editor), manual items; each item lists its recipes | `ShoppingService`, `/shopping`, `/shopping/new`, `/shopping/{id}` | Infra `FR_SHOP_01_ShoppingServiceTests`; Web `FR_SHOP_01_ShoppingPageTests`; E2E W6 |
+| FR-SHOP-02 / BR-40 / AC-50 | Done: merge by food (else name); volume and mass merge with a density, counts with counts, the rest as separate amounts on one item | `ShoppingRules.Merge`, `ShoppingRules.Amount` (Core) | Core `FR_SHOP_02_ShoppingRulesTests`, `ADR_0030_ShoppingDefaultsTests`; Infra; Web; E2E W6 |
+| BR-41 | Done: package counts, whole and half packages as is ("2½ sticks"), else "buy N" | `ShoppingRules.Packages`; Food.PackageSize/PackageUnitId/PackageName | Core; Infra |
+| AC-35 (list part) | Done: prepared amounts go on the list as raw purchase weight | `ShoppingRules.Amount` with `PurchaseGrams` | Core; Infra `Cooked_chicken_goes_on_the_list…` |
+| FR-SHOP-03 / AC-51 | Done: store sections in walking order; pantry staples under "You probably have"; ticks on the server per item; the last tick finishes the list (Undo for 15 minutes), names remembered | `ShoppingRules`, `ShoppingSeeder` (shopping-v1), `ShoppingService.CheckAsync`/`PurgeFinishedAsync`, `TrashPurgeService` | Core; Infra; Web `An_anonymous_reader_ticks…`; E2E W6 (phone and desk) |
+| D-10 / ADR 0028 (anonymous write) | Done: POST `?handler=Check` with antiforgery, only keys of current items, 120 a minute per IP; editing handlers need Editor | `DetailsModel` (Shopping), `RateLimits.ShoppingCheckPolicy` | Web `A_tick_without_a_token…`, `Anonymous_readers_cannot_edit_a_list`, `SEC_63` tick limit; `AC_70` table |
+| FR-SHOP-04 | Done: print layout, plain text and Markdown (names escaped) | `ShoppingText` (Core), `?handler=Print`, `?handler=Text` | Core; Web `A_list_prints…` |
+| FR-MEAS-05 (shopping fields) | Done: section, pantry and package per food on `/manage/conversions` | `FoodCatalogService.UpdateShoppingAsync`, `ShoppingRules.ValidateFood` | Web `Editors_set_a_foods_section…` |
+| FR-EXP-01 / AC-24 / AC-12 | Done: one column, ingredients before steps, no navigation, the view's scale/units/weights, source credit and URL; a 15-ingredient, 10-step recipe at 2x with weights prints on one Letter page | `/recipes/{slug}/print`, `_PrintLayout`, `print.css`, `RecipeViewModel` | Web `FR_EXP_01_PrintCookExportPageTests`; E2E W6 PDF (PdfPig page count) |
+| FR-EXP-02 / AC-25 | Done: `export.md` and `export.zip` (images/finish.webp, images/step-NN.webp, relative links); a scaled view writes scaled lines and `scale:` | `RecipeExporter`, `RecipeMarkdown.Write` (scale, images) | Core `FR_EXP_02_RecipeMarkdownWriteTests`; Infra `FR_EXP_02_RecipeExportTests`; Web |
+| FR-EXP-03 | Done: `/recipes/export.zip` and `/collections/{slug}/export.zip`, one folder per recipe; readers get published only; search rate limit | `RecipeExporter.BulkIdsAsync`/`WriteBulkZipAsync`, `BulkExportModel` | Infra; Web; `SEC_63` bulk limit |
+| FR-VIEW-02 / AC-23 | Done: cook mode with large type, ticks in this browser only, Wake Lock where supported, timers from step text | `/recipes/{slug}/cook`, `TimerRules` (Core), `cook.js` | Core `FR_VIEW_02_TimerRulesTests`; Web; E2E W6 at phone width |
+| AC-70 / AC-75 / AC-76 | Extended to the M5 routes, forms and list items | — | Web `AC_70_AuthMatrixTests`, `SEC_30_FormTokenTests`, `Item_text_is_encoded_on_the_page` |
+| Migration | `M5_Output`: ShoppingList, ShoppingListRecipe, ShoppingLine, ShoppingCheck, ShoppingListName; Food.PackageName | `Data/Migrations` | Infra store tests |
+
 #### M0 deployment check (2026-11-20, test host)
 
 - `recipewarden.service` enabled and active; runs from `/opt/recipewarden/current` (release folder under `releases/`); ~60 MB RAM.
@@ -196,10 +220,8 @@ photos follow their step), ADR 0024 (browser-like User-Agent, paste fallback, im
   auth-matrix table as Anonymous and Signed in respectively; add them to 7.2 at the next spec revision.
 - Requests that match no route are denied by the fallback policy (redirect to sign-in for anonymous
   visitors) instead of returning 404, so probing cannot map routes. Signed-in users get the 404 page.
-- **Open (needs an ADR before M5):** D-10 lets anyone check shopping-list items off, which is an
-  anonymous write; SEC-10 allows anonymous access to read-only pages only. Options: (a) a narrow
-  documented exception for the check-off endpoint with its own rate limit and antiforgery,
-  (b) require sign-in to check off, (c) keep check-off state client-side only.
+- **Resolved (2026-11-23, ADR 0028):** D-10's anonymous check-off is a narrow documented exception — one POST
+  handler with antiforgery and its own per-IP rate limit (option a).
 - **Open (deferred by owner 2026-11-20; needs an ADR before M7):** Data Protection key ring in backups.
   FR-BKP-01 defines a backup as database + images + config, so `<data>/keys` (SEC-71) is not included.
   Restoring on a new host (FR-BKP-06) would then sign everyone out and leave AI API keys (SEC-45)
@@ -257,3 +279,14 @@ photos follow their step), ADR 0024 (browser-like User-Agent, paste fallback, im
   - Step photos are added after the first save (a step must exist first). Imported pages' step images are not copied.
   - Not exercised on the host yet: the M3→M4 migration on a real database, real recipe sites through the tunnel, and
     image upload from a phone.
+
+- **M5 notes (2026-11-23, built unattended at the owner's request):**
+  - Decisions not taken by the owner are in ADR 0032, marked for review.
+  - One existing assertion was extended, not weakened: the M3 seed test listed every seed run and now includes
+    `shopping-v1` (each seed still runs once). The access table, the form-token page list and the sample seed (a
+    list with id 1) were extended for the new routes.
+  - The recipe page model became `RecipeViewModel` (shared by the reading view, print, cook mode and export); the
+    reading view's behaviour is unchanged (all M1–M4 page tests pass).
+  - No new packages. Bulk and single zips are built in a temporary file that is deleted when the response ends.
+  - Not exercised on the host yet: the M4→M5 migration and seed on a real database, printing from a real phone or
+    desktop browser, and Wake Lock on the owner's phones.

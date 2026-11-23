@@ -1,0 +1,37 @@
+/* FR-EXP-01, AC-24: one column, compact type so a 15-ingredient, 10-step recipe fits one Letter page. */
+@page { size: letter; margin: 0.5in; }
+
+:root { --text: #111; --muted: #444; --rule: #999; }
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0 auto; max-width: 7.5in; padding: 1rem; color: var(--text); background: #fff;
+  font: 11pt/1.35 Georgia, "Times New Roman", serif;
+}
+
+h1 { font-size: 18pt; margin: 0 0 .2rem; }
+h2 { font-size: 12.5pt; margin: .7rem 0 .25rem; border-bottom: 1px solid var(--rule); padding-bottom: .1rem; }
+h3 { font-size: 11pt; margin: .4rem 0 .15rem; }
+ul, ol { margin: 0; padding-left: 1.4rem; }
+li { margin: .1rem 0; break-inside: avoid; }
+p { margin: .2rem 0; }
+a { color: inherit; }
+
+.print-facts, .source-credit, .hint, .secondary, .print-note { color: var(--muted); }
+.print-url { word-break: break-all; font-size: 9.5pt; }
+.print-ingredients ul { columns: 2; column-gap: 1.5rem; }
+.print-ingredients li { break-inside: avoid-column; }
+
+.shopping-list ul { list-style: none; padding-left: 0; columns: 2; column-gap: 1.5rem; }
+.shopping-list li::before { content: "\2610\00a0"; }
+.shopping-list li.done { text-decoration: line-through; color: var(--muted); }
+
+.screen-only { display: flex; gap: 1rem; align-items: center; margin-bottom: .75rem; font-family: system-ui, sans-serif; }
+.screen-only button { padding: .35rem .8rem; }
+
+@media print {
+  .screen-only { display: none; }
+  body { padding: 0; max-width: none; }
+  a { text-decoration: none; }
+}

@@ -207,6 +207,9 @@ public sealed class Food
     public int? DefaultPurchaseUnitId { get; set; }
     public decimal? PackageSize { get; set; }
     public int? PackageUnitId { get; set; }
+
+    /// <summary>ADR 0030: what one package is called ("stick", "can", "carton"); BR-41.</summary>
+    public string? PackageName { get; set; }
     public string? StoreSection { get; set; }
     public bool IsPantryStaple { get; set; }
     public DateTimeOffset CreatedAt { get; set; }

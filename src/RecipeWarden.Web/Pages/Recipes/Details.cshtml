@@ -222,6 +222,35 @@
             @if (Model.HowManyToolId is not null && Model.HowMany is null && Model.Containers?.Error is { } howError) { <p class="notice">@howError</p> }
         </div>
 
+        @{ var viewQuery = Model.ViewQuery(); }
+        <nav class="recipe-actions" aria-label="Print, cook and export">
+            @* ADR 0031: each takes this view's scale, units and weights. *@
+            <a class="button-link" href="/recipes/@r.Slug/cook@(viewQuery)">Cook mode</a>
+            <a class="button-link" href="/recipes/@r.Slug/print@(viewQuery)">Print</a>
+            <a class="button-link" href="/recipes/@r.Slug/export.md@(viewQuery)" download>Markdown</a>
+            <a class="button-link" href="/recipes/@r.Slug/export.zip@(viewQuery)" download>Markdown + images</a>
+        </nav>
+        @if (Model.CanEdit)
+        {
+            @* FR-SHOP-01: adds the recipe at the scale shown. *@
+            <form class="inline-form add-to-list" method="post" action="/shopping/new?handler=AddRecipe" asp-antiforgery="true">
+                <input type="hidden" name="slug" value="@r.Slug">
+                <input type="hidden" name="scale" value="@ScaleRules.ToQuery(sc.Factor)">
+                <label for="shopping-list">Add to shopping list</label>
+                <select id="shopping-list" name="listId">
+                    @foreach (var l in Model.ShoppingLists) { <option value="@l.Id">@l.Name</option> }
+                    <option value="">New list…</option>
+                </select>
+                <label for="new-list-name" class="visually-hidden">New list name</label>
+                <input id="new-list-name" name="newName" maxlength="@RecipeWarden.Core.Shopping.ShoppingRules.MaxListNameLength" placeholder="New list name">
+                <button type="submit">Add@(sc.Factor != 1m ? " at " + ScaleRules.Label(sc.Factor) : "")</button>
+            </form>
+            @if (Model.AddedList is { } added)
+            {
+                <p class="notice" role="status">Added to <a href="/shopping/@added.Id">@added.Name</a>.</p>
+            }
+        }
+
         @foreach (var offer in sc.Suggestions)
         {
             @* FR-TOOL-04, ADR 0017: worked out on this view; nothing is saved by reading it. *@

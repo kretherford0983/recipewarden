@@ -66,6 +66,33 @@
                             </select>
                             <button type="submit">Save</button>
                         </form>
+                        <form method="post" action="/manage/conversions?handler=UpdateShopping" class="inline-form shopping-fields" asp-antiforgery="true">
+                            @* ADR 0030: where it is in the store, pantry staple, and the package it is sold in (BR-41). *@
+                            <input type="hidden" name="id" value="@f.Id">
+                            <input type="hidden" name="q" value="@q">
+                            <label for="section-@f.Id">Section</label>
+                            <select id="section-@f.Id" name="section">
+                                <option value="" selected="@(f.StoreSection is null)">Other</option>
+                                @foreach (var sec in RecipeWarden.Core.Shopping.ShoppingRules.SectionOrder.Where(x => x != RecipeWarden.Core.Shopping.ShoppingRules.OtherSection))
+                                {
+                                    <option value="@sec" selected="@(f.StoreSection == sec)">@sec</option>
+                                }
+                            </select>
+                            <label><input type="checkbox" name="pantry" value="true" checked="@f.IsPantryStaple"> Pantry staple</label>
+                            <label for="package-@f.Id">Package</label>
+                            <input id="package-@f.Id" name="packageSize" value="@ConversionsModel.Number(f.PackageSize)" inputmode="decimal" size="4">
+                            <label class="visually-hidden" for="package-unit-@f.Id">Package unit for @f.Name</label>
+                            <select id="package-unit-@f.Id" name="packageUnit">
+                                <option value="" selected="@(f.PackageUnit is null)">count</option>
+                                @foreach (var u in UnitCatalog.All.Where(u => u.Kind is UnitKind.Volume or UnitKind.Mass))
+                                {
+                                    <option value="@u.Code" selected="@(f.PackageUnit == u.Code)">@u.Name</option>
+                                }
+                            </select>
+                            <label class="visually-hidden" for="package-name-@f.Id">Package name for @f.Name</label>
+                            <input id="package-name-@f.Id" name="packageName" value="@f.PackageName" size="8" maxlength="@RecipeWarden.Core.Shopping.ShoppingRules.MaxPackageNameLength" placeholder="can">
+                            <button type="submit">Save</button>
+                        </form>
                     </td>
                     <td>@f.RecipeLines</td>
                     <td>

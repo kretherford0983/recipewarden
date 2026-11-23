@@ -16,6 +16,7 @@ public sealed class SEC_63_RateLimitTests : IClassFixture<SEC_63_RateLimitTests.
             Factory = new RecipeWardenFactory();
             Factory.Settings["RateLimits:SearchPerMinute"] = "3";
             Factory.Settings["RateLimits:WritesPerMinute"] = "4";
+            Factory.Settings["RateLimits:ShoppingChecksPerMinute"] = "3";
             Factory.Settings["Network:AllowedSourceIps:0"] = "203.0.113.0/24"; // SEC-60 allow-list
         }
 
@@ -66,6 +67,38 @@ public sealed class SEC_63_RateLimitTests : IClassFixture<SEC_63_RateLimitTests.
 
         using var other = await factory.SignInAsync("limits-2@example.com");
         (await other.CreateRecipeAsync("Other user")).StatusCode.ShouldBe(HttpStatusCode.Redirect);
+    }
+
+    [Fact]
+    [Trait("Req", "ADR-0028")]
+    public async Task Anonymous_ticks_are_limited_per_ip_and_other_handlers_are_not_counted()
+    {
+        await factory.SeedSamplesAsync();
+        using var client = factory.CreateHttpsClient();
+        var codes = new List<HttpStatusCode>();
+        for (var i = 0; i < 4; i++)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/shopping/1?handler=Check") { Content = new StringContent("") };
+            request.Headers.Add(RecipeWardenFactory.RemoteIpHeader, "203.0.113.20");
+            codes.Add((await client.SendAsync(request, Ct)).StatusCode);
+        }
+
+        codes.Take(3).ShouldAllBe(c => c == HttpStatusCode.BadRequest); // no token: refused, but counted
+        codes[3].ShouldBe(HttpStatusCode.TooManyRequests);
+        (await Get(client, "/shopping/1", "203.0.113.20")).StatusCode.ShouldBe(HttpStatusCode.OK); // viewing is not a tick
+    }
+
+    [Fact]
+    [Trait("Req", "FR-EXP-03")]
+    public async Task Bulk_export_shares_the_search_limit()
+    {
+        using var client = factory.CreateHttpsClient();
+        for (var i = 0; i < 3; i++)
+        {
+            (await Get(client, "/recipes/export.zip", "203.0.113.30")).StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+
+        (await Get(client, "/recipes/export.zip", "203.0.113.30")).StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
     }
 
     private static async Task<HttpResponseMessage> Get(HttpClient client, string path, string ip)

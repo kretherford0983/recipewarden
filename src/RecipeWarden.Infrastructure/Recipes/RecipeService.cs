@@ -636,22 +636,25 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
     private static readonly Dictionary<int, string> UnitCatalogCodes =
         UnitCatalog.All.Select((u, i) => (Id: i + 1, u.Code)).ToDictionary(x => x.Id, x => x.Code);
 
+    /// <summary>A stored line as the parser's record (load <see cref="RecipeIngredient.Unit"/> with it).</summary>
+    internal static ParsedIngredient ToParsed(RecipeIngredient i) => new()
+    {
+        RawText = i.RawText,
+        Quantity = i.Quantity,
+        QuantityMax = i.QuantityMax,
+        QuantityText = i.QuantityText,
+        UnitCode = i.Unit?.Code,
+        Name = i.Name,
+        Preparation = i.Preparation,
+        State = i.State,
+        IsOptional = i.IsOptional,
+        Note = i.Note,
+        Confidence = i.ParseConfidence,
+    };
+
     private static IngredientLineView ToLine(RecipeIngredient i)
     {
-        var parsed = new ParsedIngredient
-        {
-            RawText = i.RawText,
-            Quantity = i.Quantity,
-            QuantityMax = i.QuantityMax,
-            QuantityText = i.QuantityText,
-            UnitCode = i.Unit?.Code,
-            Name = i.Name,
-            Preparation = i.Preparation,
-            State = i.State,
-            IsOptional = i.IsOptional,
-            Note = i.Note,
-            Confidence = i.ParseConfidence,
-        };
+        var parsed = ToParsed(i);
         return new IngredientLineView(IngredientFormatter.Format(parsed), i.RawText, parsed.NeedsReview, i.IsOptional)
         {
             Parsed = parsed,

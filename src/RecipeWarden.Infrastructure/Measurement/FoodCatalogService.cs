@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RecipeWarden.Core.Measurement;
+using RecipeWarden.Core.Shopping;
 using RecipeWarden.Infrastructure.Data;
 
 namespace RecipeWarden.Infrastructure.Measurement;
@@ -10,6 +11,13 @@ public sealed record FoodRow(int Id, string Name, string? Category, decimal? Den
 {
     /// <summary>ADR 0018.</summary>
     public FoodForm Form { get; init; }
+
+    /// <summary>ADR 0030: store section, pantry flag and package (size, unit code or null for a count, name).</summary>
+    public string? StoreSection { get; init; }
+    public bool IsPantryStaple { get; init; }
+    public decimal? PackageSize { get; init; }
+    public string? PackageUnit { get; init; }
+    public string? PackageName { get; init; }
 }
 
 /// <summary>A vague unit (pinch, dash …) and its current value in teaspoons.</summary>
@@ -87,6 +95,8 @@ public sealed class FoodCatalogService(AppDbContext db, TimeProvider clock)
             .Select(f => new
             {
                 f.Id, f.Name, f.NormalizedName, f.Category, f.DensityGPerMl, f.Source, f.SourceNote, f.Form,
+                f.StoreSection, f.IsPantryStaple, f.PackageSize, f.PackageName,
+                PackageUnit = db.Units.Where(u => u.Id == f.PackageUnitId).Select(u => u.Code).FirstOrDefault(),
                 Aliases = f.Aliases.Select(a => a.Alias).ToList(),
                 AliasKeys = f.Aliases.Select(a => a.NormalizedAlias).ToList(),
                 Lines = db.RecipeIngredients.Count(i => i.FoodId == f.Id),
@@ -97,7 +107,15 @@ public sealed class FoodCatalogService(AppDbContext db, TimeProvider clock)
             .Where(f => key.Length == 0 || f.NormalizedName.Contains(key, StringComparison.Ordinal) || f.AliasKeys.Any(a => a.Contains(key, StringComparison.Ordinal)))
             .OrderBy(f => f.Category).ThenBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
             .Select(f => new FoodRow(f.Id, f.Name, f.Category, f.DensityGPerMl, f.Source, f.SourceNote,
-                f.Aliases.Order(StringComparer.OrdinalIgnoreCase).ToList(), f.Lines) { Form = f.Form })
+                f.Aliases.Order(StringComparer.OrdinalIgnoreCase).ToList(), f.Lines)
+            {
+                Form = f.Form,
+                StoreSection = f.StoreSection,
+                IsPantryStaple = f.IsPantryStaple,
+                PackageSize = f.PackageSize,
+                PackageUnit = f.PackageUnit,
+                PackageName = f.PackageName,
+            })
             .ToList();
     }
 
@@ -198,6 +216,41 @@ public sealed class FoodCatalogService(AppDbContext db, TimeProvider clock)
         food.UpdatedById = userId;
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         await LinkUnmatchedAsync(cancellationToken).ConfigureAwait(false);
+        return ConversionEditResult.Success;
+    }
+
+    /// <summary>ADR 0030, FR-SHOP-03, BR-41: a food's store section, pantry flag and package size.</summary>
+    public async Task<ConversionEditResult> UpdateShoppingAsync(int id, string? section, bool pantry, decimal? packageSize, string? packageUnit,
+        string? packageName, string userId, CancellationToken cancellationToken = default)
+    {
+        section = string.IsNullOrWhiteSpace(section) ? null : section.Trim();
+        packageUnit = string.IsNullOrWhiteSpace(packageUnit) ? null : packageUnit.Trim();
+        if (ShoppingRules.ValidateFood(section, packageSize, packageUnit, packageName) is { } error)
+        {
+            return ConversionEditResult.Fail(error);
+        }
+
+        var food = await db.Foods.FirstOrDefaultAsync(f => f.Id == id, cancellationToken).ConfigureAwait(false);
+        if (food is null)
+        {
+            return ConversionEditResult.Fail(NotFound);
+        }
+
+        int? unitId = null;
+        if (packageUnit is not null)
+        {
+            unitId = await db.Units.Where(u => u.Code == packageUnit).Select(u => (int?)u.Id).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        var hasPackage = packageSize is not null;
+        food.StoreSection = section;
+        food.IsPantryStaple = pantry;
+        food.PackageSize = hasPackage ? packageSize : null;
+        food.PackageUnitId = hasPackage ? unitId : null;
+        food.PackageName = hasPackage ? packageName!.Trim() : null;
+        food.UpdatedAt = clock.GetUtcNow();
+        food.UpdatedById = userId;
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return ConversionEditResult.Success;
     }
 
