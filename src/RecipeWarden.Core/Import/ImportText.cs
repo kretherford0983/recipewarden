@@ -25,6 +25,9 @@ public static partial class ImportText
     [GeneratedRegex(@"[ \t  -   　]+", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 500)]
     private static partial Regex Spaces();
 
+    [GeneratedRegex(@" +(?=[.,;:!?)])", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 500)]
+    private static partial Regex SpaceBeforePunctuation();
+
     [GeneratedRegex(@"\n{3,}", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 500)]
     private static partial Regex ManyBlankLines();
 
@@ -61,7 +64,7 @@ public static partial class ImportText
             }
         }
 
-        var lines = sb.ToString().Split('\n').Select(l => Spaces().Replace(l, " ").Trim());
+        var lines = sb.ToString().Split('\n').Select(l => SpaceBeforePunctuation().Replace(Spaces().Replace(l, " "), string.Empty).Trim());
         var joined = ManyBlankLines().Replace(string.Join('\n', lines), "\n\n").Trim();
         if (joined.Length == 0)
         {
