@@ -30,6 +30,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
     public DbSet<InventoryVersion> InventoryVersions => Set<InventoryVersion>();
     public DbSet<InventorySnapshot> InventorySnapshots => Set<InventorySnapshot>();
     public DbSet<RecipeSuggestionState> RecipeSuggestionStates => Set<RecipeSuggestionState>();
+    public DbSet<Image> Images => Set<Image>();
+    public DbSet<ImportJob> ImportJobs => Set<ImportJob>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -76,6 +78,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
             e.HasMany(r => r.Ingredients).WithOne().HasForeignKey(i => i.RecipeId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(r => r.Steps).WithOne().HasForeignKey(s => s.RecipeId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(r => r.Tags).WithOne().HasForeignKey(t => t.RecipeId).OnDelete(DeleteBehavior.Cascade);
+            e.Property(r => r.FinishImageId).HasMaxLength(32);
+            e.HasIndex(r => r.FinishImageId);
+            e.HasOne<Image>().WithMany().HasForeignKey(r => r.FinishImageId).OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<IngredientGroup>(e =>
@@ -109,6 +114,34 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
             e.Property(s => s.Text).HasMaxLength(StepTextRules.MaxStepLength);
             e.Property(s => s.SectionName).HasMaxLength(200);
             e.Property(s => s.Title).HasMaxLength(StepTextRules.MaxTitleLength);
+            e.Property(s => s.ImageId).HasMaxLength(32);
+            e.HasIndex(s => s.ImageId);
+            e.HasOne<Image>().WithMany().HasForeignKey(s => s.ImageId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<Image>(e =>
+        {
+            e.Property(i => i.Id).HasMaxLength(32).ValueGeneratedNever();
+            e.Property(i => i.StoragePath).HasMaxLength(64);
+            e.Property(i => i.ContentType).HasMaxLength(32);
+            e.Property(i => i.Sha256).HasMaxLength(64);
+            e.Property(i => i.AltText).HasMaxLength(300);
+            e.Property(i => i.SourceUrl).HasMaxLength(SourceRules.MaxUrlLength);
+            e.HasIndex(i => i.CreatedAt);
+        });
+
+        builder.Entity<ImportJob>(e =>
+        {
+            e.Property(j => j.BatchId).HasMaxLength(32);
+            e.Property(j => j.SourceKind).HasConversion<string>().HasMaxLength(16);
+            e.Property(j => j.Status).HasConversion<string>().HasMaxLength(16);
+            e.Property(j => j.SourceRef).HasMaxLength(SourceRules.MaxUrlLength);
+            e.Property(j => j.RawPath).HasMaxLength(128);
+            e.Property(j => j.ImageUrl).HasMaxLength(SourceRules.MaxUrlLength);
+            e.HasIndex(j => j.BatchId);
+            e.HasIndex(j => new { j.Status, j.CreatedAt });
+            e.HasOne<Recipe>().WithMany().HasForeignKey(j => j.DuplicateOfRecipeId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne<Recipe>().WithMany().HasForeignKey(j => j.CreatedRecipeId).OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<RecipeSlugAlias>(e =>

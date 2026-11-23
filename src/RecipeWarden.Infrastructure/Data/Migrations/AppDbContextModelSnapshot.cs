@@ -339,6 +339,136 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.ToTable("FoodAliases");
                 });
 
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Image", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AltText")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Bytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StoragePath")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("ThumbBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.ToTable("Images");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ImportJob", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("BatchId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("CopyImage")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("CreatedRecipeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("DuplicateOfRecipeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ParsedJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RawPath")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceKind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceRef")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("WarningsJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatchId");
+
+                    b.HasIndex("CreatedRecipeId");
+
+                    b.HasIndex("DuplicateOfRecipeId");
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.ToTable("ImportJobs");
+                });
+
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.IngredientGroup", b =>
                 {
                     b.Property<int>("Id")
@@ -503,6 +633,10 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("FinishImageId")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
                     b.Property<double?>("FinishedDensityGPerMl")
                         .HasColumnType("REAL");
 
@@ -618,6 +752,8 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedAt");
+
+                    b.HasIndex("FinishImageId");
 
                     b.HasIndex("ParentRecipeId");
 
@@ -792,6 +928,10 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ImageId")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("RecipeId")
                         .HasColumnType("INTEGER");
 
@@ -815,6 +955,8 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ImageId");
 
                     b.HasIndex("RecipeId", "SortOrder");
 
@@ -1564,6 +1706,19 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ImportJob", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedRecipeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
+                        .WithMany()
+                        .HasForeignKey("DuplicateOfRecipeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.IngredientGroup", b =>
                 {
                     b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
@@ -1592,6 +1747,11 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Recipe", b =>
                 {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Image", null)
+                        .WithMany()
+                        .HasForeignKey("FinishImageId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
                         .WithMany()
                         .HasForeignKey("ParentRecipeId")
@@ -1642,6 +1802,11 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeStep", b =>
                 {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Image", null)
+                        .WithMany()
+                        .HasForeignKey("ImageId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
                         .WithMany("Steps")
                         .HasForeignKey("RecipeId")

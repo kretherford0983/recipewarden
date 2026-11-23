@@ -79,6 +79,11 @@ public sealed class RecipeSearchService(AppDbContext db)
                     ?? ((r.PrepMinutesMax ?? r.PrepMinutes ?? 0) + (r.CookMinutesMax ?? r.CookMinutes ?? 0))) <= max);
         }
 
+        if (criteria.HasImage)
+        {
+            query = query.Where(r => r.FinishImageId != null);
+        }
+
         if (criteria.MinRating is { } rating)
         {
             query = query.Where(r => r.Rating >= rating);
@@ -112,12 +117,12 @@ public sealed class RecipeSearchService(AppDbContext db)
 
         var rows = await db.Recipes.AsNoTracking().Where(r => pageIds.Contains(r.Id))
             .Select(r => new { r.Id, r.Slug, r.Title, r.Description, r.TotalMinutes, r.TotalMinutesMax, r.PrepMinutes, r.PrepMinutesMax,
-                r.CookMinutes, r.CookMinutesMax, r.Rating, r.Status })
+                r.CookMinutes, r.CookMinutesMax, r.Rating, r.Status, r.FinishImageId })
             .ToListAsync(cancellationToken).ConfigureAwait(false);
         var byId = rows.ToDictionary(r => r.Id);
         var items = pageIds.Where(byId.ContainsKey).Select(id => byId[id])
             .Select(r => Card(r.Id, r.Slug, r.Title, r.Description, (r.TotalMinutes, r.TotalMinutesMax), (r.PrepMinutes, r.PrepMinutesMax),
-                (r.CookMinutes, r.CookMinutesMax), r.Rating, r.Status))
+                (r.CookMinutes, r.CookMinutesMax), r.Rating, r.Status, r.FinishImageId))
             .ToList();
 
         return new SearchPage(items, total, criteria.Page, pageCount);
@@ -157,12 +162,12 @@ public sealed class RecipeSearchService(AppDbContext db)
     }
 
     internal static RecipeCard Card(int id, string slug, string title, string? description, (int? Min, int? Max) total,
-        (int? Min, int? Max) prep, (int? Min, int? Max) cook, int? rating, RecipeStatus status)
+        (int? Min, int? Max) prep, (int? Min, int? Max) cook, int? rating, RecipeStatus status, string? imageId = null)
     {
         var time = total.Min is not null ? total : TimeText.Sum(prep.Min, prep.Max, cook.Min, cook.Max);
         var summary = description is null ? null
             : description.Length <= SummaryLength ? description
             : description[..SummaryLength].TrimEnd() + "…";
-        return new RecipeCard(id, slug, title, summary, time.Min, time.Max, rating, status);
+        return new RecipeCard(id, slug, title, summary, time.Min, time.Max, rating, status) { ImageId = imageId };
     }
 }

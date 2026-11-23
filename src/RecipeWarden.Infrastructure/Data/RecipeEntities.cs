@@ -36,6 +36,9 @@ public sealed class Recipe
     public string? SourceName { get; set; }
     public string? SourceAuthor { get; set; }
     public DateTimeOffset? SourceImportedAt { get; set; }
+
+    /// <summary>ADR 0022: the finish image (8.2 FinishImageId), a 32-hex <see cref="Image"/> id.</summary>
+    public string? FinishImageId { get; set; }
     public int? ParentRecipeId { get; set; }
     public string? Notes { get; set; }
     public int? Rating { get; set; }
@@ -97,9 +100,12 @@ public sealed class RecipeIngredient
     public int? FoodId { get; set; }
 }
 
-/// <summary>Section 8.2 Step (ImageId arrives in M4).</summary>
+/// <summary>Section 8.2 Step.</summary>
 public sealed class RecipeStep
 {
+    /// <summary>ADR 0023: the step photo; follows the step across edits by text, then position.</summary>
+    public string? ImageId { get; set; }
+
     public int Id { get; set; }
     public int RecipeId { get; set; }
     public int SortOrder { get; set; }
@@ -309,4 +315,28 @@ public enum SuggestionStatus
 {
     Dismissed,
     Applied,
+}
+
+/// <summary>
+/// Section 8.2 Image, ADR 0022: a re-encoded WebP (at most 2400 px) and a 640 px thumbnail under
+/// <c>&lt;data&gt;/media</c>. The id is 32 random hex characters, so links cannot be guessed.
+/// </summary>
+public sealed class Image
+{
+    public string Id { get; set; } = string.Empty;
+
+    /// <summary>Relative to the media directory, e.g. "ab/ab12….webp".</summary>
+    public string StoragePath { get; set; } = string.Empty;
+    public string ContentType { get; set; } = "image/webp";
+    public int Width { get; set; }
+    public int Height { get; set; }
+    public long Bytes { get; set; }
+    public long ThumbBytes { get; set; }
+    public string Sha256 { get; set; } = string.Empty;
+    public string? AltText { get; set; }
+
+    /// <summary>BR-12: where a copied image came from.</summary>
+    public string? SourceUrl { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public string? CreatedById { get; set; }
 }

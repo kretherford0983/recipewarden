@@ -12,5 +12,11 @@ public sealed class DataOptions
 
     public string KeysDirectory => Path.Combine(Directory, "keys");
 
+    /// <summary>ADR 0022: re-encoded images, outside the web root.</summary>
+    public string MediaDirectory => Path.Combine(Directory, "media");
+
+    /// <summary>ADR 0024, FR-IMP-08: raw import payloads, kept 30 days.</summary>
+    public string ImportsDirectory => Path.Combine(Directory, "imports");
+
     public string ConnectionString => $"Data Source={DatabasePath};Foreign Keys=True;Pooling=True";
 }

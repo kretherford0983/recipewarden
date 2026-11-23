@@ -33,7 +33,17 @@ public sealed record SaveOutcome
 }
 
 /// <summary>A recipe as the editor shows it.</summary>
-public sealed record RecipeForEdit(int Id, string Slug, RecipeStatus Status, int Version, RecipeEdit Edit);
+public sealed record RecipeForEdit(int Id, string Slug, RecipeStatus Status, int Version, RecipeEdit Edit)
+{
+    /// <summary>ADR 0022: the finish image id, if any.</summary>
+    public string? FinishImageId { get; init; }
+
+    /// <summary>ADR 0023: the saved steps, in order, with their photos (for the photo panel).</summary>
+    public IReadOnlyList<StepPhoto> StepPhotos { get; init; } = [];
+}
+
+/// <summary>ADR 0023: a saved step and its photo, for the editor's photo panel. <see cref="Index"/> is its position.</summary>
+public sealed record StepPhoto(int Index, string? Title, string Text, string? ImageId);
 
 public sealed record TagLink(string Name, string Slug, TagType? TagType);
 
@@ -49,8 +59,8 @@ public sealed record IngredientLineView(string Text, string RawText, bool NeedsR
     public int? FoodId { get; init; }
 }
 
-/// <summary>A step with its optional heading (ADR 0015).</summary>
-public sealed record StepView(string? Title, string Text);
+/// <summary>A step with its optional heading (ADR 0015) and photo (ADR 0023).</summary>
+public sealed record StepView(string? Title, string Text, string? ImageId = null);
 
 public sealed record StepSectionView(string? Name, IReadOnlyList<StepView> Steps);
 
@@ -86,6 +96,9 @@ public sealed record RecipeView
     public IReadOnlyList<CollectionLink> Collections { get; init; } = [];
     public DateTimeOffset UpdatedAt { get; init; }
 
+    /// <summary>ADR 0022: the finish image id, if any.</summary>
+    public string? FinishImageId { get; init; }
+
     /// <summary>ADR 0019: the stored finished yield (amount, unit code, source) and finished density (BR-112).</summary>
     public decimal? YieldAmount { get; init; }
     public string? YieldUnitCode { get; init; }
@@ -113,6 +126,9 @@ public sealed record RecipeLookup(RecipeView? Recipe, string? RedirectToSlug)
 public sealed record RecipeCard(int Id, string Slug, string Title, string? Summary, int? TotalMinutes, int? TotalMinutesMax, int? Rating,
     RecipeStatus Status)
 {
+    /// <summary>ADR 0022: the finish image, shown as a thumbnail.</summary>
+    public string? ImageId { get; init; }
+
     /// <summary>"25 min", "20–25 min", "1 hr 15 min"; empty when unknown.</summary>
     public string TimeText => Core.Recipes.TimeText.Format(TotalMinutes, TotalMinutesMax);
 }

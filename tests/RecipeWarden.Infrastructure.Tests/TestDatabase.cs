@@ -21,7 +21,7 @@ internal sealed class TestDatabase : IAsyncDisposable
 
     /// <param name="fromTemplate">Start from the migrated template (default) or from an empty directory.</param>
     /// <param name="clock">Replaces the system clock (BR-05 trash tests).</param>
-    public static async Task<TestDatabase> CreateAsync(bool fromTemplate = true, TimeProvider? clock = null)
+    public static async Task<TestDatabase> CreateAsync(bool fromTemplate = true, TimeProvider? clock = null, Action<IServiceCollection>? configure = null)
     {
         var dir = Path.Combine(Path.GetTempPath(), "rw-infra-" + Guid.NewGuid().ToString("N"));
         if (fromTemplate)
@@ -42,6 +42,8 @@ internal sealed class TestDatabase : IAsyncDisposable
         {
             services.AddSingleton(clock);
         }
+
+        configure?.Invoke(services);
         var provider = services.BuildServiceProvider();
 
         await using (var scope = provider.CreateAsyncScope())

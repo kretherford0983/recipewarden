@@ -114,7 +114,7 @@ public sealed class RecipeScaler(FoodCatalogService foods, KitchenService kitche
 
         var steps = recipe.Steps
             .Select(s => new StepSectionView(s.Name,
-                s.Steps.Select(t => new StepView(t.Title, TemperatureText.Convert(t.Text, units))).ToList()))
+                s.Steps.Select(t => new StepView(t.Title, TemperatureText.Convert(t.Text, units), t.ImageId)).ToList()))
             .ToList();
         var (servings, servingsMax) = ScaleRules.Servings(recipe.Servings, recipe.ServingsMax, factor);
         var timeNote = ScaleRules.NoteFor(factor) ?? (panOptions.Count > 0 ? PanRules.TimeNote : null);
