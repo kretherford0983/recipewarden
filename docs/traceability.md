@@ -1,6 +1,6 @@
 # RecipeWarden — requirements traceability
 
-Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.12. Keep in step with the spec and the test suite.
+Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.13. Keep in step with the spec and the test suite.
 
 Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and tagged with `[Trait("Req", "FR-SCL-01")]`, so CI can print coverage per requirement and fail if any Must requirement has no test.
 
@@ -9,9 +9,9 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | FR-REC-01/02 | BR-01, BR-02, BR-06 | Recipe aggregate (8.2); `/manage/recipes/*` | Core.Tests RecipeRules; Web.Tests RecipeEditor; E2E W2 | AC-01, AC-02 |
 | FR-REC-03 | BR-04 | IngredientLineParser (9.3) | Importers.Tests IngredientLine (corpus) | AC-03 |
 | FR-REC-04 | BR-05 | Recipe.DeletedAt; `/manage/trash` | Web.Tests Trash | AC-04 |
-| FR-IMP-01/02/03 | BR-10, BR-12, BR-13; SEC-40–43 | SafeFetcher, JsonLdExtractor, ImportJob; `/manage/import` | Importers.Tests UrlImport (snapshots); Infra.Tests SafeFetcher; E2E W3 | AC-10, AC-11, AC-12, AC-13 |
-| FR-IMP-04/05 | BR-13; SEC-50–53 | Markdown, Docx, Pdf extractors | Importers.Tests FileImport; Web.Tests UploadValidation | AC-14, AC-15 |
-| FR-IMP-06/07 | BR-04 | Review page, duplicate detector | E2E W3/W4; Core.Tests Duplicates | AC-16 |
+| FR-IMP-01/02/03 | BR-10, BR-12, BR-13; SEC-40–43 | SafeFetcher, HtmlRecipeExtractor, ImportService, ImportJob, ImageStore; `/manage/import` | Core `AC_13_UrlRulesTests`; Importers `AC_10_HtmlImportTests`; Infra `AC_13_SafeFetcherTests`, `FR_IMP_01_ImportServiceTests`; Web `FR_IMP_01_ImportPageTests`; E2E `W3_W4_ImportTests` | AC-10, AC-11, AC-12, AC-13 |
+| FR-IMP-04/05 | BR-13; SEC-50–53 | RecipeMarkdown (Core), Text/Docx/Pdf extractors, UploadValidator | Core `AC_14_RecipeMarkdownTests`, `SEC_50_UploadRulesTests`; Importers `AC_15_FileImportTests`; Infra `SEC_51_UploadValidatorTests`; Web `FR_IMP_01_ImportPageTests`; E2E W4 | AC-14, AC-15 |
+| FR-IMP-06/07 | BR-04 | Review page (editor form), ImportRules duplicates | Core `AC_16_DuplicateRulesTests`; Infra `FR_IMP_01_ImportServiceTests`; Web `FR_IMP_01_ImportPageTests`; E2E W3/W4 | AC-16 |
 | FR-ORG-01/02 | — | Tag, Collection tables; `/collections` | Web.Tests Tags, Collections | AC-20 |
 | FR-SRCH-01/02 | SEC-21; BR-53 in M6 (ADR 0009) | RecipeSearch FTS5; `/search` | Infra.Tests Search; Web.Tests SearchInjection | AC-21, AC-22 |
 | FR-VIEW-01/02 | BR-10 | Recipe page anatomy (7.3); cook mode | E2E W1 | AC-23 |
@@ -46,7 +46,7 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 
 ## Status by milestone
 
-**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** merged into `develop` (PR #10, 2026-11-22; dev build v0.2.0-dev.9). **M3 Kitchen:** merged into `develop` (PR #11, 2026-11-22); host test pending. **In progress:** M4 Import on `feature/m4-import` (0.4.0).
+**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** merged into `develop` (PR #10, 2026-11-22; dev build v0.2.0-dev.9). **M3 Kitchen:** merged into `develop` (PR #11, 2026-11-22); host test pending. **M4 Import:** built on `feature/m4-import` (0.4.0), PR into `develop` open.
 
 ### M0 Foundations (built 2026-11-17; deployed and verified 2026-11-20 — DONE)
 
@@ -157,6 +157,29 @@ readers try), ADR 0020 (pan field prefilled from the steps), ADR 0021 (appliance
 | AC-70 / SEC-30 | Extended to `/manage/kitchen`, `/manage/recipes/{id}/cooked` and `/suggestions` | — | Web `AC_70_AuthMatrixTests`, `SEC_30_FormTokenTests` |
 | Migration | `M3_Kitchen`: KitchenTool, InventoryVersion, InventorySnapshot, RecipeSuggestionState; Recipe pan columns; Food.Form (default `Other`, then `food-form-v1` seed) | `Data/Migrations` | Infra store tests |
 
+### M4 Import (built 2026-11-22; PR into `develop`)
+
+Scope decisions: ADR 0022 (WebP + thumbnail; `/media` anonymous only for published recipes' images), ADR 0023 (step
+photos follow their step), ADR 0024 (browser-like User-Agent, paste fallback, imports in the request), ADR 0025
+(review page is the editor form; recipe-md writer in Core for AC-14), ADR 0026 (AI parser moves to M8).
+
+| ID | Status | Implementation | Tests |
+| --- | --- | --- | --- |
+| FR-IMP-01 / AC-10 | Done: JSON-LD (@graph, arrays, HowToSection/Step, ISO times), microdata, heading fallback | `HtmlRecipeExtractor`, `HtmlText`, `TextRecipeExtractor` (Importers); `ImportRules.Minutes`, `ServingsAndYield` (Core) | Importers `AC_10_HtmlImportTests` (6 saved pages); Core `FR_IMP_01_ImportRulesTests`; Web `FR_IMP_01_ImportPageTests`; E2E W3 |
+| FR-IMP-02 / BR-12 / AC-11 | Done: image copied only when ticked; fetched through SafeFetcher, re-encoded WebP, EXIF/GPS removed, source URL stored | `ImportService.SaveAsync`, `ImageStore`, `ImageEncoder` | Infra `FR_IMP_01_ImportServiceTests` (ticked/unticked), `SEC_52_ImageStoreTests`; Web; E2E W3 |
+| FR-IMP-03 / BR-10 / AC-12 | Done for the reading view: credit from the page, locked on review and on save. Print and export parts in M5 | `ImportService` (credit lock), `_EditorForm` (locked view) | Importers `The_page_becomes_the_web_source`; Infra `A_web_import_keeps_its_credit…`; Web |
+| SEC-40 to 43 / AC-13 | Done: scheme/port/credential checks, DNS vetted (any private answer refuses), connect only to the vetted IP, redirects re-checked (max 3), 10 s, 5 MB after decompression, content types; refusals logged; 20 URL imports an hour per user | `UrlRules` (Core), `SafeFetcher`, `RateLimits.UrlImportPolicy` | Core `AC_13_UrlRulesTests`, `AC_13_AddressRangeTests`; Infra `AC_13_SafeFetcherTests`; Web `A_home_network_address…`, `SEC_43_UrlImportLimitTests` |
+| ADR 0024 paste fallback | Done: refused or recipe-less pages open the paste form with the address; pasted text or HTML goes through the same extractors | `ImportReader.ReadPaste`, `/manage/import?handler=Paste` | Importers; Infra; Web `A_blocked_site_opens_the_paste_form…` |
+| FR-IMP-04 / AC-14 | Done: recipe-md v1 reader and writer (round trip over a fixture set); loose Markdown and .txt by headings; several recipes per file | `RecipeMarkdown`, `FrontMatter` (Core), `TextRecipeExtractor` | Core `AC_14_RecipeMarkdownTests`, `FR_IMP_04_RecipeMarkdownEdgeTests`; Importers `AC_15_FileImportTests`; E2E W4 |
+| FR-IMP-05 / SEC-50, 51, 53 / AC-15 | Done: .docx (headings, lists; macro files refused) and text PDFs (encrypted and scanned refused); 20 MB, zip-bomb and type checks | `DocxRecipeExtractor`, `PdfRecipeExtractor`, `UploadValidator`, `UploadRules` | Core `SEC_50_UploadRulesTests`; Importers `AC_15_FileImportTests`; Infra `SEC_51_UploadValidatorTests`; Web `Files_are_read_and_bad_files_are_reported` |
+| FR-IMP-06 / BR-04 / UX-10 | Done: review page is the editor form with warnings (missing parts, lines below 0.8); progress text while importing | `/manage/import/{id}/review`, `ImportReader.Warnings`, `import.js` | Core; Importers; Web; E2E W3/W4 |
+| FR-IMP-07 / AC-16 | Done: same address (tracking parameters ignored) or same title with more than 80% ingredient overlap; save needs "Save anyway" | `ImportRules.FindDuplicate`, `ImportService` | Core `AC_16_DuplicateRulesTests`; Infra; Web `A_second_import_of_a_page_needs_a_choice` |
+| FR-IMP-08 | Done: jobs and raw payloads removed after 30 days | `ImportService.PurgeAsync`, `TrashPurgeService` | Infra `Jobs_and_raw_payloads_are_purged_after_30_days` |
+| FR-REC-01, FR-REC-02 (images) / SEC-52 | Done: finish and step photos on the edit page; photos follow their steps; `/media` access by publish state; orphans deleted | `ImageStore`, `ImageEncoder`, `StepPhotoRules` (Core), `EditModel` photo handlers, `/media` | Core `ADR_0023_StepPhotoRulesTests`; Infra `SEC_52_ImageStoreTests`, `ADR_0023_StepPhotoTests`; Web `FR_REC_01_PhotoPageTests`; E2E W2 photo at phone width |
+| FR-SRCH-02 (has image) | Done | `SearchCriteria.HasImage`, list filter and thumbnails | Infra `Has_image_filters…`; Web `The_list_filters_by_photo…` |
+| AC-70 / AC-75 / AC-76 | Extended to `/manage/import`, the review page and `/media` | — | Web `AC_70_AuthMatrixTests`, `SEC_30_FormTokenTests`, `Markup_from_a_page_is_shown_as_text` |
+| Migration | `M4_Import`: Image, ImportJob, Recipe.FinishImageId, Step.ImageId | `Data/Migrations` | Infra store tests |
+
 #### M0 deployment check (2026-11-20, test host)
 
 - `recipewarden.service` enabled and active; runs from `/opt/recipewarden/current` (release folder under `releases/`); ~60 MB RAM.
@@ -222,3 +245,14 @@ readers try), ADR 0020 (pan field prefilled from the steps), ADR 0021 (appliance
     baking/precision recipes keep 10 Tbsp.
   - Not exercised on the host yet: the seed on a real M1 database (covered by the M1→M2 upgrade test) and the
     toolbar behind the tunnel.
+
+- **M4 notes (2026-11-22):**
+  - New packages (all permissive): AngleSharp 1.10.5 (MIT), DocumentFormat.OpenXml 3.5.1 (MIT), PdfPig 0.1.16
+    (Apache-2.0), SkiaSharp 4.157.0 and SkiaSharp.NativeAssets.Linux.NoDependencies 4.157.0 (MIT). The package
+    contains `libSkiaSharp.so`; no OS packages are added.
+  - No existing test changed. The test factories gained a pretend internet (`tests/Shared/FakeWeb.cs`), so no test
+    reaches the network.
+  - SEC-42 now also accepts `application/xhtml+xml` pages (still HTML), and the size cap applies after decompression.
+  - Step photos are added after the first save (a step must exist first). Imported pages' step images are not copied.
+  - Not exercised on the host yet: the M3→M4 migration on a real database, real recipe sites through the tunnel, and
+    image upload from a phone.

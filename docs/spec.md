@@ -1,6 +1,6 @@
-# RecipeWarden — Specification v0.12
+# RecipeWarden — Specification v0.13
 
-Version 0.12 · 2026-11-22
+Version 0.13 · 2026-11-22
 
 ## 1. Overview
 
@@ -428,7 +428,7 @@ The app is internet-reachable through the tunnel, so it is built as a public web
 | --- | --- |
 | SEC-40 | Only `http`/`https` URLs on ports 80/443. |
 | SEC-41 | Resolve DNS first and refuse loopback, private (RFC 1918), link-local, CGNAT, multicast, IPv6 ULA and cloud-metadata addresses; connect to the vetted IP. Re-check on every redirect (max 3). This protects the rest of the home network. |
-| SEC-42 | 10 s timeout, 5 MB response cap, `text/html` or `application/ld+json` only; images 10 MB and image MIME types only. |
+| SEC-42 | 10 s timeout, 5 MB response cap, `text/html` (or `application/xhtml+xml`) or `application/ld+json` only; images 10 MB and JPEG, PNG or WebP only. The cap applies after decompression. |
 | SEC-43 | URL import is Editor-only and rate-limited to 20 per hour per user. |
 | SEC-44 | AI endpoints are set only by an Admin. The Claude API host is allow-listed by name; an OpenAI-compatible endpoint on the LAN is the single permitted exception to SEC-41, for that exact host and port only. All AI calls go through SafeFetcher with a 60 s timeout and response size cap. |
 | SEC-45 | API keys are encrypted at rest with ASP.NET Core Data Protection, write-only in the UI (shown as "set"), and never written to logs, audit details, AI exports or error pages. |
@@ -591,7 +591,8 @@ Three zones: public reading pages, `/manage` for editors, `/admin` for admins. T
 | `/shopping`, `/shopping/{id}` | Lists; view and check off | Anonymous (per D-10) |
 | `/shopping/new`, delete | Create or delete a list | Editor |
 | `/manage/recipes/new`, `/manage/recipes/{id}/edit` | Recipe editor | Editor |
-| `/manage/import`, `/manage/import/{jobId}/review` | Import (URL, file) and review | Editor |
+| `/manage/import` | Import from a URL, pasted text or HTML, or files (ADR 0024); imports waiting for review | Editor |
+| `/manage/import/{id}/review` | Review an import in the editor form, then save or discard (ADR 0025) | Editor |
 | `/manage/kitchen` | Kitchen inventory: add, presets, retire, restore (W5) | Editor |
 | `/manage/recipes/{id}/suggestions` | Dismiss or save a suggestion to the recipe (ADR 0017) | Editor |
 | `/manage/recipes/{id}/cooked` | "I made this": last cooked and a measured yield (ADR 0019) | Editor |
@@ -606,7 +607,7 @@ Three zones: public reading pages, `/manage` for editors, `/admin` for admins. T
 | `/account/login`, `/account/logout`, `/account/2fa`, `/account/password` | Account | Anonymous (login) / signed in |
 | `/account/theme`, `/account/preferences` | Save theme (FR-UI-01), unit system and default scale (FR-UI-02) to the profile; POST only | Signed in |
 | `/health` | Liveness ("ok" only) | Anonymous |
-| `/media/{id}` | Image delivery | Anonymous |
+| `/media/{id}`, `/media/{id}/thumb` | Image delivery (WebP). Anonymous for images of published recipes; other images need Editor, else 404 (ADR 0022) | Anonymous |
 | /recipes/{slug}/export-ai, /collections/{slug}/export-ai | Export for AI (goal picker, include-inventory option, download or copy) | Anonymous |
 | /manage/import/ai-response | Paste or upload AI reply, diff, save as variant | Editor |
 | /admin/health | Health and capacity dashboard, maintenance actions | Admin |
@@ -645,8 +646,8 @@ SQLite via EF Core 10 with code-first migrations applied at startup. Images live
 | Recipe | Id, Slug, Title, Description, Servings, ServingsMax, ServingsEstimated, YieldText, YieldAmount, YieldUnitId, YieldSource (Measured/Entered/Estimated), FinishedDensityGPerMl, PanShape, PanWidth, PanLength, PrepMinutes, PrepMinutesMax, CookMinutes, CookMinutesMax, TotalMinutes, TotalMinutesMax, IsPrecision, Status (Draft/Published), SourceType (Manual/Web/File/Personal), SourceUrl, SourceName, SourceAuthor, SourceImportedAt, FinishImageId, ParentRecipeId, Notes, Rating, LastCookedAt, InventoryVersionSeen, Version, DeletedAt, DeletedById | Root entity. FinishImageId arrives with images in M4 (ADR 0009). Pan is one field, prefilled from the steps (ADR 0020). |
 | IngredientGroup | Id, RecipeId, Name, SortOrder | "For the sauce". Optional. |
 | RecipeIngredient | Id, RecipeId, GroupId, SortOrder, RawText, Quantity, QuantityMax, QuantityText, UnitId, Name, FoodId, Preparation, State (raw/cooked/…), IsOptional, Note, ParseConfidence | RawText always kept (BR-04). Name is the parsed ingredient text, kept whether or not a Food matches (ADR 0009). FoodId is set on save by exact name or alias, and by a startup pass for unlinked lines; null when nothing matches (ADR 0013). |
-| Step | Id, RecipeId, SortOrder, Title, Text, ImageId, SectionName, TimerSeconds | Title is an optional step heading (ADR 0015). Timer parsed from text. |
-| Image | Id, StoragePath, ContentType, Width, Height, Bytes, Sha256, AltText, SourceUrl | Shared by finish and step images. |
+| Step | Id, RecipeId, SortOrder, Title, Text, ImageId, SectionName, TimerSeconds | Title is an optional step heading (ADR 0015). Timer parsed from text. A step photo follows its step across edits: same text, else same position (ADR 0023). |
+| Image | Id (32 random hex), StoragePath, ContentType, Width, Height, Bytes, ThumbBytes, Sha256, AltText, SourceUrl, CreatedAt, CreatedById | Shared by finish and step images. WebP at most 2400 px plus a 640 px thumbnail under `<data>/media`; unused images are deleted after 24 hours (ADR 0022). |
 | RecipeTag | RecipeId, TagId | Composite PK. |
 | RecipeSlugAlias | Slug (PK), RecipeId, CreatedAt | Earlier published slugs; redirect to the current one (BR-02, ADR 0008). |
 | Tag | Id, Name, NormalizedName, Slug, TagType | Unique on NormalizedName (trimmed, spaces collapsed, Unicode-normalized, lower case). |
@@ -685,7 +686,7 @@ SQLite via EF Core 10 with code-first migrations applied at startup. Images live
 | ShoppingList | Id, Name, CreatedById, CreatedAt, Version |  |
 | ShoppingListItem | Id, ListId, FoodId, DisplayText, Quantity, UnitId, StoreSection, IsChecked, IsManual, IsPantry |  |
 | ShoppingListItemSource | ItemId, RecipeId, Scale | BR-42. |
-| ImportJob | Id, SourceKind (Url/Markdown/Docx/Pdf), SourceRef, Status, RawPath, ParsedJson, WarningsJson, CreatedRecipeId, CreatedById, CreatedAt | Raw kept 30 days. |
+| ImportJob | Id, BatchId, SourceKind (Url/Paste/Markdown/Text/Docx/Pdf), SourceRef, Status (Review/Saved/Discarded), RawPath, ParsedJson, WarningsJson, ImageUrl, CopyImage, DuplicateOfRecipeId, CreatedRecipeId, CreatedById, CreatedAt, UpdatedAt | One job per recipe found; a file's recipes share a BatchId. Jobs and raw payloads (`<data>/imports`) kept 30 days (FR-IMP-08, ADR 0024/0025). |
 | AspNet\* tables | Identity users, roles, claims, tokens | Standard Identity schema. |
 | UserPreference | UserId, Theme, Units, DefaultScale | Units: as written, US, metric or weight (ADR 0014). |
 | AuditEntry | Id, At, UserId, Action, EntityType, EntityId, Ip, DetailsJson | Append-only. |
@@ -735,8 +736,8 @@ Inbound requests only arrive through cloudflared to Kestrel on its configured IP
 | HTML parsing (URL import) | AngleSharp | MIT |
 | Markdown | Markdig | BSD-2 |
 | Word | DocumentFormat.OpenXml | MIT |
-| PDF text | UglyToad.PdfPig | Apache-2.0 |
-| Images | SkiaSharp (D-11) | MIT |
+| PDF text | PdfPig (UglyToad.PdfPig) | Apache-2.0 |
+| Images | SkiaSharp (D-11), with SkiaSharp.NativeAssets.Linux.NoDependencies so no OS packages are needed | MIT |
 | Sanitizing | HtmlSanitizer | MIT |
 | Scheduling | Cronos + a hosted BackgroundService | MIT |
 | Logging | Serilog (journald/console + rolling file) | Apache-2.0 |
@@ -772,7 +773,7 @@ recipewarden/
 
 ### 9.3 Import pipeline
 
-1. **Acquire** — safe fetcher (SEC-40–43) or upload validator (SEC-50–53).
+1. **Acquire** — safe fetcher (SEC-40–43; a browser-like User-Agent, ADR 0024), pasted text or saved HTML when a site refuses (ADR 0024), or upload validator (SEC-50–53). Runs in the request; nothing in the background.
 2. **Extract** — format-specific extractor produces a raw recipe: title, text blocks, ingredient lines, step lines, images, metadata. URL order: JSON-LD `Recipe` → microdata → heuristics (headings containing Ingredients / Directions / Method / Instructions).
 3. **Normalize** — ingredient line parser (quantity incl. unicode fractions and ranges, unit via alias table, food via catalogue + fuzzy match, preparation, optional), ISO-8601 durations to minutes, servings from `recipeYield`.
 4. **Enrich** — allergen detection, nutrition (imported or calculated), tag suggestions from keywords and `recipeCategory`/`recipeCuisine`.
@@ -860,7 +861,7 @@ If the share was mounted after the service started and Test reports "Read-only f
 
 ### 9.7 Markdown exchange format (recipe-md v1)
 
-Used for export and for lossless re-import (FR-EXP-02, FR-IMP-04). An optional "## Changes" section after Notes is accepted on import (written by AI assistants per BR-95) and is stored in the variant's notes.
+Used for export and for lossless re-import (FR-EXP-02, FR-IMP-04). Optional front-matter keys keep every editable field: `total_minutes`, `precision: true`, `pan`, `finished_density`; servings and times may be ranges written "6-8". Several recipes may follow each other in one file, each with its own front matter. The reader and writer are in Core (ADR 0025). An optional "## Changes" section after Notes is accepted on import (written by AI assistants per BR-95) and is stored in the variant's notes.
 
 ```markdown
 ---
@@ -945,11 +946,11 @@ The repository is public (ADR 0005): GitHub-hosted Actions minutes are free and 
 2. **M1 Recipes** — model, migrations, manual CRUD, ingredient parser, reading view, search, tags, collections. Text only: images in M4; "free of" filter (BR-53) in M6 (ADR 0009).
 3. **M2 Measurement** — units, densities, scaling, vague amounts, yield conversions, °F/°C; tag picker and step headings (ADR 0012, 0015, 0016).
 4. **M3 Kitchen** — inventory, versioning, suggestions, display planner (FR-MEAS-02, AC-32, AC-33), container scaling (FR-SCL-04/05/06, AC-37–39), pan-size alternatives (FR-MEAS-07) (ADR 0012).
-5. **M4 Import** — finish and step images (upload, `/media/{id}`), safe fetcher, JSON-LD/heuristic URL import, Markdown, Docx, PDF, review, duplicates.
+5. **M4 Import** — finish and step images (upload, `/media/{id}`), safe fetcher, JSON-LD/heuristic URL import, paste fallback, Markdown, Docx, PDF, review, duplicates (ADR 0022 to 0026).
 6. **M5 Output** — print, Markdown export/import round-trip, cook mode, shopping lists, Export for AI and AI-response import.
 7. **M6 Nutrition and allergens**.
 8. **M7 Operations** — backups, schedule, retention, restore (ad hoc, CLI and at install), audit, health and capacity dashboard, installer upgrade/rollback.
-9. **M8 Hardening** — security test pass, accessibility pass, performance at 5,000 recipes, v1.0 release.
+9. **M8 Hardening** — optional AI parser (FR-IMP-09/10, FR-NUT-06, ADR 0026), security test pass, accessibility pass, performance at 5,000 recipes, v1.0 release.
 
 ## 10. Requirements traceability
 
@@ -960,9 +961,9 @@ This matrix seeds `docs/traceability.md` in the repo. Test classes are named aft
 | FR-REC-01/02 | BR-01, BR-02, BR-06 | Recipe aggregate (8.2); `/manage/recipes/*` | Core.Tests RecipeRules; Web.Tests RecipeEditor; E2E W2 | AC-01, AC-02 |
 | FR-REC-03 | BR-04 | IngredientLineParser (9.3) | Importers.Tests IngredientLine (corpus) | AC-03 |
 | FR-REC-04 | BR-05 | Recipe.DeletedAt; `/manage/trash` | Web.Tests Trash | AC-04 |
-| FR-IMP-01/02/03 | BR-10, BR-12, BR-13; SEC-40–43 | SafeFetcher, JsonLdExtractor, ImportJob; `/manage/import` | Importers.Tests UrlImport (snapshots); Infra.Tests SafeFetcher; E2E W3 | AC-10, AC-11, AC-12, AC-13 |
-| FR-IMP-04/05 | BR-13; SEC-50–53 | Markdown, Docx, Pdf extractors | Importers.Tests FileImport; Web.Tests UploadValidation | AC-14, AC-15 |
-| FR-IMP-06/07 | BR-04 | Review page, duplicate detector | E2E W3/W4; Core.Tests Duplicates | AC-16 |
+| FR-IMP-01/02/03 | BR-10, BR-12, BR-13; SEC-40–43 | SafeFetcher, HtmlRecipeExtractor, ImportService, ImportJob, ImageStore; `/manage/import` | Core.Tests UrlRules; Importers.Tests HtmlImport (saved pages); Infra.Tests SafeFetcher, ImportService, ImageStore; Web.Tests ImportPage; E2E W3 | AC-10, AC-11, AC-12, AC-13 |
+| FR-IMP-04/05 | BR-13; SEC-50–53 | RecipeMarkdown (Core), Text, Docx, Pdf extractors, UploadValidator | Core.Tests RecipeMarkdown, UploadRules; Importers.Tests FileImport; Infra.Tests UploadValidator; Web.Tests ImportPage; E2E W4 | AC-14, AC-15 |
+| FR-IMP-06/07 | BR-04 | Review page (editor form), ImportRules duplicates | Core.Tests DuplicateRules; Infra.Tests ImportService; Web.Tests ImportPage; E2E W3/W4 | AC-16 |
 | FR-ORG-01/02 | — | Tag, Collection tables; `/collections` | Web.Tests Tags, Collections | AC-20 |
 | FR-SRCH-01/02 | BR-53; SEC-21 | RecipeSearch FTS5; `/search` | Infra.Tests Search; Web.Tests SearchInjection | AC-21, AC-22 |
 | FR-VIEW-01/02 | BR-10 | Recipe page anatomy (7.3); cook mode | E2E W1 | AC-23 |
@@ -1184,6 +1185,7 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
+- v0.13 (2026-11-22): M4 Import. ADR 0022 — images re-encoded as WebP (2400 px) with a 640 px thumbnail; `/media` anonymous only for published recipes' images; 8.2 Image columns. ADR 0023 — step photos follow their step (8.2 Step note). ADR 0024 — browser-like User-Agent, paste fallback, imports run in the request; SEC-42 allows XHTML and caps after decompression. ADR 0025 — review page is the editor form; recipe-md reader and writer in Core; 9.7 optional keys; 8.5 ImportJob columns. ADR 0026 — AI parser moves to M8 (9.10). 7.2 import, review and media rows; 9.1 package names.
 - v0.12 (2026-11-22): M3 Kitchen. BR-31 reworded — suggestions are evaluated on view without writes; measures apply at once and a new scale is an offer (ADR 0017 and amendment). ADR 0018 — planner uses spoons and cups only, weight first by Food.Form or precision. ADR 0019 — yields and container scaling. ADR 0020 — recipe pan field. ADR 0021 — inventory scope and standard-set seed. 7.2 adds `/manage/recipes/{id}/suggestions` and `/cooked`; 8.2 Recipe pan columns; 8.3 Food.Form; 8.4 InventorySnapshot.
 - v0.11 (2026-11-22): M2 decisions. ADR 0012 — display planner (FR-MEAS-02, AC-32, AC-33), container scaling (FR-SCL-04 to 06) and pan sizes move to M3 (9.10); BR-27 egg wording by baking/precision. ADR 0013 — measurement seed from USDA public-domain data, foods linked on save; 8.2 FoodId note, 8.3 Food, FoodAlias, YieldConversion columns and SeedRun. ADR 0014 — scale and units in the query string; 7.2 `/account/theme` and `/account/preferences`; 8.5 UserPreference.Units. ADR 0015 — 8.2 Step.Title. ADR 0016 — tag picker. Traceability rows for FR-SCL and FR-MEAS updated.
 - v0.10 (2026-11-21): AC-100 — account emails are checked (format, then duplicates) before a password is asked for, by the CLI, the account service and the installer.

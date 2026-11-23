@@ -7,6 +7,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
 using RecipeWarden.Infrastructure.Data;
+using RecipeWarden.Infrastructure.Import;
 using RecipeWarden.Tests.Shared;
 
 namespace RecipeWarden.E2E.Tests;
@@ -24,6 +25,9 @@ public sealed class BrowserHost : WebApplicationFactory<Program>, IAsyncLifetime
     private IPlaywright? playwright;
 
     public IBrowser Browser { get; private set; } = null!;
+
+    /// <summary>ADR 0024: the pretend internet URL imports fetch from.</summary>
+    internal FakeWeb Web { get; } = new();
     public string BaseUrl { get; private set; } = string.Empty;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -33,7 +37,12 @@ public sealed class BrowserHost : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Data:Directory", dataDirectory);
         builder.UseSetting("Kestrel:Endpoints:Http:Url", "http://127.0.0.1:0");
         builder.UseSetting("Serilog:MinimumLevel:Default", "Warning");
-        builder.ConfigureServices(s => s.UseFastPasswordHashing());
+        builder.ConfigureServices(s =>
+        {
+            s.UseFastPasswordHashing();
+            s.AddSingleton<IDnsResolver>(Web);
+            s.AddSingleton<ISocketConnector>(Web);
+        });
     }
 
     public async ValueTask InitializeAsync()
@@ -101,6 +110,7 @@ public sealed class BrowserHost : WebApplicationFactory<Program>, IAsyncLifetime
 
         playwright?.Dispose();
         await base.DisposeAsync();
+        await Web.DisposeAsync();
         SqliteConnection.ClearAllPools();
         try
         {
