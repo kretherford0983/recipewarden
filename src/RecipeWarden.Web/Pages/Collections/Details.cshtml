@@ -6,6 +6,10 @@
 }
 <p class="breadcrumb"><a href="/collections">Collections</a> ›</p>
 <h1>@Model.Collection.Name</h1>
+<p class="toolbar recipe-actions">
+    <a class="button-link" href="/collections/@(Model.Collection.Slug)/export.zip" download>Download (Markdown + images)</a>
+    <a class="button-link" href="/collections/@(Model.Collection.Slug)/export-ai">Export for AI</a>
+</p>
 @if (Model.Collection.Description is not null)
 {
     <div class="prose">@MarkdownRenderer.Render(Model.Collection.Description)</div>

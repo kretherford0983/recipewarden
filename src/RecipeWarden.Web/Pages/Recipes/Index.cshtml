@@ -4,6 +4,11 @@
     ViewData["Title"] = Model.ShowingDrafts ? "Drafts" : "Browse";
 }
 <h1>@(Model.ShowingDrafts ? "Drafts" : "Browse recipes")</h1>
+<p class="toolbar recipe-actions">
+    @* FR-EXP-03, FR-EXP-04 (ADR 0031, 0033) *@
+    <a class="button-link" href="/recipes/export.zip" download>Download all (Markdown + images)</a>
+    <a class="button-link" href="/recipes/export-ai">Export all for AI</a>
+</p>
 @if (Model.CanEdit)
 {
     <p class="toolbar">

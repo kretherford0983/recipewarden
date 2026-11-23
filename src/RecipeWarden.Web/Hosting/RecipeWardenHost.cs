@@ -92,6 +92,9 @@ public static class RecipeWardenHost
             o.Conventions.AllowAnonymousToPage("/Recipes/Export");
             o.Conventions.AllowAnonymousToPage("/Recipes/BulkExport"); // readers get published recipes only
             o.Conventions.AllowAnonymousToPage("/Collections/Export");
+            o.Conventions.AllowAnonymousToPage("/Recipes/ExportAi"); // ADR 0033: GET only, readers get published recipes
+            o.Conventions.AllowAnonymousToPage("/Recipes/ExportAiAll");
+            o.Conventions.AllowAnonymousToPage("/Collections/ExportAi");
             o.Conventions.AllowAnonymousToPage("/Shopping/Index"); // D-10: anyone views lists and ticks items (ADR 0028)
             o.Conventions.AllowAnonymousToPage("/Shopping/Details"); // editing handlers check the Editor role themselves
             o.Conventions.AuthorizePage("/Shopping/New", AppPolicies.CanEditRecipes);
@@ -101,6 +104,8 @@ public static class RecipeWardenHost
             o.Conventions.AddPageApplicationModelConvention("/Manage/Import/Index", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.UrlImportPolicy)));
             o.Conventions.AddPageApplicationModelConvention("/Recipes/BulkExport", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.SearchPolicy)));
             o.Conventions.AddPageApplicationModelConvention("/Collections/Export", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.SearchPolicy)));
+            o.Conventions.AddPageApplicationModelConvention("/Recipes/ExportAiAll", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.SearchPolicy)));
+            o.Conventions.AddPageApplicationModelConvention("/Collections/ExportAi", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.SearchPolicy)));
             o.Conventions.AddPageApplicationModelConvention("/Shopping/Details", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.ShoppingCheckPolicy)));
             o.Conventions.AuthorizeFolder("/Manage", AppPolicies.CanEditRecipes);
             o.Conventions.AuthorizeFolder("/Admin", AppPolicies.CanAdminister);

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "/docs/recipe-md.schema.json",
+  "title": "recipe-md v1 front matter",
+  "description": "The YAML front matter of a RecipeWarden recipe-md v1 document (spec 9.7). After the front matter come '# Title', '## Ingredients' ('- ' lines, '### ' group headings), '## Steps' (numbered), and optional '## Notes', '## Changes' and '## Source'. Keep 'slug' and the 'source' block unchanged when revising a recipe.",
+  "type": "object",
+  "required": ["format", "title"],
+  "properties": {
+    "format": { "const": "recipe-md/1" },
+    "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "slug": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "maxLength": 120 },
+    "servings": { "oneOf": [ { "type": "number", "exclusiveMinimum": 0 }, { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)?(-[0-9]+(\\.[0-9]+)?)?$" } ] },
+    "yield": { "type": "string" },
+    "prep_minutes": { "$ref": "#/$defs/minutes" },
+    "cook_minutes": { "$ref": "#/$defs/minutes" },
+    "total_minutes": { "$ref": "#/$defs/minutes" },
+    "precision": { "type": "boolean" },
+    "pan": { "type": "string" },
+    "finished_density": { "type": "number", "exclusiveMinimum": 0 },
+    "tags": { "oneOf": [ { "type": "array", "items": { "type": "string", "maxLength": 100 } }, { "type": "string" } ] },
+    "allergens": { "type": "array", "items": { "type": "string" } },
+    "image": { "type": "string", "pattern": "^(?!/)(?!.*\\.\\.)(?!.*:)[^\\\\]{1,200}$" },
+    "scale": { "type": "number", "minimum": 0.1, "maximum": 100 },
+    "source": {
+      "type": "object",
+      "properties": {
+        "type": { "enum": ["web", "file", "manual", "personal"] },
+        "name": { "type": "string" },
+        "author": { "type": "string" },
+        "url": { "type": "string", "pattern": "^https?://" },
+        "imported": { "type": "string", "format": "date" }
+      },
+      "additionalProperties": true
+    },
+    "nutrition": { "type": "object" }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "minutes": { "oneOf": [ { "type": "integer", "minimum": 0 }, { "type": "string", "pattern": "^[0-9]+(-[0-9]+)?$" } ] }
+  }
+}

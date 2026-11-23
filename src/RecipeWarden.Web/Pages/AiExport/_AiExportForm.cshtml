@@ -1,0 +1,79 @@
+@model RecipeWarden.Web.Pages.AiExport.AiExportModel
+@using RecipeWarden.Core.AiExchange
+@{
+    ViewData["Title"] = "Export for AI: " + Model.Heading;
+    var action = Context.Request.Path.Value;
+}
+<p class="breadcrumb"><a href="@Model.BackLink">Back</a> ›</p>
+<h1>Export for AI</h1>
+<p class="hint">@Model.Heading — @Model.RecipeCount @(Model.RecipeCount == 1 ? "recipe" : "recipes"). Nothing is sent anywhere: copy the text into your own AI assistant, then bring its reply back with “Import AI response”.</p>
+
+<form method="get" action="@action" class="ai-export-form">
+    <input type="hidden" name="go" value="1">
+    <fieldset>
+        <legend>Why are you taking this to AI? (optional)</legend>
+        @foreach (var goal in AiPromptBuilder.Catalogue)
+        {
+            var id = "goal-" + goal.Kind;
+            <div class="ai-goal">
+                <label><input type="checkbox" name="g" value="@goal.Kind" checked="@Model.Chosen.Contains(goal.Kind)"> @goal.Label</label>
+                @if (goal.TargetLabel is not null)
+                {
+                    <label for="t-@goal.Kind" class="visually-hidden">@goal.Label: @goal.TargetLabel</label>
+                    <input id="t-@goal.Kind" name="t_@goal.Kind" maxlength="@AiPromptBuilder.MaxFreeText" placeholder="@goal.TargetLabel" value="@Model.Value("t_" + goal.Kind)">
+                }
+                @if (goal.Amounts.Count > 0)
+                {
+                    <label for="a-@goal.Kind" class="visually-hidden">@goal.Label: how much</label>
+                    <select id="a-@goal.Kind" name="a_@goal.Kind">
+                        <option value="">—</option>
+                        @foreach (var a in goal.Amounts) { <option value="@a" selected="@(Model.Value("a_" + goal.Kind) == a)">@a</option> }
+                    </select>
+                }
+            </div>
+        }
+    </fieldset>
+    <fieldset>
+        <legend>Details</legend>
+        <label for="ai-last">What happened last time</label>
+        <input id="ai-last" name="last" maxlength="@AiPromptBuilder.MaxFreeText" value="@Model.Value("last")">
+        <label for="ai-must">Must keep</label>
+        <input id="ai-must" name="must" maxlength="@AiPromptBuilder.MaxFreeText" value="@Model.Value("must")">
+        <label for="ai-max">Max total minutes</label>
+        <input id="ai-max" name="max" inputmode="numeric" size="5" value="@Model.Value("max")">
+        <label><input type="checkbox" name="keep" value="1" checked="@Model.Checked("keep", false)"> Keep the servings</label>
+        <label><input type="checkbox" name="ask" value="1" checked="@Model.Checked("ask", false)"> Ask me clarifying questions first</label>
+        <label><input type="checkbox" name="kitchen" value="1" checked="@Model.Checked("kitchen", false)"> Include My Kitchen and my units</label>
+        <label><input type="checkbox" name="recipe" value="1" checked="@Model.Checked("recipe", true)"> Include the recipe file</label>
+        @if (Model.Conflicts.Count > 0)
+        {
+            <label><input type="checkbox" name="both" value="1" checked="@Model.Checked("both", false)"> Keep both</label>
+        }
+    </fieldset>
+    <button type="submit" class="primary">Build the prompt</button>
+</form>
+
+@foreach (var c in Model.Conflicts)
+{
+    <p class="notice error" role="alert">@c</p>
+}
+
+@if (Model.Text is not null)
+{
+    <section aria-labelledby="ai-preview-heading" class="ai-preview">
+        <h2 id="ai-preview-heading">Preview</h2>
+        <p class="hint">Edit it if you like: Copy and Download use exactly this text.</p>
+        <label for="ai-text" class="visually-hidden">Text for the AI assistant</label>
+        <textarea id="ai-text" rows="22" spellcheck="false">@Model.Text</textarea>
+        <p class="toolbar">
+            <button type="button" class="ai-copy" data-target="ai-text">Copy</button>
+            <button type="button" class="ai-download" data-target="ai-text" data-filename="@Model.FileName">Download .md</button>
+            <span class="ai-status" role="status" aria-live="polite"></span>
+        </p>
+    </section>
+}
+@if (Model.CanEdit && Model.IsSingle)
+{
+    <p><a class="button-link" href="/manage/import/ai-response?parent=@Model.Slug">Import AI response</a></p>
+}
+<script src="~/js/ai-export.js" asp-append-version="true" defer></script>

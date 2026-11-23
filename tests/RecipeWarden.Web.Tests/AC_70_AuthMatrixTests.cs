@@ -71,6 +71,12 @@ public sealed class AC_70_AuthMatrixTests(RecipeWardenFactory factory) : IClassF
         ["/shopping"] = Access.Anonymous,
         ["/shopping/{id:int}"] = Access.Anonymous,
         ["/shopping/new"] = Access.Editor,
+
+        // M5b (section 7.2; ADR 0033: Export for AI is GET only and anonymous; AI replies are imported by editors)
+        ["/recipes/{slug}/export-ai"] = Access.Anonymous,
+        ["/recipes/export-ai"] = Access.Anonymous,
+        ["/collections/{slug}/export-ai"] = Access.Anonymous,
+        ["/manage/import/ai-response"] = Access.Editor,
     };
 
     public static TheoryData<string> ProtectedRoutes() =>
