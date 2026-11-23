@@ -1,6 +1,6 @@
-# RecipeWarden — Specification v0.17
+# RecipeWarden — Specification v0.18
 
-Version 0.16 · 2026-11-23
+Version 0.18 · 2026-11-23
 
 ## 1. Overview
 
@@ -606,6 +606,7 @@ Three zones: public reading pages, `/manage` for editors, `/admin` for admins. T
 | `/admin/settings` | Site name, defaults, proxy trust, rate limits | Admin |
 | `/admin/audit` | Audit log | Admin |
 | `/account/login`, `/account/logout`, `/account/2fa`, `/account/password` | Account | Anonymous (login) / signed in |
+| `/account/login-2fa` | Second sign-in step (authenticator or recovery code, SEC-04); does nothing without the first step's short-lived cookie | Anonymous |
 | `/account/theme`, `/account/preferences` | Save theme (FR-UI-01), unit system and default scale (FR-UI-02) to the profile; POST only | Signed in |
 | `/health` | Liveness ("ok" only) | Anonymous |
 | `/media/{id}`, `/media/{id}/thumb` | Image delivery (WebP). Anonymous for images of published recipes; other images need Editor, else 404 (ADR 0022) | Anonymous |
@@ -956,7 +957,7 @@ The repository is public (ADR 0005): GitHub-hosted Actions minutes are free and 
 7. **M5b AI exchange** — Export for AI, the recipe-md JSON Schema, AI-response import as a variant (ADR 0027, ADR 0033; FR-EXP-08 deferred).
 8. **M6 Nutrition and allergens** — bundled SR Legacy data, calculated nutrition, imported and manual panels, allergen detection and overrides, the "free of" filter, the unmatched report, mapping, label foods, and the `nutrition-import` CLI. The upload page for a newer dataset is M7; AI mapping suggestions (FR-NUT-06) are M8 (ADR 0034 to 0036).
 9. **M7 Operations** — backups, schedule, retention, encryption and recovery kit, restore (ad hoc, CLI and at install), `/setup`, audit, users, settings, health and capacity dashboard, `/admin/nutrition-data`, installer restore, pre-upgrade backup and firewall rule (ADR 0037 to 0041). TOTP, `/account/password` and `/admin/ai` are M8.
-10. **M8 Hardening** — optional AI parser (FR-IMP-09/10, FR-NUT-06, ADR 0026), security test pass, accessibility pass, performance at 5,000 recipes, v1.0 release.
+10. **M8 Hardening** — optional AI parser (FR-IMP-09/10, FR-NUT-06, ADR 0026, 0042), TOTP, `/account/password`, common-password list, remember me and the sign-in rate limit (ADR 0043), home recommendations FR-HOME-02 (ADR 0044), security test pass, accessibility pass and performance at 5,000 recipes (ADR 0045), v1.0 release (ADR 0046).
 
 ## 10. Requirements traceability
 
@@ -985,7 +986,7 @@ This matrix seeds `docs/traceability.md` in the repo. Test classes are named aft
 | FR-SHOP-01–04 | BR-40–42 | ShoppingRules, ShoppingService, shopping tables; `/shopping` | Core.Tests FR_SHOP_02; Infra.Tests FR_SHOP_01; Web.Tests FR_SHOP_01; E2E W6 | AC-50, AC-51 |
 | FR-NUT-01/02 | BR-50, BR-51 | NutritionRules (Core), NutritionService, NutritionFacts, NutrientRef; recipe panel, `/manage/recipes/{id}/nutrition` | Core.Tests NutritionRules, NutritionText; Infra.Tests NutritionService; Web.Tests NutritionPage; E2E M6 | AC-55 |
 | FR-ALG-01/02/03 | BR-52, BR-53 | AllergenRules (Core), RecipeAllergen, RecipeAllergenIndex; badges, "free of" filter | Core.Tests AllergenRules; Infra.Tests NutritionService; Web.Tests NutritionPage; E2E M6 | AC-56 |
-| FR-HOME-01/02 | — | Home page; Recommendation rules | Web.Tests Home | AC-60 |
+| FR-HOME-01/02 | — | Home page; RecommendationRules (Core), RecommendationService, `Home:Hemisphere` | Core.Tests RecommendationRules; Infra.Tests RecommendationService; Web.Tests HomeRecommendation | AC-60 |
 | FR-UI-01/02 | UX-03 | Theme script, UserPreference | E2E Theme | AC-61 |
 | FR-AUTH-01/02/03 | SEC-01–14 | Policies; route access table (7.2) | Web.Tests AuthMatrix (every endpoint) | AC-70, AC-71, AC-72 |
 | FR-AUTH-04 | SEC-04 | Identity TOTP | Web.Tests TwoFactor | AC-73 |
@@ -993,7 +994,7 @@ This matrix seeds `docs/traceability.md` in the repo. Test classes are named aft
 | NFR-05 | SEC-20–84 | Middleware, headers, CI checks | Web.Tests Headers, Csrf, Uploads, Ssrf; CI gates | AC-75, AC-76, AC-77 |
 | FR-BKP-01–05 | BR-60–63; SEC-54 | BackupService, BackupRecord; `/admin/backups` | Infra.Tests Backup, Retention, Restore; E2E W7 | AC-80, AC-81, AC-82 |
 | FR-INST-01–04 | SEC-60, SEC-70, SEC-71 | install.sh, unit file, `recipewarden admin create` | Installer container tests; Cli.Tests | AC-90, AC-91, AC-92, AC-93, AC-100 |
-| NFR-01/03/06 | — | — | Perf test (5,000 recipes); Playwright axe scan; coverage gate | AC-95, AC-96, AC-97 |
+| NFR-01/03/06 | — | — | Perf test (5,000 recipes); Playwright accessibility scan (in-page checker, ADR 0045); coverage gate | AC-95, AC-96, AC-97 |
 | FR-EXP-04 to 08 | BR-90–97; BR-10 | AiPromptBuilder, AiReplyReader, RecipeMarkdownValidator, AiVariantRules (Core); AiExchangeService; /export-ai, /manage/import/ai-response, /docs/recipe-md.schema.json | Core.Tests AiPromptBuilder, AiReplyReader; Infra.Tests AiExchangeService; Web.Tests AiExchangePage; E2E W10 | AC-26 to AC-29 |
 | FR-BKP-06/07 | BR-62, BR-64–66; SEC-15, SEC-54 | install.sh --restore, /setup, CLI restore | Installer container tests (migration A to B); Web.Tests Setup; Cli.Tests Restore | AC-83, AC-84, AC-85 |
 | FR-OPS-02–05 | BR-80–85 | HealthMonitor service, StorageSnapshot, HealthCheckResult; /admin/health, /health/ready | Core.Tests HealthRules, Projection; Infra.Tests StorageProbe; E2E W9 | AC-98, AC-99 |
@@ -1190,6 +1191,8 @@ We are starting milestone M0 (Foundations) from docs/spec.md, section 9.10.
 Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. Show me the test list for these ACs before writing implementation code."
 
 ## Changelog
+
+- v0.18 (2026-11-23): M8 Hardening and v1.0.0, built unattended (ADR 0042 to 0046, for owner review). 7.2 adds `/account/login-2fa`. FR-HOME-02 rules: seasons by month with `Home:Hemisphere` (North by default), favorites are rated 5, "not cooked lately" is rated 4+ and 60 days; at most 4 per row and 8 in all (ADR 0044). AC-96 is checked with an in-page checker instead of axe-core, which is MPL-2.0 (ADR 0045). FR-EXP-08 stays deferred (ADR 0033, 0046).
 
 - v0.17 (2026-11-23): M7 Operations, built unattended (ADR 0037 to 0041, for owner review). 8.5 AuditEntry.UserName; BackupRecord and BackupSchedule columns as built. BR-84: with no backup yet, the age counts from when health tracking began (ADR 0037). 9.5 installer flags `--restore-kit`, `--restore-passphrase-file`, `--no-firewall`; `recipewarden backup`, `restore`, `setup-token`. Data Protection keys are part of every backup (ADR 0038). Backup encryption format (ADR 0039). Restore and setup (ADR 0040). Audit through EF Core and the single LAN exception for outbound calls (ADR 0041).
 

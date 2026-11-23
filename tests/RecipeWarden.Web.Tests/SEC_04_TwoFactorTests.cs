@@ -144,6 +144,39 @@ public sealed partial class SEC_04_TwoFactorTests(RecipeWardenFactory factory) :
         (await manager.FindByEmailAsync("tfa-off@example.com"))!.TwoFactorEnabled.ShouldBeFalse();
     }
 
+    [Fact]
+    public async Task An_Admin_can_turn_it_off_for_someone_who_lost_their_codes_but_not_for_themselves()
+    {
+        await factory.EnsureUserAsync("tfa-lost@example.com", AppRoles.Editor);
+        string lostId;
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+            var u = (await users.FindByEmailAsync("tfa-lost@example.com"))!;
+            lostId = u.Id;
+            await users.ResetAuthenticatorKeyAsync(u);
+            await users.SetTwoFactorEnabledAsync(u, true);
+        }
+
+        using var admin = await factory.SignInAsync("tfa-helper@example.com", AppRoles.Admin);
+        (await admin.GetStringAsync("/admin/users", Ct)).ShouldContain("Turn off two-factor for tfa-lost@example.com");
+        var off = await admin.PostFormAsync("/admin/users?handler=TwoFactorOff", ("id", lostId));
+        off.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+
+        using var person = factory.CreateHttpsClient();
+        var signIn = await RecipeWardenFactory.PostLoginAsync(person, "tfa-lost@example.com", RecipeWardenFactory.Password);
+        signIn.Headers.Location!.ToString().ShouldNotStartWith("/account/login-2fa");
+        (await person.GetAsync("/manage", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        string adminId;
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            adminId = (await scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>().FindByEmailAsync("tfa-helper@example.com"))!.Id;
+        }
+
+        (await admin.PostFormAsync("/admin/users?handler=TwoFactorOff", ("id", adminId))).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
     [GeneratedRegex("<li><code>([^<]+)</code></li>")]
     private static partial Regex RecoveryCode();
 }

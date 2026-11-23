@@ -1,6 +1,6 @@
 # RecipeWarden — requirements traceability
 
-Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.17. Keep in step with the spec and the test suite.
+Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.18. Keep in step with the spec and the test suite.
 
 Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and tagged with `[Trait("Req", "FR-SCL-01")]`, so CI can print coverage per requirement and fail if any Must requirement has no test.
 
@@ -46,15 +46,15 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 
 ## Status by milestone
 
-**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** merged into `develop` (PR #10, 2026-11-22; dev build v0.2.0-dev.9). **M3 Kitchen:** merged into `develop` (PR #11, 2026-11-22); host test pending. **M4 Import:** merged into `develop` (PR #12, 2026-11-23); host test pending. **M5 Output and M5b AI exchange:** merged into `develop` (PR #13, #14, 2026-11-23); ADR 0032 and 0033 await owner review. **M6 Nutrition and allergens:** merged into `develop` (PR #15, 2026-11-23); ADRs 0034 to 0036 await owner review. **M7 Operations:** built unattended on `feature/m7-operations` (0.7.0), PR into `develop`; ADRs 0037 to 0041 await owner review.
+**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** merged into `develop` (PR #10, 2026-11-22; dev build v0.2.0-dev.9). **M3 Kitchen:** merged into `develop` (PR #11, 2026-11-22); host test pending. **M4 Import:** merged into `develop` (PR #12, 2026-11-23); host test pending. **M5 Output and M5b AI exchange:** merged into `develop` (PR #13, #14, 2026-11-23); ADR 0032 and 0033 await owner review. **M6 Nutrition and allergens:** merged into `develop` (PR #15, 2026-11-23); ADRs 0034 to 0036 await owner review. **M7 Operations:** built unattended on `feature/m7-operations` (0.7.0), PR #16 into `develop`; ADRs 0037 to 0041 await owner review. **M8 Hardening (1.0.0):** built unattended on `feature/m8-hardening`, stacked on M7; ADRs 0042 to 0046 await owner review.
 
 ### M0 Foundations (built 2026-11-17; deployed and verified 2026-11-20 — DONE)
 
 | ID | Status | Implementation | Tests |
 | --- | --- | --- | --- |
-| FR-UI-01 | Done (cookie + profile); E2E theme check in a later milestone | `ThemeRules` (Core), `ThemeResolver`, `_Layout`, `wwwroot/js/theme.js`, `/account/theme`, `UserPreference` | Core.Tests `FR_UI_01_ThemeRulesTests`; Web.Tests `FR_UI_01_ThemeTests`; Infra.Tests `SEC_05_UserAdminServiceTests.Theme_preference_is_saved_and_updated` |
+| FR-UI-01 | Done (cookie + profile); E2E first-paint check in M8 (`AC_61_ThemeFirstPaintTests`) | `ThemeRules` (Core), `ThemeResolver`, `_Layout`, `wwwroot/js/theme.js`, `/account/theme`, `UserPreference` | Core.Tests `FR_UI_01_ThemeRulesTests`; Web.Tests `FR_UI_01_ThemeTests`; Infra.Tests `SEC_05_UserAdminServiceTests.Theme_preference_is_saved_and_updated` |
 | UX-03 | Done (ADR 0001) | server-rendered `data-theme`; external toggle script | Web.Tests `FR_UI_01_ThemeTests`, `SEC_62_SecurityHeadersTests.Pages_contain_no_inline_script_or_event_handlers` |
-| AC-61 | Server part done; Playwright check of the first paint later | — | Web.Tests `FR_UI_01_ThemeTests` |
+| AC-61 | Done (M8: E2E with JavaScript off on the return visit) | — | Web.Tests `FR_UI_01_ThemeTests` |
 | FR-OPS-01 | `/health` done; journald via stdout and rolling files via Serilog (Production config) | `RecipeWardenHost`, `appsettings.Production.json` | Web.Tests `FR_OPS_01_HealthTests`; Cli.Tests `CliCommandTests.Health_*` |
 | SEC-23 | Done (ADR 0002: no nonce, no inline script) | `SecurityHeadersMiddleware` | Web.Tests `SEC_62_SecurityHeadersTests` |
 | SEC-62 | Done (+ `X-Frame-Options: DENY`, no `Server` header) | `SecurityHeadersMiddleware` | Web.Tests `SEC_62_SecurityHeadersTests` |
@@ -63,9 +63,9 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | AC-70 | Done for every M0 endpoint; the table grows with each route | — | Web.Tests `AC_70_AuthMatrixTests` |
 | AC-71 | Done (Editor→`/admin` 403) | — | Web.Tests `AC_70_AuthMatrixTests.Editor_gets_403_on_admin_routes` |
 | AC-72 / SEC-13 | Overposting part with the first write forms (M1); last-Admin rule with `/admin/users` (M7) | — | — |
-| SEC-01 | Length 12 done; common-password list later (M8) | `ServiceCollectionExtensions.ConfigureIdentity` | Infra.Tests, Cli.Tests (short password refused) |
+| SEC-01 | Done (length 12; common-password list and "not your email" in M8, ADR 0043) | `ServiceCollectionExtensions.ConfigureIdentity` | Infra.Tests, Cli.Tests (short password refused) |
 | SEC-02 / AC-77 | Done | Identity lockout; generic message | Web.Tests `SEC_03_SignInTests` |
-| SEC-03 | Cookie flags, 8 h sliding, 5-minute stamp check done; "remember me" (30 days) not yet | `ConfigureApplicationCookie` | Web.Tests `SEC_03_SignInTests` |
+| SEC-03 | Done (remember me and the 30-day cap in M8) | `ConfigureApplicationCookie` | Web.Tests `SEC_03_SignInTests` |
 | SEC-05 | Done (no registration endpoint) | Login only; CLI `admin create` | Web.Tests `AC_70_AuthMatrixTests.There_is_no_registration_endpoint`; Infra/Cli tests |
 | SEC-30 / AC-75 | Done for login, logout and theme | Razor Pages antiforgery; htmx header in `app.js` | Web.Tests `SEC_03_SignInTests`, `FR_UI_01_ThemeTests` |
 | SEC-60 / SEC-61 | App side done (allow-list, trusted proxies, CF-Connecting-IP); installer firewall in M7 | `SourceIpAllowListMiddleware`, `CloudflareClientIpMiddleware`, forwarded headers | Web.Tests `SEC_60_NetworkTrustTests`, `CloudflareClientIpMiddlewareTests` |
@@ -103,11 +103,11 @@ Scope decisions: ADR 0008 (slugs follow the title, old slugs redirect), ADR 0009
 | FR-SRCH-02 | Done (no allergen filter until M6; no has-image until M4; rating and last-cooked values come with FR-REC-07) | `SearchCriteria`, `/recipes` | Core `FR_SRCH_02_SearchFilterRulesTests`; Infra `FR_SRCH_02_SearchFilterTests` |
 | SEC-21 / AC-22 | Done | `FtsQuery`, `SafeText` (Core); expression passed as a parameter | Core `SEC_21_FtsQueryBuilderTests`, `SafeTextTests`; Infra `SEC_21_SearchInjectionTests`; Web `SEC_21_SearchPageTests` |
 | FR-VIEW-01 / AC-23 | Done for the reading view; AC-23 cook-mode part (wake lock, step check-off) in M5 | `/recipes/{slug}`, `IngredientFormatter` (UX-05) | Web `FR_VIEW_01_ReadingViewTests`; E2E `W1_PhoneReadingTests` |
-| FR-HOME-01 | First part: search, recently added, collections, tags (recommendations FR-HOME-02 later) | `/` | Web `FR_VIEW_01_ReadingViewTests.Home_lists_recent_recipes_collections_and_tags` |
+| FR-HOME-01 | Done (recommendations FR-HOME-02 in M8, ADR 0044) | `/` | Web `FR_VIEW_01_ReadingViewTests.Home_lists_recent_recipes_collections_and_tags` |
 | AC-72 / SEC-13, SEC-14 | Done for M1 forms (last-Admin rule with `/admin/users`, M7) | input DTOs; route ids bind from the route only; purge re-checked in the handler | Web `AC_72_OverpostingTests`, `FR_REC_04_TrashTests` |
 | AC-75 / SEC-30 | Done for every M1 handler and form | `asp-antiforgery="true"` on every post form | Web `SEC_30_AntiforgeryTests`, `SEC_30_FormTokenTests` |
 | AC-76 / SEC-22 | Done (descriptions, notes, collection descriptions) | `MarkdownRenderer` (Markdig, raw HTML off + HtmlSanitizer) | Web `AC_76_RecipeContentEncodingTests` |
-| SEC-63 | Done for search (60/min per IP) and writes (120/min per user); sign-in limit not yet | `RateLimits`, configurable under `RateLimits` | Web `SEC_63_RateLimitTests` |
+| SEC-63 | Done (sign-in 10/min per IP added in M8) | `RateLimits`, configurable under `RateLimits` | Web `SEC_63_RateLimitTests` |
 | SEC-20 | `SqlQueryRaw` added to the banned list | `BannedSymbols.txt` | build |
 | BR-03, FR-REC-01, FR-SRCH-02 (ADR 0010) | Done 2026-11-21: servings and time ranges, times in hours; "Ready in" uses the high end | `ServingsRules.ParseText`, `TimeText`, `Recipe.*Max`, migration `M1_RangesAndDefaultTags` | Core `BR_03_ServingsRangeTests`, `FR_REC_01_TimeTextTests`; Infra `ADR_0010_RangeTests`; Web `ADR_0010_EditorRangeTests`; E2E `W2_AddRecipeTests` |
 | FR-ORG-01 (ADR 0011) | Done 2026-11-21: 31 built-in typed tags incl. "Homemade Ingredient", seeded once; existing tags kept | `DefaultTags`, migration `M1_RangesAndDefaultTags` | Core `FR_ORG_01_DefaultTagsTests`; Infra `ADR_0011_DefaultTagSeedTests`; Web `ADR_0010_EditorRangeTests.Built_in_tags_are_suggested_in_the_editor` |
@@ -275,6 +275,24 @@ rules, stored for search, "free of").
 | FR-NUT-05 page | Done | `/admin/nutrition-data` (upload through `UploadValidator.SaveArchiveAsync`) | Web `Nutrition_data_page_…` |
 | FR-INST-03 (full pre-upgrade backup) | Done | `install.sh` runs `recipewarden backup --kind pre-upgrade` when the installed CLI has it | `test-install.sh` |
 | SEC-60 (installer firewall) | Done | ufw when active, else nftables with an `ExecStartPre=+` drop-in; `--no-firewall` | shellcheck; manual check on a LAN-bound host is pending |
+
+### M8 Hardening and v1.0.0 (built 2026-11-23 while the owner was away; PR into `develop` after M7 — owner review of ADRs 0042 to 0046 pending)
+
+| ID | Status | Implementation | Tests |
+| --- | --- | --- | --- |
+| FR-IMP-09 / AC-17, SEC-44, SEC-46, SEC-47 | Done (ADR 0042) | `AiParserRules` (Core), `AiProtocol` (Importers), `AiParserService`, `ImportService.WithAiAsync`, "Re-parse with AI" on review | Core `FR_IMP_09_AiParserRulesTests`; Importers `FR_IMP_09_AiProtocolTests`; Infra `FR_IMP_09_AiParserServiceTests` (off = no request; Claude and OpenAI-compatible; bad reply; cap); Web `FR_IMP_09_AiPageTests` |
+| FR-IMP-10 / AC-18, SEC-45 | Done | `/admin/ai` (write-only key protected with Data Protection), `AiCallLog`, monthly total on `/admin`, token cap, Test connection | Infra key encrypted at rest and never in audit; Web settings, test connection, dashboard total |
+| FR-NUT-06 | Done | "Suggest a match with AI" on `/manage/nutrition`; candidates from `NutritionService.SuggestionCandidatesAsync` | Infra `FR_NUT_02_NutritionServiceTests` (candidates); Web `Nutrition_mapping_offers_an_AI_suggestion…` |
+| FR-AUTH-04, SEC-04 / AC-73 | Done (ADR 0043) | `/account/2fa` (QRCoder, MIT), `/account/login-2fa`, recovery codes, Admin prompt | Web `SEC_04_TwoFactorTests` |
+| SEC-01, SEC-03, SEC-63, `/account/password` | Done | `CommonPasswordValidator` (SecLists list, MIT), remember-me cap, `SignInPolicy` | Web `SEC_01_PasswordTests`, `SEC_63_SignInRateLimitTests` |
+| FR-HOME-02 / AC-60 | Done (ADR 0044) | `RecommendationRules` (Core), `RecommendationService`, `_RecommendationRow`, `Home:Hemisphere` | Core `FR_HOME_02_RecommendationRulesTests`; Infra `FR_HOME_02_RecommendationServiceTests`; Web `FR_HOME_02_HomeRecommendationTests` |
+| NFR-01 / AC-95 | Done (ADR 0045) | search matches through an FTS subquery; ranking only for relevance | Web `AC_95_PerformanceTests` (5,000 recipes; runs alone) |
+| NFR-03 / AC-96 | Done (ADR 0045) | in-page checker `a11y-check.js` (axe-core is MPL-2.0) | E2E `AC_96_AccessibilityTests` (23 pages × 2 themes, self-test, focus) |
+| AC-61 | Done | — | E2E `AC_61_ThemeFirstPaintTests` |
+| SEC-31 | Done (fix: `/admin` no longer writes on view) | `HealthService` writes "tracking since" only from the monitor | Web `M8_SecurityPassTests.Get_requests_never_write_to_the_database` |
+| SEC-20, SEC-22, SEC-24, SEC-53, SEC-62, SEC-70, SEC-80 to 84 | Tested in M8 (ADR 0043) | — | Web `M8_SecurityPassTests`; Importers `SEC_53_PdfActiveContentTests` |
+| SEC-64 | Manual (Cloudflare dashboard) | `docs/install.md` | — |
+| FR-EXP-08 | Still deferred (ADR 0033, 0046) | — | — |
 
 ### Notes and open issues
 

@@ -63,6 +63,17 @@
                             <button type="submit">Set password</button>
                         </form>
                     </details>
+                    @if (u.TwoFactor)
+                    {
+                        <details class="confirm">
+                            <summary>Turn off two-factor…</summary>
+                            <form method="post" action="/admin/users?handler=TwoFactorOff" asp-antiforgery="true">
+                                <input type="hidden" name="id" value="@u.Id">
+                                <p>Only for someone who lost their authenticator app and recovery codes. Check it is really them first.</p>
+                                <button type="submit" class="danger">Turn off two-factor for @u.Email</button>
+                            </form>
+                        </details>
+                    }
                     <details class="confirm">
                         <summary>Delete…</summary>
                         <form method="post" action="/admin/users?handler=Delete" asp-antiforgery="true">

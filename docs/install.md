@@ -82,6 +82,33 @@ If no Admin was created, the installer prints a one-time **setup token** and the
 either create the first Admin or restore a backup (SEC-15). The page disappears for good once either is done.
 A new token: `sudo recipewarden setup-token`.
 
+### Two-factor sign-in
+Each person can turn on an authenticator app at **Account → Two-factor sign-in** (`/account/2fa`) and keeps the
+ten recovery codes it shows once. Admins see a reminder on `/admin` until they do (SEC-04). If someone loses both
+their phone and their codes, another Admin turns two-factor off for them at `/admin/users` and they set it up again.
+A lone Admin who is locked out can create a second Admin with `sudo recipewarden admin create --email …`.
+
+## Optional settings in appsettings.Production.json
+```json
+{
+  "Home": { "Hemisphere": "North" },
+  "RateLimits": { "SignInsPerMinute": 10, "SearchPerMinute": 60 }
+}
+```
+`Home:Hemisphere` (`North` or `South`) decides which season tag the home page recommends (ADR 0044). Restart the
+service after a change.
+
+## AI parser (optional, off by default)
+At **Admin → AI parser** (`/admin/ai`) choose the Claude API (paste an API key) or an OpenAI-compatible endpoint
+such as Ollama on your network (e.g. `http://192.168.1.20:11434`, tick "on my home network"), set the model and an
+optional monthly token cap, then **Test connection**. Only recipe text is sent; results always go to review
+(ADR 0042). The key is stored encrypted and is never shown again.
+
+## Cloudflare Access (SEC-64)
+In the Cloudflare Zero Trust dashboard, protect the whole hostname with an Access application that allows only the
+household's email addresses, and add a bypass policy for `/health` and `/health/ready` limited to your monitoring
+host. If Access is ever loosened, keep a policy on `/manage/*`, `/admin/*` and `/account/*`.
+
 ## Everyday commands
 ```bash
 sudo recipewarden health                 # database, disks, backups, capacity (exit 2 when Critical)

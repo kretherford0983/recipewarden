@@ -48,6 +48,7 @@ public sealed class UsersModel(UserAdminService accounts) : PageModel
             "unlocked" => "Account unlocked.",
             "password" => "Password set. The person's other sessions end within 5 minutes.",
             "deleted" => "Account deleted.",
+            "twofactor" => "Two-factor sign-in turned off. The person can sign in with their password and set it up again.",
             _ => null,
         };
         Users = await accounts.ListAsync();
@@ -70,6 +71,10 @@ public sealed class UsersModel(UserAdminService accounts) : PageModel
 
     public async Task<IActionResult> OnPostPasswordAsync(string id, string password) =>
         await DoneAsync(await accounts.ResetPasswordAsync(id, password ?? string.Empty), "password");
+
+    /// <summary>SEC-04, ADR 0043: for someone who lost their authenticator and recovery codes.</summary>
+    public async Task<IActionResult> OnPostTwoFactorOffAsync(string id) =>
+        await DoneAsync(await accounts.DisableTwoFactorAsync(CurrentUserId, id), "twofactor");
 
     public async Task<IActionResult> OnPostDeleteAsync(string id) =>
         await DoneAsync(await accounts.DeleteAsync(CurrentUserId, id), "deleted");

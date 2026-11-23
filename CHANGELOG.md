@@ -3,6 +3,26 @@
 Each release has a `## <version> — unreleased` section until it ships; the GitHub release carries the publish date.
 The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.Build.props` and adds its section.
 
+## 1.0.0 — unreleased
+
+### M8 Hardening and v1.0
+- Version bumped to 1.0.0 (ADR 0046).
+- ADRs 0042 to 0046 (decisions made while the owner was away, for review).
+- Optional AI parser, off by default (FR-IMP-09/10, ADR 0042): Claude API or an OpenAI-compatible endpoint (e.g. a
+  local Ollama); used automatically for hard imports and on demand with "Re-parse with AI"; results always reviewed
+  and marked; usage log, monthly total, token cap and Test connection at `/admin/ai` (AC-17, AC-18).
+- AI suggestions for unmatched nutrition ingredients, chosen only from local foods and confirmed by an Editor (FR-NUT-06).
+- Two-factor sign-in with an authenticator app and recovery codes; Admins are prompted; an Admin can turn it off for
+  someone who lost their codes (SEC-04, AC-73).
+- `/account/password`; common-password list; "remember me" with a 30-day cap; sign-in limit 10/min per IP
+  (SEC-01, SEC-03, SEC-63; ADR 0043).
+- Home page recommendations: in season, favorites, not cooked lately (FR-HOME-02, ADR 0044).
+- Faster search with many recipes: p95 ≈ 30 ms at 5,000 recipes on 2 vCPU (was 226 ms) (AC-95).
+- Security pass: tests for SEC-20/22/24/31/53/62/70/80–84; fixed `/admin` writing to the database on first view.
+- Accessibility scan of 23 pages in both themes, focus visibility and the theme's first paint (AC-96, AC-61; ADR 0045).
+- New packages: QRCoder 1.9.0 (MIT), Microsoft.AspNetCore.DataProtection 10.0.15 (MIT). Bundled data: common
+  passwords from SecLists (MIT). Migration `M8_AiParser`.
+
 ## 0.7.0 — unreleased
 
 ### M7 Operations
