@@ -15,7 +15,7 @@
 3. **Stored for search:** automatic results are written as `RecipeAllergen` rows (`Origin = Auto`) whenever a recipe
    is saved, and once for existing recipes (seed run `allergens-v1`). A new rules version re-runs the backfill.
    Editor overrides are `Origin = Manual` rows that win and are never touched by detection (BR-52). There is no
-   FoodAllergen table: rules on food names cover the catalogue.
+   Allergen or FoodAllergen table: codes are stored as text, and rules on food names cover the catalogue.
 4. **"Free of" (BR-53)** hides recipes where the allergen is detected or set (Contains or May contain), and recipes
    with unmatched lines unless "include unverified" is ticked.
 5. **Disclaimer (FR-ALG-03):** the footer line stays. The recipe's allergen badges and nutrition panel also say

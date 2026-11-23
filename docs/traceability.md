@@ -1,6 +1,6 @@
 # RecipeWarden — requirements traceability
 
-Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.15. Keep in step with the spec and the test suite.
+Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.16. Keep in step with the spec and the test suite.
 
 Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and tagged with `[Trait("Req", "FR-SCL-01")]`, so CI can print coverage per requirement and fail if any Must requirement has no test.
 
@@ -25,8 +25,8 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | FR-TOOL-01/02/03 | BR-30, BR-33 | KitchenRules, KitchenTools (Core); KitchenService, InventoryVersion, InventorySnapshot; `/manage/kitchen` | Core `FR_TOOL_01_KitchenRulesTests`; Infra `FR_TOOL_01_KitchenStoreTests`; Web `FR_TOOL_01_KitchenPageTests`; E2E W5 | AC-40 |
 | FR-TOOL-04/05 | BR-31, BR-32 | SuggestionEngine (Core), SuggestionService, RecipeSuggestionState; `/manage/recipes/{id}/suggestions` | Core `FR_TOOL_04_SuggestionEngineTests`; Infra `FR_TOOL_04_SuggestionStoreTests`; Web `FR_TOOL_04_SuggestionPageTests`; E2E `W5_KitchenTests` | AC-41, AC-42 |
 | FR-SHOP-01–04 | BR-40–42 | `ShoppingRules`, `ShoppingService`, shopping tables; `/shopping` | Core `FR_SHOP_02_ShoppingRulesTests`; Infra `FR_SHOP_01_ShoppingServiceTests`; Web `FR_SHOP_01_ShoppingPageTests`; E2E W6 | AC-50, AC-51 |
-| FR-NUT-01/02 | BR-50, BR-51 | NutritionFacts, NutrientRef | Core.Tests Nutrition | AC-55 |
-| FR-ALG-01/02/03 | BR-52, BR-53 | Allergen, FoodAllergen, RecipeAllergen | Core.Tests Allergens | AC-56 |
+| FR-NUT-01/02 | BR-50, BR-51 | `NutritionRules` (Core), `NutritionService`, NutritionFacts, NutrientRef; recipe panel, `/manage/recipes/{id}/nutrition` | Core `FR_NUT_01_NutritionRulesTests`, `FR_NUT_01_NutritionTextTests`; Infra `FR_NUT_02_NutritionServiceTests`; Web `FR_NUT_01_NutritionPageTests`; E2E `M6_NutritionTests` | AC-55 |
+| FR-ALG-01/02/03 | BR-52, BR-53 | `AllergenRules` (Core), RecipeAllergen, `RecipeAllergenIndex`; badges, "free of" filter | Core `FR_ALG_01_AllergenRulesTests`; Infra `FR_NUT_02_NutritionServiceTests`; Web `FR_NUT_01_NutritionPageTests`; E2E `M6_NutritionTests` | AC-56 |
 | FR-HOME-01/02 | — | Home page; Recommendation rules | Web.Tests Home | AC-60 |
 | FR-UI-01/02 | UX-03 | Theme script, UserPreference | E2E Theme | AC-61 |
 | FR-AUTH-01/02/03 | SEC-01–14 | Policies; route access table (7.2) | Web.Tests AuthMatrix (every endpoint) | AC-70, AC-71, AC-72 |
@@ -41,12 +41,12 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | FR-OPS-02–05 | BR-80–85 | HealthMonitor service, StorageSnapshot, HealthCheckResult; /admin/health, /health/ready | Core.Tests HealthRules, Projection; Infra.Tests StorageProbe; E2E W9 | AC-98, AC-99 |
 | FR-SCL-04/05/06 | BR-110–114; BR-20, BR-21, BR-27 | ContainerRules (Core); Recipe.Yield\*; KitchenTool (Container); recipe page fit and how-many; `/manage/recipes/{id}/cooked` | Core `FR_SCL_04_ContainerRulesTests`; Infra `FR_SCL_06_YieldAndPanStoreTests`; Web `FR_SCL_04_ContainerPageTests` | AC-37, AC-38, AC-39 |
 | FR-IMP-09/10 | BR-13, BR-93; SEC-44–47 | IAiRecipeParser, AI settings, AiCallLog; /admin/ai | Importers.Tests AiParser (stubbed provider); Web.Tests AiSettings, AiSsrfException | AC-17, AC-18 |
-| FR-NUT-03 to 06 | BR-50, BR-54 | Unmatched report, NutrientRef (Custom), dataset importer; /manage/nutrition, /admin/nutrition-data | Core.Tests NutritionMapping; Infra.Tests DatasetRefresh | AC-57, AC-58 |
+| FR-NUT-03 to 06 | BR-50, BR-54 | Unmatched report, mapping, NutrientRef (Custom), `NutrientDatasetImporter`, CLI `nutrition-import`; `/manage/nutrition` (`/admin/nutrition-data` in M7; FR-NUT-06 in M8) | Core `FR_NUT_01_NutritionRulesTests`; Infra `FR_NUT_02_NutritionServiceTests`; Cli `FR_NUT_05_NutritionImportCommandTests`; Web `FR_NUT_01_NutritionPageTests` | AC-57, AC-58 |
 | FR-BKP-08 to 15 | BR-60–62; SEC-70, SEC-74, SEC-75 | Backup:AllowedFolders, apply-config, systemd drop-in, BackupSchedule, marker check, encryption (9.6.1) | Cli.Tests ApplyConfig; Infra.Tests BackupDestination, Retention, Encryption; installer container tests | AC-86, AC-87, AC-88, AC-89 |
 
 ## Status by milestone
 
-**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** merged into `develop` (PR #10, 2026-11-22; dev build v0.2.0-dev.9). **M3 Kitchen:** merged into `develop` (PR #11, 2026-11-22); host test pending. **M4 Import:** merged into `develop` (PR #12, 2026-11-23); host test pending. **M5 Output and M5b AI exchange:** merged into `develop` (PR #13, #14, 2026-11-23); ADR 0032 and 0033 await owner review. **In progress:** M6 Nutrition and allergens on `feature/m6-nutrition` (0.6.0).
+**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** merged into `develop` (PR #10, 2026-11-22; dev build v0.2.0-dev.9). **M3 Kitchen:** merged into `develop` (PR #11, 2026-11-22); host test pending. **M4 Import:** merged into `develop` (PR #12, 2026-11-23); host test pending. **M5 Output and M5b AI exchange:** merged into `develop` (PR #13, #14, 2026-11-23); ADR 0032 and 0033 await owner review. **M6 Nutrition and allergens:** built on `feature/m6-nutrition` (0.6.0), PR into `develop` open; ADRs 0034 to 0036 await owner review.
 
 ### M0 Foundations (built 2026-11-17; deployed and verified 2026-11-20 — DONE)
 
@@ -219,6 +219,29 @@ Scope decisions: ADR 0027 (split), **ADR 0033 (scope and flow — for owner revi
 | FR-EXP-08 | **Deferred** (ADR 0033): templates are built in; no prompt history | — | — |
 | AC-70 / AC-75 / AC-76 | Extended to the M5b routes and forms; reply text and typed goals are encoded | — | Web `AC_70_AuthMatrixTests`, `SEC_30_FormTokenTests`, `Typed_text_is_quoted_and_encoded_on_the_page` |
 
+### M6 Nutrition and allergens (built 2026-11-23; PR into `develop` — owner review of ADRs 0034 to 0036 pending)
+
+Scope decisions: owner chose the recommendations (2026-11-23); ADR 0034 (dataset, mappings, label foods; upload page in
+M7, FR-NUT-06 in M8), ADR 0035 (calculation on view, completeness, imported and manual panels), ADR 0036 (allergen
+rules, stored for search, "free of").
+
+| ID | Status | Implementation | Tests |
+| --- | --- | --- | --- |
+| D-06 | Done: SR Legacy 2018-04 (7,793 foods, 9 nutrients, portions) bundled as a trimmed FDC zip and applied once; no network | `tools/seed/build-nutrients.py`, `Data/Seed/fdc-sr-legacy-2018-04.zip`, `NutrientDatasetImporter.ApplySeedAsync` | Infra `The_bundled_sr_legacy_dataset…` |
+| FR-NUT-01 / BR-50 / AC-55 | Done: panel per serving labelled from source, calculated (with %), or entered by hand; manual > imported > calculated | `NutritionRules.Choose`, `_NutritionPanel`, `/manage/recipes/{id}/nutrition`; imported from JSON-LD and recipe-md | Core; Importers `FR_NUT_01_ImportedNutritionTests`; Infra; Web |
+| FR-NUT-02 / BR-51 | Done: lines weighed by weight, density, portions, packages or purchase grams (yields); completeness; "partial" below 70%; low end of a servings range | `NutritionRules.Grams`/`Calculate`, `NutritionService.GetAsync` | Core `FR_NUT_01_NutritionRulesTests`; Infra |
+| FR-NUT-03 / BR-54 / AC-57 | Done: unmatched report by recipe count (no food, no data, removed USDA row); mapping by search creates or updates a food; mappings beat automatic matches | `NutritionService.UnmatchedAsync`/`SearchAsync`/`MapAsync`, `/manage/nutrition` | Infra; Web |
+| FR-NUT-04 / AC-57 | Done: label foods per 100 g (g or ml with density) | `NutritionRules.FromLabel`, `NutritionService.AddLabelFoodAsync` | Core; Infra; Web |
+| FR-NUT-05 / AC-58 | Done except the upload page (M7): any FDC CSV zip (SR Legacy or Foundation) upserted by FDC id, removed foods flagged, mappings kept, version recorded; Admin CLI `recipewarden nutrition-import <zip>` | `NutrientDatasetImporter`, `FdcCsv`, `NutritionImportCommand` | Infra `A_newer_dataset_keeps_mappings…`; Cli `FR_NUT_05_NutritionImportCommandTests` |
+| FR-NUT-06 | **Moved to M8** with the AI parser (ADR 0034) | — | — |
+| FR-ALG-01 / AC-56 | Done: 9 US majors + gluten by word rules (FDA 2025 tree nut list), May contain for vague lines, suppressed by "gluten-free", "vegan" etc.; badges on the recipe page | `AllergenRules`, `RecipeAllergenIndex` (on save, on linking, backfill `allergens-v1`) | Core `FR_ALG_01_AllergenRulesTests`; Infra; Web; E2E |
+| FR-ALG-02 / BR-52 | Done: per-allergen overrides (Contains, May contain, Not present) that survive re-detection | `NutritionService.SetAllergensAsync`, `/manage/recipes/{id}/nutrition` | Infra; Web `Soy_sauce_shows_soy_and_wheat…` |
+| FR-ALG-03 | Done: footer line plus a disclaimer on the panel and the filter | `_NutritionPanel`, `_RecipeList` | Web |
+| BR-53 / FR-SRCH-02 | Done: "free of" checkboxes on `/recipes` and `/search`; unmatched recipes hidden unless "include unverified" | `SearchCriteria.FreeOf`, `RecipeSearchService` | Infra `Free_of_hides…`; Web; E2E |
+| AC-25 (extras) | Exports carry `allergens:` and the `nutrition:` panel; the schema lists them | `RecipeMdExtras`, `recipe-md.schema.json` | Core `FR_NUT_01_NutritionTextTests`; Infra |
+| AC-70 / AC-75 | Extended to the M6 pages and forms | — | Web `AC_70_AuthMatrixTests`, `SEC_30_FormTokenTests` |
+| Migration | `M6_Nutrition`: NutrientRef, NutrientDataset, NutritionFacts, RecipeAllergen; Food.NutrientRefId | `Data/Migrations` | Infra |
+
 #### M0 deployment check (2026-11-20, test host)
 
 - `recipewarden.service` enabled and active; runs from `/opt/recipewarden/current` (release folder under `releases/`); ~60 MB RAM.
@@ -311,3 +334,14 @@ Scope decisions: ADR 0027 (split), **ADR 0033 (scope and flow — for owner revi
   - No existing assertion changed; the access table and the form-token page list were extended.
   - A bare (unfenced) recipe-md block runs to the next block or the end of the reply, so chat text after the last
     bare block lands in its last section. Fenced blocks end at the fence. The review page shows what was read.
+
+- **M6 notes (2026-11-23):**
+  - Foundation Foods was recommended alongside SR Legacy, but its download is blocked from the build machine. The
+    importer reads it as is (`recipewarden nutrition-import`), so it can be added on the host or bundled later.
+  - One existing assertion was extended, not weakened: the seed-run list now includes `nutrients-sr-legacy-2018-04`
+    and `allergens-v1` (each still runs once). The access table and the form-token page list were extended.
+  - Pasted text in recipe-md format is now read with the recipe-md reader (keeping every field), not the loose
+    text reader.
+  - The seeded test database is larger (7,793 nutrient rows), so test runs take about 20 s longer locally.
+  - Not exercised on the host yet: the M5→M6 migration and the 7,793-row seed on a real database, and allergen
+    badges on the owner's own recipes (word rules may need tuning — ADR 0036 is for review).

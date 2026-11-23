@@ -1,6 +1,6 @@
-# RecipeWarden — Specification v0.15
+# RecipeWarden — Specification v0.16
 
-Version 0.15 · 2026-11-23
+Version 0.16 · 2026-11-23
 
 ## 1. Overview
 
@@ -47,7 +47,7 @@ All twelve decisions were settled on 2026-11-17, and the spec reflects them. Any
 | D-03 | UI framework | Razor Pages + htmx. |
 | D-04 | Accounts | Admin + Editor roles; Admin creates accounts; no self sign-up. |
 | D-05 | Deployment style | Self-contained linux-x64 build (arm64 Should); installer installs OS packages only. |
-| D-06 | Nutrition data | Bundled USDA FoodData Central dataset, fully offline. Gaps are filled by the unmatched-ingredient report and mapping, custom foods from package labels, and dataset refresh (FR-NUT-03 to 05). No online lookup. |
+| D-06 | Nutrition data | Bundled USDA FoodData Central dataset (SR Legacy 2018-04 in M6, ADR 0034), fully offline. Gaps are filled by the unmatched-ingredient report and mapping, custom foods from package labels, and dataset refresh (FR-NUT-03 to 05). No online lookup. |
 | D-07 | Scanned PDFs | Text PDFs only in v1; OCR later. |
 | D-08 | AI-assisted parsing | Optional AI parser in v1, off by default: Claude API or any OpenAI-compatible endpoint, including a local model (FR-IMP-09/10, SEC-44 to 47). |
 | D-09 | Default unit system | US customary with per-user override; weights offered when a scale is in inventory. |
@@ -616,6 +616,7 @@ Three zones: public reading pages, `/manage` for editors, `/admin` for admins. T
 | /health/ready | Readiness: 200 OK or Warning, 503 Critical (no details) | Anonymous |
 | /setup | First run: create admin or restore from backup | Setup token, only before first admin (SEC-15) |
 | /manage/nutrition | Unmatched ingredients, mapping, custom foods from labels | Editor |
+| `/manage/recipes/{id}/nutrition` | A recipe's nutrition: how each line counted, a manual panel, allergen overrides (ADR 0035, 0036) | Editor |
 | /admin/ai | AI parser settings, test connection, usage log and cap | Admin |
 | /admin/nutrition-data | USDA dataset version and refresh upload | Admin |
 
@@ -655,8 +656,8 @@ SQLite via EF Core 10 with code-first migrations applied at startup. Images live
 | Tag | Id, Name, NormalizedName, Slug, TagType | Unique on NormalizedName (trimmed, spaces collapsed, Unicode-normalized, lower case). |
 | Collection | Id, Name, NormalizedName, Slug, Description, SortOrder, Version | Custom lists. Unique on NormalizedName. |
 | CollectionRecipe | CollectionId, RecipeId, SortOrder |  |
-| NutritionFacts | RecipeId (PK), Calories, FatG, SatFatG, CholesterolMg, SodiumMg, CarbsG, FiberG, SugarG, ProteinG, Source (Manual/Imported/Calculated), CompletenessPct, CalculatedAt | Per serving. |
-| RecipeAllergen | RecipeId, AllergenId, Origin (Auto/Manual), Status (Contains/MayContain/NotPresent) | Manual rows survive re-detection. |
+| NutritionFacts | RecipeId + Source (PK; Manual or Imported), Calories, FatG, SatFatG, CholesterolMg, SodiumMg, CarbsG, FiberG, SugarG, ProteinG, UpdatedAt, UpdatedById | Per serving. Calculated values are worked out on view, not stored (ADR 0035). |
+| RecipeAllergen | RecipeId + Allergen (code as text) + Origin (Auto/Manual) (PK), Status (Contains/MayContain/NotPresent), UpdatedAt | Auto rows are rewritten on save; manual rows survive re-detection (ADR 0036). |
 | RecipeSuggestionState | RecipeId, SuggestionKey, Status (Dismissed/Applied), InventoryVersion, At | FR-TOOL-05. |
 | RecipeSearch | FTS5 virtual table: Title, Description, Ingredients, Steps, Tags, Notes | Maintained by triggers or the save pipeline. |
 
@@ -665,13 +666,13 @@ SQLite via EF Core 10 with code-first migrations applied at startup. Images live
 | Table | Key columns | Notes |
 | --- | --- | --- |
 | Unit | Id, Code, Name, PluralName, Aliases, Kind (Volume/Mass/Count/Vague/Temperature/Length), System (US/Metric/Either), ToBase (ml or g), IsVague | Seeded; editable for Vague only. |
-| Food | Id, Name, NormalizedName, PluralName, Category, Form (Dry/Liquid/Fat/Other), DensityGPerMl, DefaultPurchaseUnitId, PackageSize, PackageUnitId, PackageName, StoreSection, FdcId, IsPantryStaple, Source (Usda/Custom), SourceNote | Ingredient catalogue. Seeded once from USDA public-domain data (ADR 0013); unique on NormalizedName. Form decides weight-first for non-precision recipes (BR-22, ADR 0018). |
+| Food | Id, Name, NormalizedName, PluralName, Category, Form (Dry/Liquid/Fat/Other), DensityGPerMl, DefaultPurchaseUnitId, PackageSize, PackageUnitId, PackageName, StoreSection, FdcId, NutrientRefId, IsPantryStaple, Source (Usda/Custom), SourceNote | Ingredient catalogue. Seeded once from USDA public-domain data (ADR 0013); unique on NormalizedName. Form decides weight-first for non-precision recipes (BR-22, ADR 0018). |
 | FoodAlias | Id, FoodId, Alias, NormalizedAlias | "AP flour" → all-purpose flour. Unique on NormalizedAlias. |
-| FoodAllergen | FoodId, AllergenId |  |
-| Allergen | Id, Code, Name | Seeded: 9 US majors + gluten. |
+| Allergen codes | milk, egg, fish, shellfish, treenuts, peanuts, wheat, soy, sesame, gluten | Fixed in code (ADR 0036); no Allergen or FoodAllergen table: word rules read food names. |
 | YieldConversion | Id, FoodId, FromState, ToState, FromUnitKind, Ratio, RatioMax, PreparedDensityGPerMl, Basis, Source, SourceNote | Ratio–RatioMax: grams bought per gram prepared. PreparedDensityGPerMl weighs a volume of the prepared food (e.g. cooked chicken, cups → g). |
 | SeedRun | Name, AppliedAt | One row per seed applied at startup, so a seed runs once (ADR 0013). |
-| NutrientRef | FdcId or local id, Source (USDA dataset or Custom label), DatasetVersion, per-100 g nutrient columns | Bundled USDA dataset (D-06). |
+| NutrientRef | Id, FdcId (unique), Source (Usda/Custom), DataType, Description, NormalizedDescription, Category, DatasetVersion, RemovedInVersion, DensityGPerMl, PortionsJson, per-100 g nutrient columns | Bundled USDA SR Legacy (D-06, ADR 0034); custom rows from labels. Food.NutrientRefId (an editor mapping) wins over Food.FdcId (BR-54). |
+| NutrientDataset | Id, Version, FileSha256, Foods, Added, Updated, Removed, AppliedAt, AppliedBy | Each dataset applied; the newest is current (FR-NUT-05, AC-58). |
 
 ### 8.4 Kitchen inventory
 
@@ -888,7 +889,7 @@ source:
 nutrition:
   source: calculated
   completeness_pct: 92
-  per_serving: { calories: 410, fat_g: 14, protein_g: 32, carbs_g: 38, fiber_g: 6, sugar_g: 7, sodium_mg: 890 }
+  per_serving: { calories: 410, fat_g: 14, saturated_fat_g: 5, cholesterol_mg: 95, sodium_mg: 890, carbs_g: 38, fiber_g: 6, sugar_g: 7, protein_g: 32 }
 scale: 1
 ---
 
@@ -953,7 +954,7 @@ The repository is public (ADR 0005): GitHub-hosted Actions minutes are free and 
 5. **M4 Import** — finish and step images (upload, `/media/{id}`), safe fetcher, JSON-LD/heuristic URL import, paste fallback, Markdown, Docx, PDF, review, duplicates (ADR 0022 to 0026).
 6. **M5 Output** — print, Markdown export (single, zip with images, bulk), cook mode, shopping lists (ADR 0027 to 0032).
 7. **M5b AI exchange** — Export for AI, the recipe-md JSON Schema, AI-response import as a variant (ADR 0027, ADR 0033; FR-EXP-08 deferred).
-8. **M6 Nutrition and allergens**.
+8. **M6 Nutrition and allergens** — bundled SR Legacy data, calculated nutrition, imported and manual panels, allergen detection and overrides, the "free of" filter, the unmatched report, mapping, label foods, and the `nutrition-import` CLI. The upload page for a newer dataset is M7; AI mapping suggestions (FR-NUT-06) are M8 (ADR 0034 to 0036).
 9. **M7 Operations** — backups, schedule, retention, restore (ad hoc, CLI and at install), audit, health and capacity dashboard, installer upgrade/rollback.
 10. **M8 Hardening** — optional AI parser (FR-IMP-09/10, FR-NUT-06, ADR 0026), security test pass, accessibility pass, performance at 5,000 recipes, v1.0 release.
 
@@ -982,8 +983,8 @@ This matrix seeds `docs/traceability.md` in the repo. Test classes are named aft
 | FR-TOOL-01/02/03 | BR-30, BR-33 | KitchenTool, InventoryVersion, InventorySnapshot; `/manage/kitchen` | Core.Tests KitchenRules; Infra.Tests KitchenStore; Web.Tests KitchenPage; E2E W5 | AC-40 |
 | FR-TOOL-04/05 | BR-31, BR-32 | SuggestionEngine, RecipeSuggestionState; `/manage/recipes/{id}/suggestions` | Core.Tests SuggestionEngine; Web.Tests SuggestionPage; E2E W5 | AC-41, AC-42 |
 | FR-SHOP-01–04 | BR-40–42 | ShoppingRules, ShoppingService, shopping tables; `/shopping` | Core.Tests FR_SHOP_02; Infra.Tests FR_SHOP_01; Web.Tests FR_SHOP_01; E2E W6 | AC-50, AC-51 |
-| FR-NUT-01/02 | BR-50, BR-51 | NutritionFacts, NutrientRef | Core.Tests Nutrition | AC-55 |
-| FR-ALG-01/02/03 | BR-52, BR-53 | Allergen, FoodAllergen, RecipeAllergen | Core.Tests Allergens | AC-56 |
+| FR-NUT-01/02 | BR-50, BR-51 | NutritionRules (Core), NutritionService, NutritionFacts, NutrientRef; recipe panel, `/manage/recipes/{id}/nutrition` | Core.Tests NutritionRules, NutritionText; Infra.Tests NutritionService; Web.Tests NutritionPage; E2E M6 | AC-55 |
+| FR-ALG-01/02/03 | BR-52, BR-53 | AllergenRules (Core), RecipeAllergen, RecipeAllergenIndex; badges, "free of" filter | Core.Tests AllergenRules; Infra.Tests NutritionService; Web.Tests NutritionPage; E2E M6 | AC-56 |
 | FR-HOME-01/02 | — | Home page; Recommendation rules | Web.Tests Home | AC-60 |
 | FR-UI-01/02 | UX-03 | Theme script, UserPreference | E2E Theme | AC-61 |
 | FR-AUTH-01/02/03 | SEC-01–14 | Policies; route access table (7.2) | Web.Tests AuthMatrix (every endpoint) | AC-70, AC-71, AC-72 |
@@ -998,7 +999,7 @@ This matrix seeds `docs/traceability.md` in the repo. Test classes are named aft
 | FR-OPS-02–05 | BR-80–85 | HealthMonitor service, StorageSnapshot, HealthCheckResult; /admin/health, /health/ready | Core.Tests HealthRules, Projection; Infra.Tests StorageProbe; E2E W9 | AC-98, AC-99 |
 | FR-SCL-04/05/06 | BR-110–114; BR-20, BR-21, BR-27 | ContainerRules; Recipe.Yield\*; KitchenTool (Container); recipe page; `/manage/recipes/{id}/cooked` | Core.Tests ContainerRules; Infra.Tests YieldAndPanStore; Web.Tests ContainerPage | AC-37, AC-38, AC-39 |
 | FR-IMP-09/10 | BR-13, BR-93; SEC-44–47 | IAiRecipeParser, AI settings, AiCallLog; /admin/ai | Importers.Tests AiParser (stubbed provider); Web.Tests AiSettings, AiSsrfException | AC-17, AC-18 |
-| FR-NUT-03 to 06 | BR-50, BR-54 | Unmatched report, NutrientRef (Custom), dataset importer; /manage/nutrition, /admin/nutrition-data | Core.Tests NutritionMapping; Infra.Tests DatasetRefresh | AC-57, AC-58 |
+| FR-NUT-03 to 06 | BR-50, BR-54 | Unmatched report, mapping, NutrientRef (Custom), NutrientDatasetImporter, CLI `nutrition-import`; /manage/nutrition (/admin/nutrition-data in M7; FR-NUT-06 in M8) | Core.Tests NutritionRules; Infra.Tests NutritionService (dataset refresh); Cli.Tests NutritionImport; Web.Tests NutritionPage | AC-57, AC-58 |
 | FR-BKP-08 to 15 | BR-60–62; SEC-70, SEC-74, SEC-75 | Backup:AllowedFolders, apply-config, systemd drop-in, BackupSchedule, marker check, encryption (9.6.1) | Cli.Tests ApplyConfig; Infra.Tests BackupDestination, Retention, Encryption; installer container tests | AC-86, AC-87, AC-88, AC-89 |
 
 ## 11. Acceptance criteria
@@ -1190,6 +1191,7 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
+- v0.16 (2026-11-23): M6 Nutrition and allergens (ADR 0034 to 0036; details for owner review). D-06 names SR Legacy as the bundled dataset; Foundation Foods can be applied later with the same importer. 7.2 adds `/manage/recipes/{id}/nutrition`. 8.2 NutritionFacts keeps manual and imported panels only (calculated on view); RecipeAllergen stores codes as text with Origin in the key. 8.3 NutrientRef columns, NutrientDataset, Food.NutrientRefId; no Allergen or FoodAllergen tables. 9.7 `per_serving` keys and allergen codes. 9.10: the dataset upload page moves to M7 and FR-NUT-06 to M8.
 - v0.15 (2026-11-23): M5b AI exchange (ADR 0033, for owner review). Export for AI for a recipe, a collection or all recipes (7.2 adds `/recipes/export-ai`), with built-in goal templates; FR-EXP-08 (editable templates, prompt history) deferred. Import AI response saves a draft variant by default, keeps the original's source, adds the "Adapted with AI assistance" note, and can replace the original after a version check. 7.2 adds `/docs/recipe-md.schema.json`. The recipe page links variants and their parent.
 - v0.14 (2026-11-23): M5 Output. ADR 0027 — M5 split; AI exchange becomes M5b (9.10). ADR 0028 — anonymous check-off with antiforgery and a per-IP limit, finished lists removed after 15 minutes, remembered names (D-10, 7.2). ADR 0029 — lists store each recipe's lines and merge on view; 8.5 shopping tables. ADR 0030 — seed shopping-v1 for sections, pantry and package sizes; Food.PackageName (8.3). ADR 0031 — cook mode ticks on the device, print and export follow the view, bulk export (7.2). ADR 0032 — smaller M5 decisions for owner review.
 - v0.13 (2026-11-22): M4 Import. ADR 0022 — images re-encoded as WebP (2400 px) with a 640 px thumbnail; `/media` anonymous only for published recipes' images; 8.2 Image columns. ADR 0023 — step photos follow their step (8.2 Step note). ADR 0024 — browser-like User-Agent, paste fallback, imports run in the request; SEC-42 allows XHTML and caps after decompression. ADR 0025 — review page is the editor form; recipe-md reader and writer in Core; 9.7 optional keys; 8.5 ImportJob columns. ADR 0026 — AI parser moves to M8 (9.10). 7.2 import, review and media rows; 9.1 package names.
