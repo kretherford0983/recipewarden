@@ -13,6 +13,7 @@
     <PackageReference Include="Serilog.Sinks.File" />
     <PackageReference Include="Markdig" />
     <PackageReference Include="HtmlSanitizer" />
+    <PackageReference Include="QRCoder" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>

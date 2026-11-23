@@ -118,6 +118,15 @@ public static class ImportReader
         return ImportRules.Warnings(recipe, parses);
     }
 
+    /// <summary>FR-IMP-09: whether the rules' result is weak enough to try the AI parser.</summary>
+    public static bool NeedsAi(ImportedRecipe recipe)
+    {
+        ArgumentNullException.ThrowIfNull(recipe);
+        var lines = IngredientLineParser.ParseList(recipe.Ingredients).Where(l => l.Ingredient is not null).ToList();
+        var low = lines.Count(l => (double)l.Ingredient!.Confidence < ImportRules.ReviewConfidence);
+        return Core.AiParser.AiParserRules.ShouldUseAi(recipe, lines.Count, low);
+    }
+
     public static IReadOnlyList<string> IngredientNames(string? ingredients) =>
         IngredientLineParser.ParseList(ingredients)
             .Where(l => l.Ingredient is not null && !string.IsNullOrWhiteSpace(l.Ingredient.Name))
@@ -136,5 +145,35 @@ public static class ImportReader
         return head.Contains("<html", StringComparison.OrdinalIgnoreCase) || head.Contains("<body", StringComparison.OrdinalIgnoreCase)
             || head.Contains("<!doctype", StringComparison.OrdinalIgnoreCase) || head.Contains("<div", StringComparison.OrdinalIgnoreCase)
             || head.Contains("application/ld+json", StringComparison.OrdinalIgnoreCase) || head.Contains("<li", StringComparison.OrdinalIgnoreCase);
+    }
+}
+
+/// <summary>FR-IMP-09: the plain text the AI parser reads from a stored raw payload (never HTML, BR-13).</summary>
+public static class ImportPlainText
+{
+    public static string? From(byte[] raw, string? fileName)
+    {
+        ArgumentNullException.ThrowIfNull(raw);
+        var ext = Path.GetExtension(fileName ?? string.Empty).ToLowerInvariant();
+        if (ext == ".pdf" || (raw.Length > 4 && raw[0] == (byte)'%' && raw[1] == (byte)'P' && raw[2] == (byte)'D' && raw[3] == (byte)'F'))
+        {
+            return PdfRecipeExtractor.ExtractText(raw).Text;
+        }
+
+        if (ext == ".docx" || (raw.Length > 4 && raw[0] == (byte)'P' && raw[1] == (byte)'K'))
+        {
+            using var stream = new MemoryStream(raw, writable: false);
+            return DocxRecipeExtractor.ExtractText(stream).Text;
+        }
+
+        var text = new System.Text.UTF8Encoding(false).GetString(raw).TrimStart('﻿');
+        return LooksLikeHtml(text) ? HtmlText.PageText(text) : text;
+    }
+
+    private static bool LooksLikeHtml(string text)
+    {
+        var head = text.Length > 2000 ? text[..2000] : text;
+        return head.Contains("<html", StringComparison.OrdinalIgnoreCase) || head.Contains("<body", StringComparison.OrdinalIgnoreCase)
+            || head.Contains("<div", StringComparison.OrdinalIgnoreCase) || head.Contains("<!doctype", StringComparison.OrdinalIgnoreCase);
     }
 }

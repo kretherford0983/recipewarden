@@ -18,6 +18,13 @@ public static class DocxRecipeExtractor
 
     public static (IReadOnlyList<ImportedRecipe> Recipes, string? Error) Extract(Stream stream, string? fallbackTitle)
     {
+        var (text, error) = ExtractText(stream);
+        return error is not null ? ([], error) : (TextRecipeExtractor.Extract(text!, fallbackTitle), null);
+    }
+
+    /// <summary>The document as light Markdown (headings, lists); also what the AI parser reads (FR-IMP-09).</summary>
+    public static (string? Text, string? Error) ExtractText(Stream stream)
+    {
         ArgumentNullException.ThrowIfNull(stream);
         string text;
         try
@@ -25,13 +32,13 @@ public static class DocxRecipeExtractor
             using var doc = WordprocessingDocument.Open(stream, false, new OpenSettings { AutoSave = false });
             if (doc.DocumentType != DocumentFormat.OpenXml.WordprocessingDocumentType.Document)
             {
-                return ([], MacroContent);
+                return (null, MacroContent);
             }
 
             var body = doc.MainDocumentPart?.Document?.Body;
             if (body is null)
             {
-                return ([], Unreadable);
+                return (null, Unreadable);
             }
 
             var styles = doc.MainDocumentPart!.StyleDefinitionsPart?.Styles;
@@ -39,10 +46,10 @@ public static class DocxRecipeExtractor
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            return ([], Unreadable);
+            return (null, Unreadable);
         }
 
-        return (TextRecipeExtractor.Extract(text, fallbackTitle), null);
+        return (text, null);
     }
 
     private static string ToMarkdown(Body body, Styles? styles)

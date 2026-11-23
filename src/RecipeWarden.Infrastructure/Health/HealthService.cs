@@ -161,9 +161,13 @@ public sealed partial class HealthService(
         var since = await settings.GetTimeAsync(SettingKeys.TrackingSince, cancellationToken).ConfigureAwait(false);
         if (since is null)
         {
-            using var quietSince = AuditScope.Suppress();
-            await settings.SetTimeAsync(SettingKeys.TrackingSince, now, cancellationToken).ConfigureAwait(false);
             since = now;
+            if (store)
+            {
+                // SEC-31: only the monitor (store: true) records when tracking began; a page view never writes.
+                using var quietSince = AuditScope.Suppress();
+                await settings.SetTimeAsync(SettingKeys.TrackingSince, now, cancellationToken).ConfigureAwait(false);
+            }
         }
 
         checks.Add(HealthRules.Backups(lastBackup, BackupScheduleService.ShortestInterval(schedules, now), unreachable, now, since));

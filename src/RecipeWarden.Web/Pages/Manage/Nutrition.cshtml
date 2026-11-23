@@ -47,6 +47,26 @@
         <input id="nutrient-q" name="q" value="@(Model.Query ?? Model.MapName)" placeholder="e.g. chili paste" maxlength="100">
         <button type="submit">Search</button>
     </form>
+    @if (Model.AiEnabled && Model.MapName is not null)
+    {
+        <form method="post" action="/manage/nutrition?handler=Suggest#map" asp-antiforgery="true" class="inline-form">
+            <input type="hidden" name="name" value="@Model.MapName">
+            @if (Model.MapFood is { } sf) { <input type="hidden" name="foodId" value="@sf"> }
+            <button type="submit">Suggest a match with AI</button>
+        </form>
+    }
+    @if (Model.Suggestion is { } s && Model.MapName is not null)
+    {
+        <div class="notice ai-suggestion" role="status">
+            <p><span class="badge ai">AI</span> Suggested: <strong>@s.Description</strong> (@NutritionRules.Format(s.Calories) kcal per 100 g)</p>
+            <form method="post" action="/manage/nutrition?handler=Map" asp-antiforgery="true">
+                <input type="hidden" name="name" value="@Model.MapName">
+                @if (Model.MapFood is { } food2) { <input type="hidden" name="foodId" value="@food2"> }
+                <input type="hidden" name="nutrientId" value="@s.Id">
+                <button type="submit">Use this suggestion</button>
+            </form>
+        </div>
+    }
     @if (Model.Choices.Count > 0)
     {
         <table class="list">

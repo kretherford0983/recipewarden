@@ -294,6 +294,41 @@ public sealed class NutritionService(AppDbContext db, FoodCatalogService foods, 
     }
 
     /// <summary>
+    /// FR-NUT-06: candidates for an AI mapping suggestion. The strict search (every word) first; when that finds nothing,
+    /// rows matching any word, ranked by how many words they match. Removed rows are left out.
+    /// </summary>
+    public async Task<IReadOnlyList<NutrientChoice>> SuggestionCandidatesAsync(string? name, CancellationToken cancellationToken = default)
+    {
+        var strict = (await SearchAsync(name, cancellationToken).ConfigureAwait(false)).Where(c => !c.Removed).ToList();
+        if (strict.Count > 0)
+        {
+            return strict;
+        }
+
+        var words = NameRules.Normalize(name).Split(' ', StringSplitOptions.RemoveEmptyEntries).Where(w => w.Length > 2).Distinct().Take(6).ToList();
+        var found = new Dictionary<int, (NutrientRef Row, int Hits)>();
+        foreach (var word in words)
+        {
+            var rows = await db.NutrientRefs.AsNoTracking()
+                .Where(n => n.RemovedInVersion == null && n.NormalizedDescription.Contains(word))
+                .OrderBy(n => n.Description.Length).Take(200).ToListAsync(cancellationToken).ConfigureAwait(false);
+            foreach (var row in rows)
+            {
+                found[row.Id] = found.TryGetValue(row.Id, out var seen) ? (row, seen.Hits + 1) : (row, 1);
+            }
+        }
+
+        return found.Values
+            .OrderByDescending(f => f.Hits)
+            .ThenBy(f => f.Row.Source == NutrientSources.Custom ? 0 : 1)
+            .ThenBy(f => f.Row.Description.Length)
+            .ThenBy(f => f.Row.Description, StringComparer.OrdinalIgnoreCase)
+            .Take(SearchLimit)
+            .Select(f => new NutrientChoice(f.Row.Id, f.Row.Description, f.Row.Category, f.Row.Source, f.Row.Calories, false))
+            .ToList();
+    }
+
+    /// <summary>
     /// FR-NUT-03, BR-54, AC-57, ADR 0034: maps a food (or an ingredient name with no food, by adding a household food)
     /// to a nutrient row. Every recipe using it is counted from now on; allergens are re-detected for them.
     /// </summary>

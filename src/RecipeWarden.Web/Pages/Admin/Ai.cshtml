@@ -1,0 +1,68 @@
+@page "/admin/ai"
+@model RecipeWarden.Web.Pages.Admin.AiModel
+@using RecipeWarden.Core.AiParser
+@{
+    ViewData["Title"] = "AI parser";
+    var s = Model.Settings;
+}
+<p><a href="/admin">Admin</a></p>
+<h1>AI parser</h1>
+@if (Model.Message is not null) { <div class="notice" role="status"><p>@Model.Message</p></div> }
+@if (Model.Error is not null) { <div class="form-errors" role="alert"><p>@Model.Error</p></div> }
+<p>Optional, and off until you turn it on. When the regular import cannot find a recipe's structure (blog prose, messy PDFs), or
+    when an Editor presses <strong>Re-parse with AI</strong>, only the recipe's text is sent to the service below. The answer always
+    comes back to the review page and nothing is saved until a person saves it. It can also suggest nutrition matches from the
+    local food data. Export for AI does not use this.</p>
+
+<form method="post" action="/admin/ai" asp-antiforgery="true" class="form">
+    <label><input type="checkbox" name="enabled" value="true" checked="@s.Enabled"> Use the AI parser</label>
+    <fieldset>
+        <legend>Service</legend>
+        <label><input type="radio" name="provider" value="Claude" checked="@(s.Provider == AiProvider.Claude)"> Claude API (api.anthropic.com)</label><br>
+        <label><input type="radio" name="provider" value="OpenAiCompatible" checked="@(s.Provider == AiProvider.OpenAiCompatible)"> OpenAI-compatible endpoint (e.g. Ollama or LM Studio on your network)</label>
+        <div class="field">
+            <label for="ai-endpoint">Endpoint (OpenAI-compatible only)</label>
+            <input id="ai-endpoint" name="endpoint" type="url" value="@s.Endpoint" placeholder="http://192.168.1.50:11434">
+        </div>
+        <label><input type="checkbox" name="allowLan" value="true" checked="@s.AllowLan"> The endpoint is on my home network (allows exactly that host and port, nothing else)</label>
+    </fieldset>
+    <div class="field">
+        <label for="ai-model">Model</label>
+        <input id="ai-model" name="model" value="@s.Model" maxlength="@AiParserRules.MaxModelLength" placeholder="claude-haiku-5-5 or llama3.1" required>
+    </div>
+    <div class="field">
+        <label for="ai-key">API key @(Model.HasKey ? "(set — leave empty to keep it)" : "(not set)")</label>
+        <input id="ai-key" name="apiKey" type="password" autocomplete="off" value="">
+    </div>
+    @if (Model.HasKey) { <label><input type="checkbox" name="clearKey" value="true"> Remove the saved key</label> }
+    <div class="field">
+        <label for="ai-cap">Monthly token limit (empty for none)</label>
+        <input id="ai-cap" name="cap" inputmode="numeric" value="@s.MonthlyTokenCap">
+    </div>
+    <div class="actions">
+        <button type="submit">Save</button>
+        <button type="submit" formaction="/admin/ai?handler=Test">Test connection (saved settings)</button>
+    </div>
+</form>
+
+<h2>This month</h2>
+<p>@Model.Usage.Calls calls, @Model.Usage.Total.ToString("N0") tokens (@Model.Usage.InputTokens.ToString("N0") in, @Model.Usage.OutputTokens.ToString("N0") out)@(Model.Usage.Cap is { } cap ? " of a " + cap.ToString("N0") + "-token limit" : "").
+    @if (Model.Usage.Cap is { } limit && Model.Usage.Total >= limit) { <strong>The limit is reached: imports use the rules-based parser until next month.</strong> }</p>
+
+<h2>Recent calls</h2>
+@if (Model.Calls.Count == 0)
+{
+    <p class="empty-state">No calls yet.</p>
+}
+else
+{
+    <table class="list">
+        <thead><tr><th scope="col">When</th><th scope="col">For</th><th scope="col">Service and model</th><th scope="col">Tokens in/out</th><th scope="col">Time</th><th scope="col">Result</th></tr></thead>
+        <tbody>
+        @foreach (var c in Model.Calls)
+        {
+            <tr><td>@c.At.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td><td>@c.Purpose</td><td>@c.Provider @c.Model</td><td>@c.InputTokens / @c.OutputTokens</td><td>@c.DurationMs ms</td><td>@c.Result @c.Error</td></tr>
+        }
+        </tbody>
+    </table>
+}

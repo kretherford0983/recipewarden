@@ -41,6 +41,19 @@
     </div>
 }
 
+@if (Model.AiError is not null)
+{
+    <p class="notice error" role="alert">@Model.AiError</p>
+}
+
+@if (Model.AiFields.Count > 0)
+{
+    <div class="notice ai-parsed-notice" role="note">
+        <p><span class="badge ai">AI</span> These fields were filled by the AI parser — check each one: <strong>@string.Join(", ", Model.AiFields)</strong>.
+            Nothing is saved until you save below.</p>
+    </div>
+}
+
 @if (review.Warnings.Count > 0)
 {
     <section class="notice import-warnings" aria-labelledby="warnings-heading">
@@ -56,7 +69,16 @@
 
 @if (review.Status == ImportStatus.Review)
 {
-    <partial name="/Pages/Manage/Recipes/_EditorForm.cshtml" model="Model" />
+    @if (Model.AiEnabled)
+    {
+        <form method="post" action="/manage/import/@review.JobId/review?handler=Reparse" asp-antiforgery="true" class="reparse">
+            <button type="submit">Re-parse with AI</button>
+            <span class="hint">Sends only this recipe's text to the AI service set by your Admin; the result comes back here for review.</span>
+        </form>
+    }
+    <div class="@(review.ParsedByAi ? "ai-parsed" : null)">
+        <partial name="/Pages/Manage/Recipes/_EditorForm.cshtml" model="Model" />
+    </div>
     <form method="post" action="/manage/import/@review.JobId/review?handler=Discard" asp-antiforgery="true" class="discard">
         <button type="submit">Discard this import</button>
     </form>

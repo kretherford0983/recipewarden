@@ -22,5 +22,8 @@
         <label asp-for="Input.Password">Password</label>
         <input asp-for="Input.Password" type="password" autocomplete="current-password" required>
     </div>
+    <div class="field checkbox">
+        <label><input type="checkbox" name="Input.RememberMe" value="true"> Keep me signed in on this device (30 days)</label>
+    </div>
     <button type="submit" class="primary">Sign in</button>
 </form>

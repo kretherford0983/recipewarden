@@ -132,7 +132,7 @@ public sealed class FR_OPS_02_HealthServiceTests
 
         report.Database.FileBytes.ShouldBe(new FileInfo(s.Data.DatabasePath).Length);
         report.Database.PageCount.ShouldBeGreaterThan(0);
-        report.Database.SchemaVersion.ShouldContain("M7_Operations");
+        report.Database.SchemaVersion.ShouldBe(await s.WithAsync(sp => Task.FromResult(sp.GetRequiredService<AppDbContext>().Database.GetMigrations().Last())));
         report.Space.Media.ShouldBe(12345);
         report.Checks.Select(c => c.Name).ShouldContain("Database");
         report.Checks.Select(c => c.Name).ShouldContain("Backups");

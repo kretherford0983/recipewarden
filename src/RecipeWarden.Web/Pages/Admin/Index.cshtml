@@ -7,6 +7,10 @@
     var r = Model.Report;
 }
 <h1>Admin</h1>
+@if (Model.PromptTwoFactor)
+{
+    <div class="notice" role="note"><p><strong>Protect your Admin account:</strong> turn on <a href="/account/2fa">two-factor sign-in</a>, so a password alone cannot open it.</p></div>
+}
 <nav aria-label="Admin pages">
     <ul class="admin-links">
         <li><a href="/admin/backups">Backups</a></li>
@@ -15,6 +19,7 @@
         <li><a href="/admin/settings">Settings</a></li>
         <li><a href="/admin/audit">Audit log</a></li>
         <li><a href="/admin/nutrition-data">Nutrition data</a></li>
+        <li><a href="/admin/ai">AI parser</a></li>
     </ul>
 </nav>
 <div class="dashboard">
@@ -36,6 +41,10 @@
         }
         <p>Next scheduled: @(Model.NextScheduled?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "no schedule")</p>
         <p>@(Model.Encrypted ? "Backups are encrypted." : "Backups are not encrypted yet.")</p>
+    </section>
+    <section aria-labelledby="d-ai">
+        <h2 id="d-ai">AI parser</h2>
+        <p>@(Model.Ai.Enabled ? "On" : "Off")@(Model.Ai.Enabled ? ", " + Model.AiUsage.Total.ToString("N0") + " tokens this month" + (Model.AiUsage.Cap is { } cap ? " of " + cap.ToString("N0") : "") : "")</p>
     </section>
     <section aria-labelledby="d-version">
         <h2 id="d-version">Version</h2>

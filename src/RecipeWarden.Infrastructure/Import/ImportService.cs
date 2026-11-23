@@ -1,3 +1,4 @@
+using RecipeWarden.Core.AiParser;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -37,6 +38,9 @@ public sealed record ImportReview(int JobId, ImportSourceKind Kind, string Sourc
 {
     /// <summary>BR-10: a web import's credit is shown and cannot be edited on the review page.</summary>
     public bool CreditLocked => Recipe.SourceType == SourceType.Web && Recipe.SourceUrl is not null;
+
+    /// <summary>FR-IMP-09: the fields came from the AI parser and are marked on the review page.</summary>
+    public bool ParsedByAi { get; init; }
 }
 
 public sealed record ImportSaveResult(SaveOutcome? Outcome, bool NeedsDuplicateChoice, string? ImageWarning)
@@ -51,7 +55,7 @@ public sealed record ImportSaveResult(SaveOutcome? Outcome, bool NeedsDuplicateC
 /// recipe pipeline, keeps a web recipe's credit (BR-10), and copies the image only when ticked (BR-12, AC-11).
 /// </summary>
 public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptions options, SafeFetcher fetcher, RecipeService recipes,
-    ImageStore images, TimeProvider clock)
+    ImageStore images, Ai.AiParserService ai, TimeProvider clock)
 {
     public static readonly TimeSpan KeepFor = TimeSpan.FromDays(30);
 
@@ -85,7 +89,8 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
             html = "<script type=\"application/ld+json\">" + html.Replace("</", "<\\/", StringComparison.Ordinal) + "</script>";
         }
 
-        var read = ImportReader.ReadPage(html, fetched.FinalUri ?? check.Uri!);
+        var pageUri = fetched.FinalUri ?? check.Uri!;
+        var read = await WithAiAsync(ImportReader.ReadPage(html, pageUri), () => HtmlText.PageText(html), pageUri, cancellationToken).ConfigureAwait(false);
         if (read.Error is not null)
         {
             return ImportStart.Fail(read.Error, offerPaste: true);
@@ -121,7 +126,8 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
             page = check.Uri;
         }
 
-        var read = ImportReader.ReadPaste(text, page);
+        var read = await WithAiAsync(ImportReader.ReadPaste(text, page), () => ImportPlainText.From(Encoding.UTF8.GetBytes(text), null), page, cancellationToken)
+            .ConfigureAwait(false);
         if (read.Error is not null)
         {
             return ImportStart.Fail(read.Error);
@@ -158,7 +164,10 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
                 continue;
             }
 
-            var result = ImportReader.ReadFile(upload.Kind, upload.Bytes, upload.FileName);
+            var bytes = upload.Bytes;
+            var fileName = upload.FileName;
+            var result = await WithAiAsync(ImportReader.ReadFile(upload.Kind, bytes, fileName), () => ImportPlainText.From(bytes, fileName), null, cancellationToken)
+                .ConfigureAwait(false);
             if (result.Error is not null)
             {
                 problems.Add(new FileProblem(upload.FileName, result.Error));
@@ -192,6 +201,102 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
         return new ImportStart(batchId, jobs, null, false, problems);
     }
 
+    /// <summary>
+    /// FR-IMP-09, ADR 0042: when the AI parser is on and the rules found no recipe, or a recipe without ingredients or
+    /// steps, or too many uncertain lines, the plain text is parsed with AI. A usable AI result replaces the rules'
+    /// result (marked for review); otherwise the rules' result stays, with the reason. When the parser is off nothing is
+    /// sent (AC-17).
+    /// </summary>
+    private async Task<ReadResult> WithAiAsync(ReadResult rules, Func<string?> plainText, Uri? page, CancellationToken ct)
+    {
+        var needs = rules.Error is not null || rules.Recipes.Any(ImportReader.NeedsAi);
+        if (!needs || !(await ai.GetSettingsAsync(ct).ConfigureAwait(false)).Enabled)
+        {
+            return rules;
+        }
+
+        var text = plainText();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return rules;
+        }
+
+        var parsed = await ai.ParseAsync(text, AiPurpose.Import, ct).ConfigureAwait(false);
+        if (parsed.Recipe is { } recipe)
+        {
+            var first = rules.Recipes.Count > 0 ? rules.Recipes[0] : null;
+            recipe = recipe with
+            {
+                SourceType = first?.SourceType ?? (page is null ? recipe.SourceType : SourceType.Web),
+                SourceUrl = first?.SourceUrl ?? page?.AbsoluteUri ?? recipe.SourceUrl,
+                SourceName = first?.SourceName ?? (page is null ? recipe.SourceName : HostName(page)),
+                SourceAuthor = first?.SourceAuthor ?? recipe.SourceAuthor,
+                ImageUrl = first?.ImageUrl ?? recipe.ImageUrl,
+            };
+            return new ReadResult([recipe], null);
+        }
+
+        if (rules.Error is not null || parsed.Error is null)
+        {
+            return rules;
+        }
+
+        // The AI was not usable (cap, reply, network): keep the rules' result and say why.
+        return new ReadResult(rules.Recipes.Select(r => r with { Remarks = [.. r.Remarks, parsed.Error] }).ToList(), null);
+    }
+
+    /// <summary>FR-IMP-09 "Re-parse with AI" on the review page: the stored raw payload, parsed again with AI.</summary>
+    public async Task<string?> ReparseWithAiAsync(int jobId, CancellationToken cancellationToken = default)
+    {
+        var job = await db.ImportJobs.SingleOrDefaultAsync(j => j.Id == jobId && j.Status == ImportStatus.Review, cancellationToken).ConfigureAwait(false);
+        if (job?.RawPath is null)
+        {
+            return "That import is no longer waiting for review.";
+        }
+
+        if (!(await ai.GetSettingsAsync(cancellationToken).ConfigureAwait(false)).Enabled)
+        {
+            return AiParserRules.Disabled;
+        }
+
+        var raw = Path.Combine(data.ImportsDirectory, job.RawPath);
+        if (!File.Exists(raw))
+        {
+            return "The original text of this import is no longer kept (30 days).";
+        }
+
+        var text = ImportPlainText.From(await File.ReadAllBytesAsync(raw, cancellationToken).ConfigureAwait(false), job.SourceRef);
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return "There is no text to send to the AI parser.";
+        }
+
+        var parsed = await ai.ParseAsync(text, AiPurpose.Reparse, cancellationToken).ConfigureAwait(false);
+        if (parsed.Recipe is null)
+        {
+            return parsed.Error;
+        }
+
+        var before = Parsed(job);
+        var recipe = parsed.Recipe with
+        {
+            SourceType = before.SourceType ?? parsed.Recipe.SourceType,
+            SourceUrl = before.SourceUrl ?? parsed.Recipe.SourceUrl,
+            SourceName = before.SourceName ?? parsed.Recipe.SourceName,
+            SourceAuthor = before.SourceAuthor ?? parsed.Recipe.SourceAuthor,
+            ImageUrl = before.ImageUrl ?? parsed.Recipe.ImageUrl,
+        };
+        job.ParsedJson = JsonSerializer.Serialize(recipe, Json);
+        job.WarningsJson = JsonSerializer.Serialize(ImportReader.Warnings(recipe), Json);
+        job.ParsedByAi = true;
+        job.UpdatedAt = clock.GetUtcNow();
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return null;
+    }
+
+    private static string HostName(Uri page) =>
+        page.IdnHost.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? page.IdnHost[4..] : page.IdnHost;
+
     /// <summary>Imports waiting for review, newest first.</summary>
     public async Task<IReadOnlyList<ImportJobSummary>> ListOpenAsync(CancellationToken cancellationToken = default)
     {
@@ -221,7 +326,7 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
             .ToListAsync(cancellationToken).ConfigureAwait(false);
         var warnings = JsonSerializer.Deserialize<List<ImportWarning>>(job.WarningsJson, Json) ?? [];
         return new ImportReview(job.Id, job.SourceKind, job.SourceRef, job.Status, recipe, warnings, job.ImageUrl, job.CopyImage, duplicate,
-            job.CreatedRecipeId, batch.Count > 1 ? batch.Select(Summary).ToList() : []);
+            job.CreatedRecipeId, batch.Count > 1 ? batch.Select(Summary).ToList() : []) { ParsedByAi = job.ParsedByAi };
     }
 
     /// <summary>
@@ -380,6 +485,7 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
                     CreatedById = userId,
                     CreatedAt = now,
                     UpdatedAt = now,
+                    ParsedByAi = recipe.Remarks.Contains(AiParserRules.AiParsedNotice),
                 };
                 db.ImportJobs.Add(job);
                 jobs.Add(job);

@@ -140,6 +140,30 @@ public sealed class UserAdminService(UserManager<AppUser> users)
         return result.Succeeded ? AccountResult.Ok : AccountResult.Fail(result.Errors.Select(e => e.Description).ToArray());
     }
 
+    /// <summary>
+    /// SEC-04, ADR 0043: an Admin turns two-factor off for someone who lost their authenticator and recovery codes. Not
+    /// for your own account (use /account/2fa, which needs a current code). The key and codes are cleared; sessions end.
+    /// </summary>
+    public async Task<AccountResult> DisableTwoFactorAsync(string actorId, string targetId)
+    {
+        if (actorId == targetId)
+        {
+            return AccountResult.Fail("Turn off your own two-factor sign-in on your account page.");
+        }
+
+        var target = await users.FindByIdAsync(targetId).ConfigureAwait(false);
+        if (target is null)
+        {
+            return AccountResult.Fail("That account no longer exists.");
+        }
+
+        await users.SetTwoFactorEnabledAsync(target, false).ConfigureAwait(false);
+        await users.ResetAuthenticatorKeyAsync(target).ConfigureAwait(false); // a new key nobody has yet; also renews the stamp
+        await users.GenerateNewTwoFactorRecoveryCodesAsync(target, 0).ConfigureAwait(false); // old recovery codes stop working
+        await users.UpdateSecurityStampAsync(target).ConfigureAwait(false);
+        return AccountResult.Ok;
+    }
+
     /// <summary>An Admin sets a new password for someone who forgot theirs; their sessions end.</summary>
     public async Task<AccountResult> ResetPasswordAsync(string targetId, string newPassword)
     {

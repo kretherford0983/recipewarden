@@ -39,4 +39,7 @@ public sealed class ImportJob
     public string? CreatedById { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
+
+    /// <summary>FR-IMP-09: the recipe came from the AI parser; the review page marks its fields.</summary>
+    public bool ParsedByAi { get; set; }
 }

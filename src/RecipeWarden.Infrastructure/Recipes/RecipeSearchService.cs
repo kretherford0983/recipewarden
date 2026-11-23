@@ -53,9 +53,15 @@ public sealed class RecipeSearchService(AppDbContext db)
             }
             else
             {
-                ranking = await RankAsync(criteria.Query, cancellationToken).ConfigureAwait(false);
-                var ids = ranking.Keys.ToList();
-                query = query.Where(r => ids.Contains(r.Id));
+                // AC-95: the match is a subquery on the FTS table, not a list of ids sent back to SQLite; ranking is only
+                // worked out when the results are ordered by relevance.
+                var expr = criteria.Query.MatchAny;
+                var matches = db.Database.SqlQuery<long>($"SELECT rowid AS Value FROM RecipeSearch WHERE RecipeSearch MATCH {expr}");
+                query = query.Where(r => matches.Contains(r.Id));
+                if (criteria.Sort == SearchSort.Relevance)
+                {
+                    ranking = await RankAsync(criteria.Query, cancellationToken).ConfigureAwait(false);
+                }
             }
         }
 

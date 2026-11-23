@@ -46,7 +46,7 @@ public sealed class FR_BKP_01_BackupServiceTests
         entries.Keys.ShouldContain("media/ab/photo.webp");
         var manifest = JsonSerializer.Deserialize<BackupManifest>(entries[BackupManifest.FileName], ManifestJson.Options)!;
         ArchiveRules.CheckManifest(manifest).ShouldBeNull();
-        manifest.SchemaVersion.ShouldContain("M7_Operations");
+        manifest.SchemaVersion.ShouldBe(await s.WithAsync(sp => Task.FromResult(sp.GetRequiredService<AppDbContext>().Database.GetMigrations().Last())));
         foreach (var f in manifest.Files)
         {
             Convert.ToHexStringLower(SHA256.HashData(entries[f.Path])).ShouldBe(f.Sha256, f.Path);

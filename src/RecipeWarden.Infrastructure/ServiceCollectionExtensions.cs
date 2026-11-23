@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -51,6 +52,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<RecipeService>();
         services.AddScoped<RecipeSearchService>();
         services.AddScoped<CollectionService>();
+        var home = new HomeOptions();
+        configuration.GetSection(HomeOptions.SectionName).Bind(home);
+        services.AddSingleton(home);
+        services.AddScoped<RecommendationService>();
         services.AddScoped<FoodCatalogService>();
         services.AddScoped<MeasurementSeeder>();
         services.AddScoped<RecipeScaler>();
@@ -92,6 +97,16 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(health);
         services.AddSingleton<HealthState>();
         services.AddScoped<HealthService>();
+
+        // M8: the optional AI parser (ADR 0042). Its API key is protected with the app's Data Protection key ring
+        // (SEC-45), kept in the data directory for Web and CLI alike (SEC-71, ADR 0038).
+        services.AddDataProtection()
+            .SetApplicationName("RecipeWarden")
+            .PersistKeysToFileSystem(new DirectoryInfo(data.KeysDirectory));
+        var ai = new Ai.AiOptions();
+        configuration.GetSection(Ai.AiOptions.SectionName).Bind(ai);
+        services.AddSingleton(ai);
+        services.AddScoped<Ai.AiParserService>();
         return services;
     }
 
@@ -99,7 +114,8 @@ public static class ServiceCollectionExtensions
     public static IdentityBuilder AddRecipeWardenIdentityCore(this IServiceCollection services) =>
         services.AddIdentityCore<AppUser>(ConfigureIdentity)
             .AddRoles<IdentityRole>()
-            .AddEntityFrameworkStores<AppDbContext>();
+            .AddEntityFrameworkStores<AppDbContext>()
+            .AddPasswordValidator<CommonPasswordValidator>(); // SEC-01
 
     internal static void ConfigureIdentity(IdentityOptions o)
     {

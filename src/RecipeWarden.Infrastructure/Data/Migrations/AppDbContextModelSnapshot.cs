@@ -144,6 +144,60 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.AiCallLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("At")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DurationMs")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("InputTokens")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("OutputTokens")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Result")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("At");
+
+                    b.ToTable("AiCallLogs");
+                });
+
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.AppSetting", b =>
                 {
                     b.Property<string>("Key")
@@ -664,6 +718,9 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.Property<string>("ImageUrl")
                         .HasMaxLength(2048)
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("ParsedByAi")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("ParsedJson")
                         .IsRequired()

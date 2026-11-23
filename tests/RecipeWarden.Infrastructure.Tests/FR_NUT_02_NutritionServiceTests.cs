@@ -97,6 +97,15 @@ public sealed class FR_NUT_02_NutritionServiceTests
 
         var choices = await s.Nutrition.SearchAsync("chili sauce", Ct);
         choices.ShouldNotBeEmpty();
+
+        // FR-NUT-06: AI candidates fall back to any-word matches, best first, when the strict search finds nothing.
+        (await s.Nutrition.SearchAsync("chili paste", Ct)).ShouldBeEmpty();
+        var loose = await s.Nutrition.SuggestionCandidatesAsync("chili paste", Ct);
+        loose.ShouldNotBeEmpty();
+        loose.Count.ShouldBeLessThanOrEqualTo(NutritionService.SearchLimit);
+        loose.ShouldAllBe(c => !c.Removed && (c.Description.Contains("chili", StringComparison.OrdinalIgnoreCase) || c.Description.Contains("paste", StringComparison.OrdinalIgnoreCase)));
+        (await s.Nutrition.SuggestionCandidatesAsync("chili sauce", Ct)).Select(c => c.Id).ShouldBe(choices.Where(c => !c.Removed).Select(c => c.Id));
+        (await s.Nutrition.SuggestionCandidatesAsync("zq", Ct)).ShouldBeEmpty();
         var chili = choices[0];
         (await s.Nutrition.MapAsync(null, "gochujang", chili.Id, RecipeTestScope.UserId, Ct)).Ok.ShouldBeTrue();
 

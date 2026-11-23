@@ -38,6 +38,7 @@ public sealed class BrowserHost : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Kestrel:Endpoints:Http:Url", "http://127.0.0.1:0");
         builder.UseSetting("Serilog:MinimumLevel:Default", "Warning");
         builder.UseSetting("Operations:Background", "false"); // M7: no scheduler or monitor during browser tests
+        builder.UseSetting("RateLimits:SignInsPerMinute", "100000"); // SEC-63 is tested in Web.Tests
         builder.ConfigureServices(s =>
         {
             s.UseFastPasswordHashing();

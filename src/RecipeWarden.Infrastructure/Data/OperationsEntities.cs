@@ -124,3 +124,19 @@ public sealed class HealthCheckResult
     public string Message { get; set; } = string.Empty;
     public int DurationMs { get; set; }
 }
+
+/// <summary>FR-IMP-10: one AI call — provider, model, tokens, time and result. Never the key, the text or the reply.</summary>
+public sealed class AiCallLog
+{
+    public int Id { get; set; }
+    public DateTimeOffset At { get; set; }
+    public Core.AiParser.AiPurpose Purpose { get; set; }
+    public Core.AiParser.AiProvider Provider { get; set; }
+    public string Model { get; set; } = string.Empty;
+    public long InputTokens { get; set; }
+    public long OutputTokens { get; set; }
+    public int DurationMs { get; set; }
+    public Core.AiParser.AiCallResult Result { get; set; }
+    public string? Error { get; set; }
+    public string? UserId { get; set; }
+}
