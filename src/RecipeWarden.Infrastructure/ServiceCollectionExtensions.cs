@@ -60,6 +60,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ImportService>();
         services.AddScoped<ShoppingService>();
         services.AddScoped<ShoppingSeeder>();
+        services.AddScoped<RecipeExporter>();
         return services;
     }
 

@@ -283,9 +283,12 @@ public static partial class RecipeMarkdown
     }
 
     /// <summary>
-    /// Writes one recipe as recipe-md v1. Image references are omitted until images are exported (M5).
+    /// Writes one recipe as recipe-md v1. <paramref name="scale"/> (other than 1) is written as <c>scale:</c> when the
+    /// ingredient lines are already scaled (ADR 0031). <paramref name="finishImage"/> and <paramref name="stepImages"/>
+    /// are relative paths inside an export .zip ("images/finish.webp"); without them no image lines are written.
     /// </summary>
-    public static string Write(RecipeEdit recipe, string? slug = null, DateOnly? imported = null)
+    public static string Write(RecipeEdit recipe, string? slug = null, DateOnly? imported = null, decimal? scale = null,
+        string? finishImage = null, IReadOnlyList<string?>? stepImages = null)
     {
         ArgumentNullException.ThrowIfNull(recipe);
         var sb = new StringBuilder();
@@ -316,6 +319,12 @@ public static partial class RecipeMarkdown
         if (recipe.Tags.Count > 0)
         {
             sb.Append("tags: [").Append(string.Join(", ", recipe.Tags.Select(FrontMatter.Quote))).Append("]\n");
+        }
+
+        Key(sb, "image", finishImage);
+        if (scale is { } factor && factor != 1m)
+        {
+            sb.Append("scale: ").Append(factor.ToString("0.###", CultureInfo.InvariantCulture)).Append('\n');
         }
 
         sb.Append("source:\n");
@@ -366,6 +375,10 @@ public static partial class RecipeMarkdown
             }
 
             sb.Append(step.Text).Append('\n');
+            if (stepImages is not null && n - 1 < stepImages.Count && stepImages[n - 1] is { Length: > 0 } image)
+            {
+                sb.Append("   ![Step ").Append(n.ToString(CultureInfo.InvariantCulture)).Append("](").Append(image).Append(")\n");
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(recipe.Notes))
