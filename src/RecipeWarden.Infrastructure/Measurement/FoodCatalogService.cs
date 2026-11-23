@@ -76,16 +76,21 @@ public sealed class FoodCatalogService(AppDbContext db, TimeProvider clock)
         var names = await db.RecipeIngredients.IgnoreQueryFilters().Where(i => i.FoodId == null)
             .Select(i => i.Name).Distinct().ToListAsync(cancellationToken).ConfigureAwait(false);
         var linked = 0;
+        var recipes = new HashSet<int>();
         foreach (var name in names)
         {
             if (matcher.Match(name) is { } foodId)
             {
+                recipes.UnionWith(await db.RecipeIngredients.IgnoreQueryFilters().Where(i => i.FoodId == null && i.Name == name)
+                    .Select(i => i.RecipeId).ToListAsync(cancellationToken).ConfigureAwait(false));
                 linked += await db.RecipeIngredients.IgnoreQueryFilters()
                     .Where(i => i.FoodId == null && i.Name == name)
                     .ExecuteUpdateAsync(u => u.SetProperty(i => i.FoodId, foodId), cancellationToken).ConfigureAwait(false);
             }
         }
 
+        // ADR 0036: a newly linked food can add allergens (its name is read too).
+        await Nutrition.RecipeAllergenIndex.UpdateManyAsync(db, recipes, cancellationToken).ConfigureAwait(false);
         return linked;
     }
 

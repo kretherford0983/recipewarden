@@ -195,6 +195,9 @@ public sealed class Food
     public decimal? DensityGPerMl { get; set; }
     public int? FdcId { get; set; }
 
+    /// <summary>BR-54, ADR 0034: an editor's nutrient mapping (USDA or custom); wins over <see cref="FdcId"/>.</summary>
+    public int? NutrientRefId { get; set; }
+
     /// <summary>Usda (seeded from USDA public-domain data) or Custom (added by an editor).</summary>
     public string Source { get; set; } = FoodSources.Custom;
 

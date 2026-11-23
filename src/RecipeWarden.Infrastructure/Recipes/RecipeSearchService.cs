@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RecipeWarden.Core.Nutrition;
 using RecipeWarden.Core.Recipes;
 using RecipeWarden.Core.Search;
 using RecipeWarden.Infrastructure.Data;
@@ -87,6 +88,23 @@ public sealed class RecipeSearchService(AppDbContext db)
         if (criteria.MinRating is { } rating)
         {
             query = query.Where(r => r.Rating >= rating);
+        }
+
+        // BR-53, ADR 0036: a manual row decides; otherwise the detected one. Contains and May contain both exclude.
+        foreach (var code in criteria.FreeOf)
+        {
+            query = query.Where(r =>
+                !db.RecipeAllergens.Any(a => a.RecipeId == r.Id && a.Allergen == code && a.Origin == AllergenOrigin.Manual
+                                             && a.Status != AllergenStatus.NotPresent)
+                && !(db.RecipeAllergens.Any(a => a.RecipeId == r.Id && a.Allergen == code && a.Origin == AllergenOrigin.Auto
+                                                 && a.Status != AllergenStatus.NotPresent)
+                     && !db.RecipeAllergens.Any(a => a.RecipeId == r.Id && a.Allergen == code && a.Origin == AllergenOrigin.Manual)));
+        }
+
+        if (criteria.FreeOf.Count > 0 && !criteria.IncludeUnverified)
+        {
+            // Unverified: a line with an amount that matched no food, so nothing is known about it.
+            query = query.Where(r => !db.RecipeIngredients.Any(i => i.RecipeId == r.Id && i.FoodId == null && i.Quantity != null));
         }
 
         var total = await query.CountAsync(cancellationToken).ConfigureAwait(false);

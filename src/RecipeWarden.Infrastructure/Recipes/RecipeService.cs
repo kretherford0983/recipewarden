@@ -41,6 +41,7 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
         db.Recipes.Add(recipe);
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         await RecipeSearchIndex.UpdateAsync(db, recipe.Id, cancellationToken).ConfigureAwait(false);
+        await Nutrition.RecipeAllergenIndex.UpdateAsync(db, recipe.Id, cancellationToken).ConfigureAwait(false); // ADR 0036
         await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
 
         return Saved(recipe, parsed.Check);
@@ -128,6 +129,7 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
         }
 
         await RecipeSearchIndex.UpdateAsync(db, recipe.Id, cancellationToken).ConfigureAwait(false);
+        await Nutrition.RecipeAllergenIndex.UpdateAsync(db, recipe.Id, cancellationToken).ConfigureAwait(false); // ADR 0036
         await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
         return Saved(recipe, parsed.Check);
     }
