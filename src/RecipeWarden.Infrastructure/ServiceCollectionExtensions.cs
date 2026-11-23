@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -92,6 +93,16 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(health);
         services.AddSingleton<HealthState>();
         services.AddScoped<HealthService>();
+
+        // M8: the optional AI parser (ADR 0042). Its API key is protected with the app's Data Protection key ring
+        // (SEC-45), kept in the data directory for Web and CLI alike (SEC-71, ADR 0038).
+        services.AddDataProtection()
+            .SetApplicationName("RecipeWarden")
+            .PersistKeysToFileSystem(new DirectoryInfo(data.KeysDirectory));
+        var ai = new Ai.AiOptions();
+        configuration.GetSection(Ai.AiOptions.SectionName).Bind(ai);
+        services.AddSingleton(ai);
+        services.AddScoped<Ai.AiParserService>();
         return services;
     }
 

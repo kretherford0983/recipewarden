@@ -21,6 +21,13 @@ public static class PdfRecipeExtractor
 
     public static (IReadOnlyList<ImportedRecipe> Recipes, string? Error) Extract(byte[] bytes, string? fallbackTitle)
     {
+        var (text, error) = ExtractText(bytes);
+        return error is not null ? ([], error) : (TextRecipeExtractor.Extract(text!, fallbackTitle), null);
+    }
+
+    /// <summary>The PDF's text, line by line (also what the AI parser reads, FR-IMP-09).</summary>
+    public static (string? Text, string? Error) ExtractText(byte[] bytes)
+    {
         ArgumentNullException.ThrowIfNull(bytes);
         var sb = new StringBuilder();
         try
@@ -28,12 +35,12 @@ public static class PdfRecipeExtractor
             using var pdf = PdfDocument.Open(bytes, new ParsingOptions { UseLenientParsing = true, SkipMissingFonts = true });
             if (pdf.IsEncrypted)
             {
-                return ([], Encrypted);
+                return (null, Encrypted);
             }
 
             if (pdf.NumberOfPages > MaxPages)
             {
-                return ([], TooManyPages);
+                return (null, TooManyPages);
             }
 
             foreach (var page in pdf.GetPages())
@@ -48,20 +55,20 @@ public static class PdfRecipeExtractor
         }
         catch (PdfDocumentEncryptedException)
         {
-            return ([], Encrypted);
+            return (null, Encrypted);
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            return ([], Unreadable);
+            return (null, Unreadable);
         }
 
         var text = sb.ToString();
         if (text.Trim().Length == 0)
         {
-            return ([], NoText);
+            return (null, NoText);
         }
 
-        return (TextRecipeExtractor.Extract(text, fallbackTitle), null);
+        return (text, null);
     }
 
     /// <summary>Words grouped into lines by their baseline, top to bottom, left to right.</summary>

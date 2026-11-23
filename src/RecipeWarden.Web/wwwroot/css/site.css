@@ -327,3 +327,8 @@ form.discard { margin-top: 1rem; }
 .setup-choices { display: grid; gap: 2rem; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); }
 table.audit code { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .85rem; }
 .restore-report { border: 2px solid var(--error, #b42318); border-radius: .375rem; padding: 1rem; margin: 1rem 0; }
+
+/* M8: AI parser marks (FR-IMP-09) */
+.badge.ai { background: var(--accent); color: var(--accent-text); border-radius: .25rem; padding: 0 .35rem; font-size: .8rem; font-weight: 600; }
+.ai-parsed { border-left: 4px solid var(--accent); padding-left: .75rem; }
+.reparse { margin: 1rem 0; display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }

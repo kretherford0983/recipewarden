@@ -24,6 +24,14 @@ public static class HtmlText
 
     private static readonly string[] SkipMarkers = ["comment", "sidebar", "share", "related", "newsletter", "advert", "promo", "breadcrumb", "cookie"];
 
+    /// <summary>A whole page's readable text (FR-IMP-09 AI input): the body, without scripts, navigation and the like.</summary>
+    public static string PageText(string html)
+    {
+        var parser = new AngleSharp.Html.Parser.HtmlParser(new AngleSharp.Html.Parser.HtmlParserOptions { IsScripting = false });
+        using var document = parser.ParseDocument(html ?? string.Empty);
+        return document.Body is null ? string.Empty : Of(document.Body);
+    }
+
     public static string Of(IElement element)
     {
         ArgumentNullException.ThrowIfNull(element);

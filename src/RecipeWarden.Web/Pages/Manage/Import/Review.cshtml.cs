@@ -14,8 +14,44 @@ namespace RecipeWarden.Web.Pages.Manage.Import;
 /// warnings above it, a possible-duplicate choice (AC-16), the image opt-in (BR-12) and, for web imports, a locked
 /// credit (BR-10). Nothing is saved until the editor presses Publish or Save draft. The job id comes from the route.
 /// </summary>
-public sealed class ReviewModel(ImportService imports, TagService tags) : RecipeEditorPageModel(tags)
+public sealed class ReviewModel(ImportService imports, TagService tags, Infrastructure.Ai.AiParserService ai) : RecipeEditorPageModel(tags)
 {
+    /// <summary>FR-IMP-09: "Re-parse with AI" is offered when the AI parser is on.</summary>
+    public bool AiEnabled { get; private set; }
+
+    public string? AiError { get; private set; }
+
+    /// <summary>FR-IMP-09: the fields the AI parser filled, listed and marked on the form.</summary>
+    public IReadOnlyList<string> AiFields => Review is { ParsedByAi: true } r
+        ? new (string Name, string? Value)[]
+            {
+                ("Title", r.Recipe.Title), ("Description", r.Recipe.Description), ("Servings", r.Recipe.Servings),
+                ("Times", r.Recipe.PrepTime ?? r.Recipe.CookTime ?? r.Recipe.TotalTime), ("Ingredients", r.Recipe.Ingredients),
+                ("Steps", r.Recipe.Steps), ("Notes", r.Recipe.Notes),
+            }.Where(f => !string.IsNullOrWhiteSpace(f.Value)).Select(f => f.Name).ToList()
+        : [];
+
+    /// <summary>FR-IMP-09, ADR 0042: parses the kept raw text again with AI; the result replaces the draft, for review.</summary>
+    public async Task<IActionResult> OnPostReparseAsync([FromRoute] int id)
+    {
+        var error = await imports.ReparseWithAiAsync(id, HttpContext.RequestAborted);
+        if (error is null)
+        {
+            return Redirect($"/manage/import/{id}/review");
+        }
+
+        if (!await LoadAsync(id))
+        {
+            return NotFound();
+        }
+
+        Input = ToInput(Review!.Recipe);
+        CopyImage = Review.CopyImage;
+        AiError = error;
+        Response.StatusCode = StatusCodes.Status400BadRequest;
+        return Page();
+    }
+
     public const string AlreadyDone = "This import has already been saved or discarded.";
 
     public int JobId { get; private set; }
@@ -108,6 +144,7 @@ public sealed class ReviewModel(ImportService imports, TagService tags) : Recipe
     {
         JobId = id;
         Review = await imports.GetReviewAsync(id, HttpContext.RequestAborted);
+        AiEnabled = (await ai.GetSettingsAsync(HttpContext.RequestAborted)).Enabled;
         return Review is not null;
     }
 

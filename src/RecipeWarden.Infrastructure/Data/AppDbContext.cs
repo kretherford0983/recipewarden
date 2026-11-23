@@ -48,6 +48,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
     public DbSet<AppSetting> AppSettings => Set<AppSetting>();
     public DbSet<StorageSnapshot> StorageSnapshots => Set<StorageSnapshot>();
     public DbSet<HealthCheckResult> HealthCheckResults => Set<HealthCheckResult>();
+    public DbSet<AiCallLog> AiCallLogs => Set<AiCallLog>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -441,6 +442,18 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
             e.Property(h => h.CheckName).HasMaxLength(128);
             e.Property(h => h.Status).HasConversion<string>().HasMaxLength(16);
             e.Property(h => h.Message).HasMaxLength(1000);
+        });
+
+        // M8: AI usage log (FR-IMP-10, ADR 0042)
+        builder.Entity<AiCallLog>(e =>
+        {
+            e.HasIndex(a => a.At);
+            e.Property(a => a.Purpose).HasConversion<string>().HasMaxLength(24);
+            e.Property(a => a.Provider).HasConversion<string>().HasMaxLength(24);
+            e.Property(a => a.Result).HasConversion<string>().HasMaxLength(16);
+            e.Property(a => a.Model).HasMaxLength(100);
+            e.Property(a => a.Error).HasMaxLength(300);
+            e.Property(a => a.UserId).HasMaxLength(64);
         });
 
         builder.Entity<CollectionRecipe>(e =>

@@ -29,7 +29,7 @@ internal sealed class FakeWeb : IDnsResolver, ISocketConnector, IAsyncDisposable
 
     public sealed record Response(int Status, string? ContentType, byte[] Body, IReadOnlyDictionary<string, string> Headers, bool NoLength);
 
-    public sealed record Request(string Host, string PathAndQuery, IReadOnlyDictionary<string, string> Headers);
+    public sealed record Request(string Host, string PathAndQuery, IReadOnlyDictionary<string, string> Headers, string Body = "");
 
     public ConcurrentDictionary<string, IPAddress[]> Hosts { get; } = new(StringComparer.OrdinalIgnoreCase);
 
@@ -123,7 +123,15 @@ internal sealed class FakeWeb : IDnsResolver, ISocketConnector, IAsyncDisposable
                 var headers = lines.Skip(1).Select(l => l.Split(':', 2)).Where(p => p.Length == 2)
                     .ToDictionary(p => p[0].Trim(), p => p[1].Trim(), StringComparer.OrdinalIgnoreCase);
                 var host = headers.TryGetValue("Host", out var h) ? h.Split(':')[0] : string.Empty;
-                Requests.Enqueue(new Request(host, path, headers));
+                var body = string.Empty;
+                if (headers.TryGetValue("Content-Length", out var lengthText) && int.TryParse(lengthText, CultureInfo.InvariantCulture, out var length) && length is > 0 and < 4_000_000)
+                {
+                    var bytes = new byte[length];
+                    await stream.ReadExactlyAsync(bytes, stop.Token);
+                    body = Encoding.UTF8.GetString(bytes);
+                }
+
+                Requests.Enqueue(new Request(host, path, headers, body));
 
                 var response = routes.TryGetValue(host + path, out var r) ? r : new Response(404, "text/plain", "missing"u8.ToArray(), new Dictionary<string, string>(), false);
                 var sb = new StringBuilder();

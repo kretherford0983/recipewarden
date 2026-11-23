@@ -15,6 +15,7 @@
         <li><a href="/admin/settings">Settings</a></li>
         <li><a href="/admin/audit">Audit log</a></li>
         <li><a href="/admin/nutrition-data">Nutrition data</a></li>
+        <li><a href="/admin/ai">AI parser</a></li>
     </ul>
 </nav>
 <div class="dashboard">
@@ -36,6 +37,10 @@
         }
         <p>Next scheduled: @(Model.NextScheduled?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "no schedule")</p>
         <p>@(Model.Encrypted ? "Backups are encrypted." : "Backups are not encrypted yet.")</p>
+    </section>
+    <section aria-labelledby="d-ai">
+        <h2 id="d-ai">AI parser</h2>
+        <p>@(Model.Ai.Enabled ? "On" : "Off")@(Model.Ai.Enabled ? ", " + Model.AiUsage.Total.ToString("N0") + " tokens this month" + (Model.AiUsage.Cap is { } cap ? " of " + cap.ToString("N0") : "") : "")</p>
     </section>
     <section aria-labelledby="d-version">
         <h2 id="d-version">Version</h2>

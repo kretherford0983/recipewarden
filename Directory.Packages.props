@@ -15,6 +15,7 @@
     <!-- Apache-2.0 --><PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
     <!-- MIT --><PackageVersion Include="System.CommandLine" Version="2.0.15" />
     <!-- MIT; M7 backup schedules (9.1) --><PackageVersion Include="Cronos" Version="0.13.0" />
+    <!-- MIT; M8 AI API key at rest (SEC-45), same key ring as the web app --><PackageVersion Include="Microsoft.AspNetCore.DataProtection" Version="10.0.15" />
     <!-- BSD-2-Clause --><PackageVersion Include="Markdig" Version="1.6.0" />
     <!-- MIT (AngleSharp: MIT) --><PackageVersion Include="HtmlSanitizer" Version="11.0.26" />
     <!-- MIT; M4 HTML import (ADR 0024) --><PackageVersion Include="AngleSharp" Version="1.10.5" />
