@@ -1,0 +1,49 @@
+@page "/shopping"
+@model RecipeWarden.Web.Pages.Shopping.IndexModel
+@{
+    ViewData["Title"] = "Shopping lists";
+}
+<h1>Shopping lists</h1>
+@if (Model.Message is not null) { <p class="notice" role="status">@Model.Message</p> }
+@if (Model.Lists.Count == 0)
+{
+    <p>No lists yet.@(Model.CanEdit ? " Start one below, or add a recipe from its page." : "")</p>
+}
+else
+{
+    <ul class="shopping-lists">
+        @foreach (var l in Model.Lists)
+        {
+            <li>
+                <a href="/shopping/@l.Id">@l.Name</a>
+                <span class="hint">@l.Recipes @(l.Recipes == 1 ? "recipe" : "recipes"), @l.Items @(l.Items == 1 ? "line" : "lines")</span>
+            </li>
+        }
+    </ul>
+}
+@if (Model.CanEdit)
+{
+    <section aria-labelledby="new-list-heading">
+        <h2 id="new-list-heading">New list</h2>
+        <form class="inline-form" method="post" action="/shopping/new" asp-antiforgery="true">
+            <label for="list-name">Name</label>
+            <input id="list-name" name="name" required maxlength="@RecipeWarden.Core.Shopping.ShoppingRules.MaxListNameLength" placeholder="Saturday">
+            <button type="submit" class="primary">Start list</button>
+        </form>
+        @if (Model.Remembered.Count > 0)
+        {
+            <p>Start again:</p>
+            <ul class="start-again">
+                @foreach (var name in Model.Remembered)
+                {
+                    <li>
+                        <form method="post" action="/shopping/new" asp-antiforgery="true">
+                            <input type="hidden" name="name" value="@name">
+                            <button type="submit">@name</button>
+                        </form>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+}

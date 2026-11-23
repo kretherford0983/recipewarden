@@ -242,3 +242,34 @@ ul.presets { display: flex; flex-wrap: wrap; gap: .5rem; list-style: none; paddi
 .review-options { margin: 1rem 0; }
 .filters label.inline { display: inline-flex; gap: .35rem; align-items: center; }
 form.discard { margin-top: 1rem; }
+
+/* M5: recipe actions, shopping lists (FR-SHOP-03), cook mode (FR-VIEW-02). */
+.recipe-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin: .75rem 0; }
+.add-to-list { margin: .5rem 0 1rem; }
+.shopping-lists, .start-again, .list-sources { list-style: none; padding-left: 0; }
+.shopping-lists li, .list-sources li { padding: .4rem 0; border-bottom: 1px solid var(--border); display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+.start-again { display: flex; flex-wrap: wrap; gap: .5rem; }
+.shopping-section h2 { font-size: 1.05rem; margin: 1rem 0 .25rem; color: var(--muted); }
+.shopping-items { list-style: none; padding-left: 0; margin: 0; }
+.shopping-items li { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding: .35rem 0; border-bottom: 1px solid var(--border); }
+.shopping-items li form { margin: 0; }
+.shopping-items li.done .item-name, .shopping-items li.done .item-amount { text-decoration: line-through; color: var(--muted); }
+.check-button { font-size: 1.4rem; line-height: 1; padding: .2rem .45rem; min-width: 2.75rem; min-height: 2.75rem; }
+.item-name { font-weight: 600; }
+.item-recipes { flex-basis: 100%; margin-left: 3.25rem; font-size: .85rem; }
+.pantry { margin-top: 1rem; }
+.danger-zone { margin-top: 2rem; }
+.cook-mode { font-size: 1.2rem; max-width: 46rem; }
+.cook-mode h1 { font-size: 1.8rem; }
+.tick-list { padding-left: 0; list-style: none; }
+.tick-list li { display: flex; gap: .75rem; align-items: flex-start; padding: .5rem 0; border-bottom: 1px solid var(--border); }
+.tick-list input[type="checkbox"] { width: 1.6rem; height: 1.6rem; margin-top: .2rem; }
+.tick-list li.done .step-text, .tick-list li.done label span { color: var(--muted); text-decoration: line-through; }
+.cook-timer { font-size: 1rem; padding: .1rem .5rem; }
+.cook-timers { position: sticky; bottom: 0; background: var(--surface); }
+.cook-timers .timer { padding: .5rem; border-top: 1px solid var(--border); font-size: 1.3rem; }
+.cook-timers .timer-done { background: var(--accent); color: var(--accent-text); }
+
+@media print {
+  .site-header, .primary-nav, .site-footer, .recipe-actions, .add-to-list, .scale-toolbar, .toolbar { display: none; }
+}

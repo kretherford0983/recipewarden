@@ -1,0 +1,72 @@
+@page "/recipes/{slug}/cook"
+@model RecipeWarden.Web.Pages.Recipes.CookModel
+@using RecipeWarden.Core.Measurement
+@using RecipeWarden.Core.Recipes
+@{
+    var r = Model.Recipe!;
+    var sc = Model.Scaled!;
+    var stepNumber = 0;
+    var lineNumber = 0;
+    ViewData["Title"] = "Cooking: " + r.Title;
+}
+@* FR-VIEW-02, AC-23: no edit controls; ticks stay in this browser (ADR 0031). *@
+<article class="cook-mode" aria-labelledby="recipe-title" data-cook-key="@r.Slug">
+    <header class="cook-header">
+        <p class="breadcrumb"><a href="/recipes/@(r.Slug)@(Model.ViewQuery())">Back to the recipe</a></p>
+        <h1 id="recipe-title">@r.Title</h1>
+        <p class="hint">
+            Serves @ServingsRules.Format(sc.Servings, sc.ServingsMax)@(sc.Factor != 1m ? " (scaled " + ScaleRules.Label(sc.Factor) + ")" : "").
+            <span class="wake-status" role="status" aria-live="polite"></span>
+        </p>
+        <p class="toolbar"><button type="button" class="cook-clear">Clear ticks</button></p>
+    </header>
+
+    <section class="cook-ingredients" aria-labelledby="cook-ingredients-heading">
+        <h2 id="cook-ingredients-heading">Ingredients</h2>
+        @foreach (var g in sc.Ingredients)
+        {
+            @if (g.Name is not null) { <h3>@g.Name</h3> }
+            <ul class="tick-list">
+                @foreach (var line in g.Lines)
+                {
+                    var id = "i" + lineNumber++;
+                    <li><label><input type="checkbox" class="cook-tick" data-tick="@id"> <span>@line.Text@(line.Secondary is null ? "" : " (" + line.Secondary + ")")</span></label></li>
+                }
+            </ul>
+        }
+    </section>
+
+    <section class="cook-steps" aria-labelledby="cook-steps-heading">
+        <h2 id="cook-steps-heading">Steps</h2>
+        @foreach (var s in sc.Steps)
+        {
+            @if (s.Name is not null) { <h3>@s.Name</h3> }
+            <ol class="tick-list">
+                @foreach (var step in s.Steps)
+                {
+                    var id = "s" + stepNumber++;
+                    <li>
+                        <label class="step-tick"><input type="checkbox" class="cook-tick" data-tick="@id"><span class="visually-hidden">Done</span></label>
+                        <div class="step-text">
+                            @if (step.Title is not null) { <strong class="step-title">@step.Title</strong> }
+                            @foreach (var part in CookModel.Parts(step.Text))
+                            {
+                                if (part.Timer is { } timer)
+                                {
+                                    <button type="button" class="cook-timer" data-seconds="@timer.Seconds" aria-label="Start a @TimerRules.Format(timer.Seconds) timer">@part.Text ⏱</button>
+                                }
+                                else
+                                {
+                                    @part.Text
+                                }
+                            }
+                        </div>
+                    </li>
+                }
+            </ol>
+        }
+    </section>
+
+    <section class="cook-timers" aria-label="Timers" aria-live="polite"></section>
+</article>
+<script src="~/js/cook.js" asp-append-version="true" defer></script>

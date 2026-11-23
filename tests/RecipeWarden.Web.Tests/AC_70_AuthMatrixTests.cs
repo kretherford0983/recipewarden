@@ -61,6 +61,16 @@ public sealed class AC_70_AuthMatrixTests(RecipeWardenFactory factory) : IClassF
         ["/manage/import"] = Access.Editor,
         ["/manage/import/{id:int}/review"] = Access.Editor,
         ["/media/{id}/{variant?}"] = Access.Anonymous,
+
+        // M5 (section 7.2; ADR 0028: lists are anonymous to view and tick, editing handlers need Editor; ADR 0031)
+        ["/recipes/{slug}/cook"] = Access.Anonymous,
+        ["/recipes/{slug}/print"] = Access.Anonymous,
+        ["/recipes/{slug}/export.{format}"] = Access.Anonymous,
+        ["/recipes/export.zip"] = Access.Anonymous,
+        ["/collections/{slug}/export.zip"] = Access.Anonymous,
+        ["/shopping"] = Access.Anonymous,
+        ["/shopping/{id:int}"] = Access.Anonymous,
+        ["/shopping/new"] = Access.Editor,
     };
 
     public static TheoryData<string> ProtectedRoutes() =>

@@ -1,0 +1,16 @@
+@* FR-EXP-01, FR-SHOP-04: pages meant for paper. No header, navigation or footer. *@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>@(ViewData["Title"] is string t ? t + " · " : "")RecipeWarden</title>
+    <link rel="stylesheet" href="~/css/print.css" asp-append-version="true">
+</head>
+<body class="print-page">
+<main id="main">
+    @RenderBody()
+</main>
+</body>
+</html>

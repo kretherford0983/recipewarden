@@ -24,6 +24,9 @@ public sealed partial class SEC_30_FormTokenTests(RecipeWardenFactory factory) :
         await admin.PostFormAsync("/manage/collections?handler=Create", ("name", "Form List"));
         var other = await admin.AddRecipeAsync("Form Trash");
         await admin.PostFormAsync($"/manage/recipes/{await factory.RecipeIdAsync(other)}/edit?handler=Delete");
+        var list = await admin.PostFormAsync("/shopping/new", ("Name", "Form Trip"));
+        var listPath = list.Headers.Location!.OriginalString;
+        await admin.PostFormAsync("/shopping/new?handler=AddRecipe", ("slug", slug), ("listId", listPath.Split('/')[^1]));
 
         var pages = new[]
         {
@@ -32,6 +35,7 @@ public sealed partial class SEC_30_FormTokenTests(RecipeWardenFactory factory) :
             "/manage/collections", "/manage/collections?c=form-list", "/manage/conversions",
             "/recipes/" + slug + "?scale=2&units=metric", "/manage/kitchen", $"/manage/recipes/{id}/cooked",
             $"/manage/recipes/{id}/suggestions", "/manage/import",
+            "/shopping", "/shopping/new", listPath, "/recipes/" + slug + "/cook",
         };
 
         var forms = 0;

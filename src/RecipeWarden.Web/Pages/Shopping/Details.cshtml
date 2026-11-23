@@ -1,0 +1,140 @@
+@page "/shopping/{id:int}"
+@model RecipeWarden.Web.Pages.Shopping.DetailsModel
+@using RecipeWarden.Core.Shopping
+@{
+    var list = Model.List!;
+    var view = list.View;
+    var print = ViewData["Print"] is true;
+    if (print) { Layout = "_PrintLayout"; }
+    ViewData["Title"] = list.Name;
+}
+@if (print)
+{
+    <article class="shopping-list">
+        <p class="screen-only"><a href="/shopping/@list.Id">Back to the list</a> <button type="button" class="print-now">Print</button></p>
+        <h1>@list.Name</h1>
+        @foreach (var (sec, n) in view.Sections.Select((x, i) => (x, i)))
+        {
+            <h2>@sec.Name</h2>
+            <ul>@foreach (var item in sec.Items) { <li class="@(item.IsChecked ? "done" : null)">@ShoppingText.Describe(item, markdown: false)</li> }</ul>
+        }
+        @if (view.Pantry.Count > 0)
+        {
+            <h2>@ShoppingRules.PantryHeading</h2>
+            <ul>@foreach (var item in view.Pantry) { <li>@ShoppingText.Describe(item, markdown: false)</li> }</ul>
+        }
+    </article>
+    <script src="~/js/print.js" asp-append-version="true" defer></script>
+    return;
+}
+<article class="shopping-list" aria-labelledby="list-title">
+    <p class="breadcrumb"><a href="/shopping">Shopping lists</a> ›</p>
+    <h1 id="list-title">@list.Name</h1>
+    <p class="toolbar">
+        <a class="button-link" href="/shopping/@list.Id?handler=Print">Print</a>
+        <a class="button-link" href="/shopping/@list.Id?handler=Text&amp;format=txt">Text</a>
+        <a class="button-link" href="/shopping/@list.Id?handler=Text&amp;format=md">Markdown</a>
+    </p>
+    @if (Model.Error is not null) { <p class="notice error" role="alert">@Model.Error</p> }
+
+    <div id="shopping-items">
+        @if (Model.MinutesLeft is { } minutes)
+        {
+            @* ADR 0028: finished; untick anything to keep the list. *@
+            <p class="notice" role="status">All done — this list will be removed in @minutes @(minutes == 1 ? "minute" : "minutes"). Untick an item to keep it.</p>
+        }
+        @if (!view.ToBuy.Any() && view.Pantry.Count == 0)
+        {
+            <p>Nothing on this list yet.@(Model.CanEdit ? " Add an item below or add a recipe from its page." : "")</p>
+        }
+        @foreach (var (sec, n) in view.Sections.Select((x, i) => (x, i)))
+        {
+            <section class="shopping-section" aria-labelledby="sec-@n">
+                <h2 id="sec-@n">@sec.Name</h2>
+                <ul class="shopping-items">
+                    @foreach (var item in sec.Items)
+                    {
+                        <li class="@(item.IsChecked ? "done" : null)">
+                            <form method="post" action="/shopping/@list.Id?handler=Check" hx-post="/shopping/@list.Id?handler=Check"
+                                  hx-target="#shopping-items" hx-select="#shopping-items" hx-swap="outerHTML" asp-antiforgery="true">
+                                <input type="hidden" name="key" value="@item.Key">
+                                <input type="hidden" name="done" value="@(item.IsChecked ? "false" : "true")">
+                                <button type="submit" class="check-button" aria-pressed="@(item.IsChecked ? "true" : "false")"
+                                        aria-label="@(item.IsChecked ? "Untick" : "Tick") @item.Name">@(item.IsChecked ? "☑" : "☐")</button>
+                            </form>
+                            <span class="item-name">@item.Name</span>
+                            @if (item.AmountText is not null) { <span class="item-amount">@item.AmountText</span> }
+                            @if (item.PackageText is not null) { <span class="item-package">(@item.PackageText)</span> }
+                            @if (item.Recipes.Count > 0) { <span class="hint item-recipes">for @string.Join(", ", item.Recipes)</span> }
+                        </li>
+                    }
+                </ul>
+            </section>
+        }
+        @if (view.Pantry.Count > 0)
+        {
+            <details class="pantry" open>
+                <summary>@ShoppingRules.PantryHeading (@view.Pantry.Count)</summary>
+                <ul class="shopping-items">
+                    @foreach (var item in view.Pantry)
+                    {
+                        <li class="@(item.IsChecked ? "done" : null)">
+                            <form method="post" action="/shopping/@list.Id?handler=Check" hx-post="/shopping/@list.Id?handler=Check"
+                                  hx-target="#shopping-items" hx-select="#shopping-items" hx-swap="outerHTML" asp-antiforgery="true">
+                                <input type="hidden" name="key" value="@item.Key">
+                                <input type="hidden" name="done" value="@(item.IsChecked ? "false" : "true")">
+                                <button type="submit" class="check-button" aria-pressed="@(item.IsChecked ? "true" : "false")"
+                                        aria-label="@(item.IsChecked ? "Untick" : "Tick") @item.Name">@(item.IsChecked ? "☑" : "☐")</button>
+                            </form>
+                            <span class="item-name">@item.Name</span>
+                            @if (item.AmountText is not null) { <span class="item-amount">@item.AmountText</span> }
+                        </li>
+                    }
+                </ul>
+            </details>
+        }
+    </div>
+
+    @if (Model.CanEdit)
+    {
+        <section aria-labelledby="add-item-heading">
+            <h2 id="add-item-heading">Add an item</h2>
+            <form class="inline-form" method="post" action="/shopping/@list.Id?handler=AddItem" asp-antiforgery="true">
+                <label for="add-item" class="visually-hidden">Item</label>
+                <input id="add-item" name="item" required maxlength="@ShoppingRules.MaxItemLength" placeholder="2 lemons">
+                <button type="submit">Add</button>
+            </form>
+        </section>
+        @if (list.Recipes.Count > 0 || list.Manual.Count > 0)
+        {
+            <section aria-labelledby="sources-heading">
+                <h2 id="sources-heading">On this list</h2>
+                <ul class="list-sources">
+                    @foreach (var r in list.Recipes)
+                    {
+                        <li>
+                            @r.Title@(r.Scale != 1m ? " (" + RecipeWarden.Core.Measurement.ScaleRules.Label(r.Scale) + ")" : "")
+                            <form class="inline-form" method="post" action="/shopping/@list.Id?handler=RemoveRecipe" asp-antiforgery="true">
+                                <input type="hidden" name="listRecipeId" value="@r.Id">
+                                <button type="submit" aria-label="Remove @r.Title">Remove</button>
+                            </form>
+                        </li>
+                    }
+                    @foreach (var m in list.Manual)
+                    {
+                        <li>
+                            @m.Text
+                            <form class="inline-form" method="post" action="/shopping/@list.Id?handler=RemoveItem" asp-antiforgery="true">
+                                <input type="hidden" name="lineId" value="@m.Id">
+                                <button type="submit" aria-label="Remove @m.Text">Remove</button>
+                            </form>
+                        </li>
+                    }
+                </ul>
+            </section>
+        }
+        <form method="post" action="/shopping/@list.Id?handler=Delete" class="danger-zone" asp-antiforgery="true">
+            <button type="submit">Delete this list</button>
+        </form>
+    }
+</article>

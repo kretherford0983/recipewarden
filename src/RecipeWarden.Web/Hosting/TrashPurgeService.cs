@@ -1,6 +1,7 @@
 using RecipeWarden.Infrastructure.Import;
 using RecipeWarden.Infrastructure.Media;
 using RecipeWarden.Infrastructure.Recipes;
+using RecipeWarden.Infrastructure.Shopping;
 
 namespace RecipeWarden.Web.Hosting;
 
@@ -36,6 +37,7 @@ internal sealed partial class TrashPurgeService(IServiceScopeFactory scopes, Tim
 
             await scope.ServiceProvider.GetRequiredService<ImportService>().PurgeAsync(cancellationToken).ConfigureAwait(false);
             await scope.ServiceProvider.GetRequiredService<ImageStore>().PurgeOrphansAsync(cancellationToken).ConfigureAwait(false);
+            await scope.ServiceProvider.GetRequiredService<ShoppingService>().PurgeFinishedAsync(cancellationToken).ConfigureAwait(false); // ADR 0028
 
             return purged;
         }

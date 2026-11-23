@@ -87,10 +87,21 @@ public static class RecipeWardenHost
             o.Conventions.AllowAnonymousToPage("/Collections/Index");
             o.Conventions.AllowAnonymousToPage("/Collections/Details");
             o.Conventions.AllowAnonymousToPage("/Media"); // ADR 0022: the page itself decides (published recipes only)
+            o.Conventions.AllowAnonymousToPage("/Recipes/Print"); // ADR 0031: print, cook mode and export follow the recipe
+            o.Conventions.AllowAnonymousToPage("/Recipes/Cook");
+            o.Conventions.AllowAnonymousToPage("/Recipes/Export");
+            o.Conventions.AllowAnonymousToPage("/Recipes/BulkExport"); // readers get published recipes only
+            o.Conventions.AllowAnonymousToPage("/Collections/Export");
+            o.Conventions.AllowAnonymousToPage("/Shopping/Index"); // D-10: anyone views lists and ticks items (ADR 0028)
+            o.Conventions.AllowAnonymousToPage("/Shopping/Details"); // editing handlers check the Editor role themselves
+            o.Conventions.AuthorizePage("/Shopping/New", AppPolicies.CanEditRecipes);
             // SEC-63: search and browse are limited per IP.
             o.Conventions.AddPageApplicationModelConvention("/Search", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.SearchPolicy)));
             o.Conventions.AddPageApplicationModelConvention("/Recipes/Index", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.SearchPolicy)));
             o.Conventions.AddPageApplicationModelConvention("/Manage/Import/Index", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.UrlImportPolicy)));
+            o.Conventions.AddPageApplicationModelConvention("/Recipes/BulkExport", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.SearchPolicy)));
+            o.Conventions.AddPageApplicationModelConvention("/Collections/Export", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.SearchPolicy)));
+            o.Conventions.AddPageApplicationModelConvention("/Shopping/Details", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.ShoppingCheckPolicy)));
             o.Conventions.AuthorizeFolder("/Manage", AppPolicies.CanEditRecipes);
             o.Conventions.AuthorizeFolder("/Admin", AppPolicies.CanAdminister);
         });

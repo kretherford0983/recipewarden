@@ -5,6 +5,7 @@ using RecipeWarden.Infrastructure.Data;
 using RecipeWarden.Infrastructure.Import;
 using RecipeWarden.Infrastructure.Media;
 using RecipeWarden.Infrastructure.Recipes;
+using RecipeWarden.Infrastructure.Shopping;
 
 namespace RecipeWarden.Web.Tests;
 
@@ -99,6 +100,11 @@ internal static class WebTestHelpers
         await recipes.SetFinishImageAsync(outcome.Id, SampleImageId, "seed", Ct);
         await scope.ServiceProvider.GetRequiredService<ImportService>()
             .StartPasteAsync("Sample Import\n\nIngredients\n1 egg\n\nSteps\nBoil.", null, false, "seed", Ct);
+
+        // M5: a shopping list (id 1) with the sample recipe on it.
+        var shopping = scope.ServiceProvider.GetRequiredService<ShoppingService>();
+        var list = await shopping.CreateAsync("Sample Trip", "seed", Ct);
+        await shopping.AddRecipeAsync(list.Id!.Value, SampleRecipeSlug, 1m, Ct);
     }
 
     public const string SampleImageId = "0123456789abcdef0123456789abcdef";
@@ -123,7 +129,8 @@ internal static class WebTestHelpers
         .Replace("/tags/{slug}", "/tags/" + SampleTagSlug, StringComparison.Ordinal)
         .Replace("/collections/{slug}", "/collections/" + SampleCollectionSlug, StringComparison.Ordinal)
         .Replace("/media/{id}/{variant?}", "/media/" + SampleImageId, StringComparison.Ordinal)
-        .Replace("{id:int}", "1", StringComparison.Ordinal);
+        .Replace("{id:int}", "1", StringComparison.Ordinal)
+        .Replace("{format}", "md", StringComparison.Ordinal);
 }
 
 /// <summary>Multipart form posts (file uploads) with the user's antiforgery token.</summary>

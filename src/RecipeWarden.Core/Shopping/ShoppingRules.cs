@@ -85,6 +85,36 @@ public static class ShoppingRules
         "Pasta and Grains", "Spices", "Condiments", "Snacks", "Beverages", "Frozen", OtherSection,
     ];
 
+    public const string BadSection = "Choose a store section from the list.";
+    public const string BadPackage = "Give a package size above 0 with a name, e.g. 15 oz can, or leave both empty.";
+    public const string BadPackageUnit = "Package sizes are a volume, a weight, or a plain count.";
+
+    /// <summary>
+    /// ADR 0030, FR-MEAS-05: checks an editor's shopping fields for a food. The package is a size (with a volume or
+    /// mass unit code, or none for a count) and a short name; both empty clears it.
+    /// </summary>
+    public static string? ValidateFood(string? section, decimal? packageSize, string? packageUnit, string? packageName)
+    {
+        if (section is not null && !SectionOrder.Contains(section, StringComparer.Ordinal))
+        {
+            return BadSection;
+        }
+
+        var hasName = !string.IsNullOrWhiteSpace(packageName);
+        if (packageSize is null && !hasName)
+        {
+            return null;
+        }
+
+        if (packageSize is not { } size || size <= 0 || size > 100_000 || !hasName || packageName!.Trim().Length > MaxPackageNameLength
+            || packageName.Any(c => !char.IsLetter(c) && c != ' ' && c != '-'))
+        {
+            return BadPackage;
+        }
+
+        return packageUnit is null || UnitCatalog.FindByCode(packageUnit) is { Kind: UnitKind.Volume or UnitKind.Mass } ? null : BadPackageUnit;
+    }
+
     /// <summary>The key a tick is stored under (ADR 0029): the food id, else the normalized name.</summary>
     public static string KeyFor(int? foodId, string name) =>
         foodId is { } id ? "f:" + id.ToString(CultureInfo.InvariantCulture) : "n:" + NameRules.Normalize(name);
