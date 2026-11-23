@@ -156,10 +156,33 @@ check "CLI health: the database is sound" run_health
 echo '{ "Data": { "Directory": "/var/lib/recipewarden" }, "Backup": { "AllowedFolders": [ "/var/lib/recipewarden/backups" ] }, "Mine": 1 }' \
   > /etc/recipewarden/appsettings.Production.json
 first=$(readlink -f /opt/recipewarden/current)
+# An older release's CLI has no "backup" command and answers "backup --help" with its general help and exit 0
+# (System.CommandLine); the installer must notice and skip the full backup instead of running it and failing.
+mv "$first/cli/recipewarden" "$first/cli/recipewarden.real"
+cat > "$first/cli/recipewarden" <<'OLDCLI'
+#!/usr/bin/env bash
+for a in "$@"; do
+  if [[ $a == --help ]]; then printf 'Commands:\n  admin         Account administration\n  health        Print a health summary\n'; exit 0; fi
+done
+echo "Unrecognized command or argument '$1'." >&2; exit 1
+OLDCLI
+chmod 0755 "$first/cli/recipewarden"
 sleep 1
-run 0 "upgrading the existing installation" "FR-INST-03: running again upgrades in place" -- \
+upgrade_out=$(bash "$installer" --no-start --yes --unattended --package "$package" 2>&1); upgrade_code=$?
+mv -f "$first/cli/recipewarden.real" "$first/cli/recipewarden"
+check "FR-INST-03: running again upgrades in place" test "$upgrade_code" -eq 0
+skipped_backup() { [[ $upgrade_out == *"upgrading the existing installation"* && $upgrade_out != *"pre-upgrade backup"* && $upgrade_out != *Unrecognized* ]]; }
+names_proxy() { [[ $upgrade_out == *"Only the tunnel host (192.168.1.20)"* ]]; }
+check "an older CLI without backup is detected and skipped" skipped_backup
+check "upgrade summary names this host's tunnel proxy" names_proxy
+check "database snapshot taken by the older-CLI upgrade" compgen -G "/var/lib/recipewarden/backups/pre-upgrade-*/db/recipewarden.db"
+[[ $upgrade_code -eq 0 ]] || printf '%s\n' "$upgrade_out"
+
+second=$(readlink -f /opt/recipewarden/current)
+sleep 1
+run 0 "pre-upgrade backup" "FR-INST-03: a CLI with backup makes the full pre-upgrade backup" -- \
   bash "$installer" --no-start --yes --unattended --package "$package"
-check "a new release folder is active" test "$(readlink -f /opt/recipewarden/current)" != "$first"
+check "a new release folder is active" test "$(readlink -f /opt/recipewarden/current)" != "$second"
 check "the previous release is kept" test -d "$first"
 check "settings were not overwritten" grep -q '"Mine": 1' /etc/recipewarden/appsettings.Production.json
 check "network settings kept" grep -q "http://192.168.1.15:$((port + 1))" /etc/recipewarden/network.json
