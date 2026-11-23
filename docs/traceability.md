@@ -250,8 +250,9 @@ photos follow their step), ADR 0024 (browser-like User-Agent, paste fallback, im
   - New packages (all permissive): AngleSharp 1.10.5 (MIT), DocumentFormat.OpenXml 3.5.1 (MIT), PdfPig 0.1.16
     (Apache-2.0), SkiaSharp 4.157.0 and SkiaSharp.NativeAssets.Linux.NoDependencies 4.157.0 (MIT). The package
     contains `libSkiaSharp.so`; no OS packages are added.
-  - No existing test changed. The test factories gained a pretend internet (`tests/Shared/FakeWeb.cs`), so no test
-    reaches the network.
+  - No existing assertion changed. The access table, the form-token page list and the sample seed were extended for
+    the new routes, and the test factories gained a pretend internet (`tests/Shared/FakeWeb.cs`), so no test reaches
+    the network.
   - SEC-42 now also accepts `application/xhtml+xml` pages (still HTML), and the size cap applies after decompression.
   - Step photos are added after the first save (a step must exist first). Imported pages' step images are not copied.
   - Not exercised on the host yet: the M3→M4 migration on a real database, real recipe sites through the tunnel, and
