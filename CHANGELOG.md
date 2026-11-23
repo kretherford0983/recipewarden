@@ -18,6 +18,14 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 - Cook mode (FR-VIEW-02, AC-23): ticks kept on the device, screen kept awake, timers from step text.
 - Migration `M5_Output`.
 
+### M5b AI exchange
+- ADR 0033 (scope and flow, for owner review); FR-EXP-08 deferred.
+- Export for AI for a recipe, a collection or all recipes: goal picker, details, constraints, My Kitchen, editable
+  preview with Copy and Download (FR-EXP-04, FR-EXP-07, AC-26, AC-28, AC-29).
+- Import AI response: paste or upload a reply, review the changes and a diff, save as a draft variant, publish it, or
+  replace the original; the original's credit is kept (FR-EXP-05, AC-27, BR-92, BR-93).
+- `/docs/recipe-md.schema.json` (FR-EXP-06); recipe pages link variants and their parent.
+
 ## 0.4.0 — unreleased
 
 ### M4 Import

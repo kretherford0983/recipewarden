@@ -1,0 +1,90 @@
+@page "/manage/import/ai-response"
+@model RecipeWarden.Web.Pages.Manage.Import.AiResponseModel
+@using RecipeWarden.Core.AiExchange
+@{
+    ViewData["Title"] = "Import AI response";
+}
+<p class="breadcrumb"><a href="/manage/import">Import</a> ›</p>
+<h1>Import AI response</h1>
+@if (Model.Parent is not null)
+{
+    <p class="hint">For <a href="/recipes/@Model.Parent">@Model.Parent</a>. A reply with one recipe is compared with this recipe.</p>
+}
+@if (Model.Error is not null) { <p class="notice error" role="alert">@Model.Error</p> }
+
+@if (Model.Items is null || Model.Items.Count == 0)
+{
+    <form method="post" action="/manage/import/ai-response?handler=Read" enctype="multipart/form-data" asp-antiforgery="true">
+        <input type="hidden" name="parent" value="@Model.Parent">
+        <label for="ai-reply">The assistant's reply</label>
+        <textarea id="ai-reply" name="reply" rows="16" spellcheck="false">@Model.Reply</textarea>
+        <label for="ai-file">or upload it (.md or .txt)</label>
+        <input id="ai-file" name="file" type="file" accept=".md,.txt,text/markdown,text/plain">
+        <p><button type="submit" class="primary">Review</button></p>
+    </form>
+}
+else
+{
+    @foreach (var item in Model.Items)
+    {
+        var r = item.Block.Recipe;
+        <section class="ai-review" aria-labelledby="ai-block-@item.Block.Index">
+            <h2 id="ai-block-@item.Block.Index">@(r?.Title ?? "Recipe " + (item.Block.Index + 1))</h2>
+            @if (item.Original is { } original)
+            {
+                <p>Compared with <a href="/recipes/@original.Slug">@original.Edit.Title</a>. The source credit stays the original's.</p>
+            }
+            @if (item.Problems.Count > 0)
+            {
+                <div class="notice error" role="alert">
+                    <p>This part cannot be saved:</p>
+                    <ul>@foreach (var p in item.Problems) { <li>@p</li> }</ul>
+                </div>
+            }
+            @if (r?.Changes is { } changes)
+            {
+                <h3>What the assistant changed</h3>
+                <pre class="ai-changes">@changes</pre>
+            }
+            @if (item.Fields.Count > 0)
+            {
+                <h3>Details</h3>
+                <table class="list">
+                    <thead><tr><th scope="col">Field</th><th scope="col">Now</th><th scope="col">From the reply</th></tr></thead>
+                    <tbody>
+                        @foreach (var f in item.Fields)
+                        {
+                            <tr><th scope="row">@f.Field</th><td>@f.Mine</td><td>@f.Theirs</td></tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            @foreach (var (heading, lines) in new[] { ("Ingredients", item.Ingredients), ("Steps", item.Steps) })
+            {
+                @if (lines.Count > 0)
+                {
+                    <h3>@heading</h3>
+                    <ul class="line-diff">
+                        @foreach (var l in lines)
+                        {
+                            <li class="diff-@l.Change.ToString().ToLowerInvariant()"><span class="visually-hidden">@(l.Change switch { LineChange.Added => "Added: ", LineChange.Removed => "Removed: ", _ => "" })</span>@(l.Change switch { LineChange.Added => "+ ", LineChange.Removed => "− ", _ => "  " })@l.Text</li>
+                        }
+                    </ul>
+                }
+            }
+            @if (item.CanSave)
+            {
+                <form method="post" action="/manage/import/ai-response?handler=Save" class="toolbar" asp-antiforgery="true">
+                    <input type="hidden" name="parent" value="@Model.Parent">
+                    <input type="hidden" name="block" value="@item.Block.Index">
+                    <input type="hidden" name="version" value="@item.Original!.Version">
+                    <textarea name="reply" hidden aria-hidden="true">@Model.Reply</textarea>
+                    <button type="submit" name="mode" value="variant" class="primary">Save as variant (draft)</button>
+                    <button type="submit" name="mode" value="publish">Save and publish variant</button>
+                    <button type="submit" name="mode" value="replace">Replace the original</button>
+                </form>
+            }
+        </section>
+    }
+    <p><a href="/manage/import/ai-response@(Model.Parent is null ? "" : "?parent=" + Model.Parent)">Start over</a></p>
+}

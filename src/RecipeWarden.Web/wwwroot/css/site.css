@@ -273,3 +273,15 @@ form.discard { margin-top: 1rem; }
 @media print {
   .site-header, .primary-nav, .site-footer, .recipe-actions, .add-to-list, .scale-toolbar, .toolbar { display: none; }
 }
+
+/* M5b: AI exchange (ADR 0033). */
+.ai-goal { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; padding: .25rem 0; }
+.ai-export-form fieldset { border: 1px solid var(--border); border-radius: .375rem; margin: 0 0 1rem; padding: .75rem; }
+.ai-export-form fieldset label { margin-right: .75rem; }
+.ai-preview textarea { width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9rem; }
+.ai-review { border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 1rem; }
+.ai-changes { white-space: pre-wrap; background: var(--surface); padding: .5rem; border: 1px solid var(--border); }
+.line-diff { list-style: none; padding-left: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; }
+.line-diff .diff-added { background: color-mix(in srgb, #16a34a 15%, transparent); }
+.line-diff .diff-removed { background: color-mix(in srgb, #dc2626 15%, transparent); text-decoration: line-through; }
+#ai-reply { width: 100%; }

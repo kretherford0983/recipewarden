@@ -94,6 +94,10 @@ public sealed record RecipeView
     public IReadOnlyList<StepSectionView> Steps { get; init; } = [];
     public IReadOnlyList<TagLink> Tags { get; init; } = [];
     public IReadOnlyList<CollectionLink> Collections { get; init; } = [];
+
+    /// <summary>FR-REC-05, ADR 0033: the recipe this one is a variant of, and its own variants (visible ones only).</summary>
+    public RecipeLink? Parent { get; init; }
+    public IReadOnlyList<RecipeLink> Variants { get; init; } = [];
     public DateTimeOffset UpdatedAt { get; init; }
 
     /// <summary>ADR 0022: the finish image id, if any.</summary>
@@ -115,6 +119,9 @@ public sealed record RecipeView
 }
 
 public sealed record CollectionLink(int Id, string Name, string Slug);
+
+/// <summary>A link to another recipe.</summary>
+public sealed record RecipeLink(int Id, string Slug, string Title);
 
 /// <summary>Result of looking up a reading-view slug: the recipe, or the current slug to redirect to (ADR 0008).</summary>
 public sealed record RecipeLookup(RecipeView? Recipe, string? RedirectToSlug)

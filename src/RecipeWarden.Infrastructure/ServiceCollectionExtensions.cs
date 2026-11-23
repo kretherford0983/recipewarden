@@ -61,6 +61,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ShoppingService>();
         services.AddScoped<ShoppingSeeder>();
         services.AddScoped<RecipeExporter>();
+        services.AddScoped<AiExchange.AiExchangeService>();
         return services;
     }
 

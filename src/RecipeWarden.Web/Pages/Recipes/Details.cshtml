@@ -229,6 +229,8 @@
             <a class="button-link" href="/recipes/@r.Slug/print@(viewQuery)">Print</a>
             <a class="button-link" href="/recipes/@r.Slug/export.md@(viewQuery)" download>Markdown</a>
             <a class="button-link" href="/recipes/@r.Slug/export.zip@(viewQuery)" download>Markdown + images</a>
+            <a class="button-link" href="/recipes/@r.Slug/export-ai">Export for AI</a>
+            @if (Model.CanEdit) { <a class="button-link" href="/manage/import/ai-response?parent=@r.Slug">Import AI response</a> }
         </nav>
         @if (Model.CanEdit)
         {
@@ -327,6 +329,20 @@
             <h2 id="notes-heading">Notes</h2>
             <div class="prose">@MarkdownRenderer.Render(r.Notes)</div>
         </section>
+    }
+
+    @if (r.Parent is { } parent)
+    {
+        <p class="variant-of">Variant of <a href="/recipes/@parent.Slug">@parent.Title</a></p>
+    }
+    @if (r.Variants.Count > 0)
+    {
+        <p class="variants">Variants:
+            @for (var i = 0; i < r.Variants.Count; i++)
+            {
+                <a href="/recipes/@r.Variants[i].Slug">@r.Variants[i].Title</a>@(i < r.Variants.Count - 1 ? ", " : "")
+            }
+        </p>
     }
 
     @if (r.Collections.Count > 0)
