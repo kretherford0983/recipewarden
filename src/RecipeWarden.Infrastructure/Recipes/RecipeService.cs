@@ -203,8 +203,19 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
                                  orderby c.SortOrder, c.Name
                                  select new CollectionLink(c.Id, c.Name, c.Slug)).ToListAsync(cancellationToken).ConfigureAwait(false);
 
-        return new RecipeLookup(ToView(recipe, collections), null);
+        var parent = recipe.ParentRecipeId is { } parentId
+            ? await visible.AsNoTracking().Where(r => r.Id == parentId).Select(r => new RecipeLink(r.Id, r.Slug, r.Title))
+                .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false)
+            : null;
+        var variants = await visible.AsNoTracking().Where(r => r.ParentRecipeId == recipe.Id).OrderBy(r => r.Title)
+            .Select(r => new RecipeLink(r.Id, r.Slug, r.Title)).ToListAsync(cancellationToken).ConfigureAwait(false);
+        return new RecipeLookup(ToView(recipe, collections) with { Parent = parent, Variants = variants }, null);
     }
+
+    /// <summary>FR-REC-05, ADR 0033: links a variant to the recipe it came from (no version change).</summary>
+    public async Task<bool> SetParentAsync(int id, int parentId, CancellationToken cancellationToken = default) =>
+        id != parentId && await db.Recipes.Where(r => r.Id == id).ExecuteUpdateAsync(u => u.SetProperty(r => r.ParentRecipeId, parentId),
+            cancellationToken).ConfigureAwait(false) > 0;
 
     /// <summary>BR-05: moves a recipe to the trash. Returns false if it does not exist (or is already in the trash).</summary>
     public async Task<bool> DeleteAsync(int id, string userId, CancellationToken cancellationToken = default)
