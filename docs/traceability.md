@@ -1,6 +1,6 @@
 # RecipeWarden — requirements traceability
 
-Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.16. Keep in step with the spec and the test suite.
+Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.17. Keep in step with the spec and the test suite.
 
 Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and tagged with `[Trait("Req", "FR-SCL-01")]`, so CI can print coverage per requirement and fail if any Must requirement has no test.
 
@@ -31,22 +31,22 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | FR-UI-01/02 | UX-03 | Theme script, UserPreference | E2E Theme | AC-61 |
 | FR-AUTH-01/02/03 | SEC-01–14 | Policies; route access table (7.2) | Web.Tests AuthMatrix (every endpoint) | AC-70, AC-71, AC-72 |
 | FR-AUTH-04 | SEC-04 | Identity TOTP | Web.Tests TwoFactor | AC-73 |
-| FR-ADM-01 | SEC-72 | AuditEntry | Web.Tests Audit | AC-74 |
+| FR-ADM-01 | SEC-72 | `AuditRules` (Core), `AuditInterceptor`, `AuditLog`, AuditEntry; `/admin/audit` | Core `FR_ADM_01_AuditRulesTests`; Infra `FR_ADM_01_AuditTests`; Web `FR_ADM_01_AuditPageTests`, `SEC_12_UsersPageTests` | AC-74 |
 | NFR-05 | SEC-20–84 | Middleware, headers, CI checks | Web.Tests Headers, Csrf, Uploads, Ssrf; CI gates | AC-75, AC-76, AC-77 |
-| FR-BKP-01–05 | BR-60–63; SEC-54 | BackupService, BackupRecord; `/admin/backups` | Infra.Tests Backup, Retention, Restore; E2E W7 | AC-80, AC-81, AC-82 |
+| FR-BKP-01–05 | BR-60–63; SEC-54 | `RetentionRules`, `BackupScheduleRules`, `ArchiveRules` (Core); `BackupService`, `BackupScheduleService`, `RestoreService`, BackupRecord, BackupSchedule; `/admin/backups` | Core `FR_BKP_03_RetentionRulesTests`, `FR_BKP_02_ScheduleRulesTests`, `SEC_54_ArchiveRulesTests`; Infra `FR_BKP_01_BackupServiceTests`, `FR_BKP_02_ScheduleServiceTests`; Web `FR_BKP_01_BackupPageTests`; E2E `W7_W9_OperationsTests` | AC-80, AC-81, AC-82 |
 | FR-INST-01–04 | SEC-60, SEC-70, SEC-71 | install.sh, unit file | Installer container tests | AC-90, AC-91, AC-92, AC-93 |
 | NFR-01/03/06 | — | — | Perf test (5,000 recipes); Playwright axe scan; coverage gate | AC-95, AC-96, AC-97 |
 | FR-EXP-04 to 08 | BR-90–97; BR-10 | `AiPromptBuilder`, `AiReplyReader`, `RecipeMarkdownValidator`, `AiVariantRules` (Core); `AiExchangeService`; `/export-ai`, `/manage/import/ai-response`, `/docs/recipe-md.schema.json` | Core `FR_EXP_07_AiPromptBuilderTests`, `FR_EXP_05_AiReplyReaderTests`; Infra `FR_EXP_05_AiExchangeServiceTests`; Web `FR_EXP_04_AiExchangePageTests`; E2E `W10_AiExchangeTests` | AC-26 to AC-29 |
-| FR-BKP-06/07 | BR-62, BR-64–66; SEC-15, SEC-54 | install.sh --restore, /setup, CLI restore | Installer container tests (migration A to B); Web.Tests Setup; Cli.Tests Restore | AC-83, AC-84, AC-85 |
-| FR-OPS-02–05 | BR-80–85 | HealthMonitor service, StorageSnapshot, HealthCheckResult; /admin/health, /health/ready | Core.Tests HealthRules, Projection; Infra.Tests StorageProbe; E2E W9 | AC-98, AC-99 |
+| FR-BKP-06/07 | BR-62, BR-64–66; SEC-15, SEC-54 | install.sh --restore, `SetupService`, `/setup`, CLI `restore` (`RestoreOrchestrator`), `setup-token` | Installer `test-install.sh` (AC-83), `test-install-systemd.sh` (AC-85); Infra `SEC_15_SetupTokenTests`; Web `SEC_15_SetupPageTests`; Cli `FR_BKP_07_CliOperationsTests`, `AC_85_RestoreOrchestratorTests` | AC-83, AC-84, AC-85 |
+| FR-OPS-02–05 | BR-80–85 | `HealthRules` (Core); `HealthService`, `HealthMonitorService`, `HealthState`, StorageSnapshot, HealthCheckResult; /admin/health, /health/ready, Admin banner, webhook | Core `FR_OPS_02_HealthRulesTests`; Infra `FR_OPS_02_HealthServiceTests`; Web `FR_OPS_02_HealthPageTests`; E2E `W7_W9_OperationsTests` | AC-98, AC-99 |
 | FR-SCL-04/05/06 | BR-110–114; BR-20, BR-21, BR-27 | ContainerRules (Core); Recipe.Yield\*; KitchenTool (Container); recipe page fit and how-many; `/manage/recipes/{id}/cooked` | Core `FR_SCL_04_ContainerRulesTests`; Infra `FR_SCL_06_YieldAndPanStoreTests`; Web `FR_SCL_04_ContainerPageTests` | AC-37, AC-38, AC-39 |
 | FR-IMP-09/10 | BR-13, BR-93; SEC-44–47 | IAiRecipeParser, AI settings, AiCallLog; /admin/ai | Importers.Tests AiParser (stubbed provider); Web.Tests AiSettings, AiSsrfException | AC-17, AC-18 |
 | FR-NUT-03 to 06 | BR-50, BR-54 | Unmatched report, mapping, NutrientRef (Custom), `NutrientDatasetImporter`, CLI `nutrition-import`; `/manage/nutrition` (`/admin/nutrition-data` in M7; FR-NUT-06 in M8) | Core `FR_NUT_01_NutritionRulesTests`; Infra `FR_NUT_02_NutritionServiceTests`; Cli `FR_NUT_05_NutritionImportCommandTests`; Web `FR_NUT_01_NutritionPageTests` | AC-57, AC-58 |
-| FR-BKP-08 to 15 | BR-60–62; SEC-70, SEC-74, SEC-75 | Backup:AllowedFolders, apply-config, systemd drop-in, BackupSchedule, marker check, encryption (9.6.1) | Cli.Tests ApplyConfig; Infra.Tests BackupDestination, Retention, Encryption; installer container tests | AC-86, AC-87, AC-88, AC-89 |
+| FR-BKP-08 to 15 | BR-60–62; SEC-70, SEC-74, SEC-75 | Backup:AllowedFolders, apply-config, systemd drop-in, `BackupFolders`, `BackupDestinationRules` (Core), marker check, `BackupCrypto`, `BackupKeyService` (9.6.1, ADR 0039) | Core `FR_BKP_10_DestinationRulesTests`; Cli `FR_BKP_09_ApplyConfigTests`; Infra `FR_BKP_01_BackupServiceTests`, `FR_BKP_02_ScheduleServiceTests`; Web `FR_BKP_01_BackupPageTests`; installer container tests | AC-86, AC-87, AC-88, AC-89 |
 
 ## Status by milestone
 
-**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** merged into `develop` (PR #10, 2026-11-22; dev build v0.2.0-dev.9). **M3 Kitchen:** merged into `develop` (PR #11, 2026-11-22); host test pending. **M4 Import:** merged into `develop` (PR #12, 2026-11-23); host test pending. **M5 Output and M5b AI exchange:** merged into `develop` (PR #13, #14, 2026-11-23); ADR 0032 and 0033 await owner review. **M6 Nutrition and allergens:** built on `feature/m6-nutrition` (0.6.0), PR into `develop` open; ADRs 0034 to 0036 await owner review.
+**Current:** M0 complete and deployed (2026-11-20). **M1 Recipes:** merged into `develop` (PR #7, #8; CLI email check PR #9) and deployed to the test host 2026-11-21, owner testing. **M2 Measurement:** merged into `develop` (PR #10, 2026-11-22; dev build v0.2.0-dev.9). **M3 Kitchen:** merged into `develop` (PR #11, 2026-11-22); host test pending. **M4 Import:** merged into `develop` (PR #12, 2026-11-23); host test pending. **M5 Output and M5b AI exchange:** merged into `develop` (PR #13, #14, 2026-11-23); ADR 0032 and 0033 await owner review. **M6 Nutrition and allergens:** merged into `develop` (PR #15, 2026-11-23); ADRs 0034 to 0036 await owner review. **M7 Operations:** built unattended on `feature/m7-operations` (0.7.0), PR into `develop`; ADRs 0037 to 0041 await owner review.
 
 ### M0 Foundations (built 2026-11-17; deployed and verified 2026-11-20 — DONE)
 
@@ -252,6 +252,30 @@ rules, stored for search, "free of").
 - `backup-folders.conf` drop-in present, generated by `apply-config`, with `ReadWritePaths="-/var/lib/recipewarden/backups"`.
 - Not yet exercised on the host: sign-in via `recipewarden admin create` + browser, Cloudflare Tunnel route.
 
+### M7 Operations (built 2026-11-23 while the owner was away; PR into `develop` — owner review of ADRs 0037 to 0041 pending)
+
+| ID | Status | Implementation | Tests |
+| --- | --- | --- | --- |
+| FR-BKP-01 / AC-80, BR-60 | Done | `BackupService` (online backup, integrity_check, tar.gz, manifest, SHA-256s, 0600) | Infra `FR_BKP_01_BackupServiceTests.Back_up_now_…`; Web `FR_BKP_01_BackupPageTests.Back_up_now_…`; Cli `FR_BKP_07_CliOperationsTests` |
+| FR-BKP-02, FR-BKP-14 / AC-89 | Done (Cronos, server local time) | `BackupScheduleRules` (Core), `BackupScheduleService`, `BackupSchedulerService` (every minute) | Core `FR_BKP_02_ScheduleRulesTests`; Infra `FR_BKP_02_ScheduleServiceTests.A_failed_run_is_retried_…` |
+| FR-BKP-03 / AC-81, BR-61 | Done | `RetentionRules` (Core), `BackupService.ApplyRetentionAsync` | Core `FR_BKP_03_RetentionRulesTests` (60 simulated days); Infra `Retention_deletes_only_the_schedules_own_archives…` |
+| FR-BKP-04 / AC-82, BR-62, BR-63, SEC-54 | Done | `RestoreService` (quarantine, checks, apply with rollback), `MaintenanceMiddleware`, two-step page | Infra `FR_BKP_01_BackupServiceTests` (restore, `..`, links, caps, checksum, unlisted, newer); Web `FR_BKP_01_BackupPageTests`; E2E W7 |
+| FR-BKP-05 | Done | run history with download/delete; schedule changes audited (interceptor) | Web `Schedules_take_only_allowed_folders_and_changes_are_audited` |
+| FR-BKP-06 / AC-83, AC-84, BR-64, BR-66, SEC-15 | Done | `install.sh --restore`, `SetupService`, `/setup`, CLI `setup-token` | installer `test-install.sh` (AC-83 block); Web `SEC_15_SetupPageTests`; Infra `SEC_15_SetupTokenTests` |
+| FR-BKP-07 / AC-85, BR-65 | Done | CLI `restore` (root orchestration; `--check`/`--apply` as the service user) | Cli `AC_85_RestoreOrchestratorTests`, `FR_BKP_07_CliOperationsTests`; `test-install-systemd.sh` (newer archive refused, restore while running) |
+| FR-BKP-09 audit | Done | `internal-audit` as the service user after apply-config | Cli `Internal_audit_records_an_entry` |
+| FR-BKP-10, 11, 12, 13 / AC-87, AC-88, SEC-74 | Done | `BackupFolders`, `BackupDestinationRules` (Core); built-in folder marker (ADR 0037) | Core `FR_BKP_10_DestinationRulesTests`; Infra marker, partial, run-time folder and Test tests; Web Test button |
+| FR-BKP-15 / AC-89, SEC-75 | Done (ADR 0039) | `BackupCrypto`, `BackupKeyService`, recovery kit download | Infra encrypted round trip, wrong passphrase, other kit, tampered/cut archive; Web kit download, no private key stored |
+| FR-ADM-01 / AC-74, SEC-72 | Done (ADR 0041) | `AuditInterceptor`, `AuditLog`, `HttpAuditActor`, `/admin/audit`, sign-in events | Core, Infra, Web audit tests |
+| FR-AUTH-03, SEC-12 / AC-72 (last Admin) | Done | `UserAdminRules` (Core), `UserAdminService`, `/admin/users` | Core `SEC_12_UserAdminRulesTests`; Web `SEC_12_UsersPageTests` |
+| FR-OPS-02 / AC-98 | Done | `HealthService`, `/admin/health`, `/admin` dashboard, CLI `health` | Infra `Report_shows_…`, `Volume_figures_match_df_within_one_percent`; Web `Health_page_shows_…` |
+| FR-OPS-03 / AC-99, BR-81, BR-82, BR-85 | Done | daily `StorageSnapshot`, projection, Admin banner, server-drawn SVG chart | Core projection tests (30 days × 100 MB, 3 GB free ≈ 30 days); Infra and Web low-space tests |
+| FR-OPS-04, BR-83 | Done | integrity check, VACUUM, purge, move guide on `/admin/health` | Infra `Integrity_check_and_compact`; Web maintenance actions |
+| FR-OPS-05 | Done | `/health/ready` (503 only when Critical); webhook (text/Discord/JSON) through `SafeFetcher.SendAsync` | Web `Low_space_gives_warning_with_banner_then_critical_with_503`, webhook tests |
+| FR-NUT-05 page | Done | `/admin/nutrition-data` (upload through `UploadValidator.SaveArchiveAsync`) | Web `Nutrition_data_page_…` |
+| FR-INST-03 (full pre-upgrade backup) | Done | `install.sh` runs `recipewarden backup --kind pre-upgrade` when the installed CLI has it | `test-install.sh` |
+| SEC-60 (installer firewall) | Done | ufw when active, else nftables with an `ExecStartPre=+` drop-in; `--no-firewall` | shellcheck; manual check on a LAN-bound host is pending |
+
 ### Notes and open issues
 
 - `/error` (SEC-73) and `/account/theme` (FR-UI-01) are not listed in section 7.2. They are in the
@@ -260,7 +284,7 @@ rules, stored for search, "free of").
   visitors) instead of returning 404, so probing cannot map routes. Signed-in users get the 404 page.
 - **Resolved (2026-11-23, ADR 0028):** D-10's anonymous check-off is a narrow documented exception — one POST
   handler with antiforgery and its own per-IP rate limit (option a).
-- **Open (deferred by owner 2026-11-20; needs an ADR before M7):** Data Protection key ring in backups.
+- **Resolved (2026-11-23, ADR 0038, option a, for owner review):** Data Protection key ring in backups.
   FR-BKP-01 defines a backup as database + images + config, so `<data>/keys` (SEC-71) is not included.
   Restoring on a new host (FR-BKP-06) would then sign everyone out and leave AI API keys (SEC-45)
   undecryptable. Options: (a) include `keys/` in the archive — backups are already encrypted (9.6.1,
@@ -334,6 +358,20 @@ rules, stored for search, "free of").
   - No existing assertion changed; the access table and the form-token page list were extended.
   - A bare (unfenced) recipe-md block runs to the next block or the end of the reply, so chat text after the last
     bare block lands in its last section. Fenced blocks end at the fence. The review page shows what was read.
+
+- **M7 notes (2026-11-23, built unattended):**
+  - Decisions are in ADR 0037 to 0041, all marked for owner review.
+  - Two existing assertions changed with the behaviour, not weakened: (1) `test-install.sh` expected `--restore` to
+    exit 3 "milestone M7"; it now checks that a missing archive is refused and runs a full restore-at-install
+    scenario. (2) The installer tests and `build/smoke-test.sh` expected `recipewarden health` to print
+    "Status: OK"; the command now also judges the machine's disk (BR-81), which on a build machine can be Warning or
+    Critical, so those checks assert the database line (`quick_check: ok`) — the thing they meant. The CLI unit tests
+    of the database basics are unchanged.
+  - Every web and browser test host now uses a simulated roomy disk and runs the scheduler and monitor by hand
+    (`Operations:Background=false`), so tests never depend on the build machine.
+  - New package: Cronos 0.13.0 (MIT). Encryption uses .NET's own cryptography.
+  - Not exercised on the host yet: the M6→M7 migration on a real database, a NAS share with its marker, the ufw/nftables
+    rule on a LAN-bound host, Cloudflare's upload limit on a real restore, and the webhook to the owner's ntfy/Discord.
 
 - **M6 notes (2026-11-23):**
   - Foundation Foods was recommended alongside SR Legacy, but its download is blocked from the build machine. The
