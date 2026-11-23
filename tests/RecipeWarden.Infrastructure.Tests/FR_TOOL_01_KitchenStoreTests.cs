@@ -110,6 +110,6 @@ public sealed class FR_TOOL_01_KitchenStoreTests
         forms["all-purpose flour"].ShouldBe(FoodForm.Dry);
         forms["butter"].ShouldBe(FoodForm.Fat);
         forms["whole milk"].ShouldBe(FoodForm.Other); // an editor's change (here: back to Other) is not reset
-        (await s.Db.SeedRuns.Select(r => r.Name).ToListAsync(Ct)).ShouldBe(["food-form-v1", "kitchen-v1", "measurement-v1"], ignoreOrder: true);
+        (await s.Db.SeedRuns.Select(r => r.Name).ToListAsync(Ct)).ShouldBe(["food-form-v1", "kitchen-v1", "measurement-v1", "shopping-v1"], ignoreOrder: true); // each seed once; shopping-v1 added in M5 (ADR 0030)
     }
 }

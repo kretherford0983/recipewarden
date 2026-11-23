@@ -267,6 +267,10 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("PackageName")
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT");
+
                     b.Property<double?>("PackageSize")
                         .HasColumnType("REAL");
 
@@ -1020,6 +1024,172 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.HasKey("Name");
 
                     b.ToTable("SeedRuns");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ShoppingCheck", b =>
+                {
+                    b.Property<int>("ShoppingListId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ItemKey")
+                        .HasMaxLength(202)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CheckedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ShoppingListId", "ItemKey");
+
+                    b.ToTable("ShoppingChecks");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ShoppingLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("Amount")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("AmountMax")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("CountUnit")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("FoodId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Kind")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ListRecipeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("RawText")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ShoppingListId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FoodId");
+
+                    b.HasIndex("ListRecipeId");
+
+                    b.HasIndex("ShoppingListId", "Position");
+
+                    b.ToTable("ShoppingLines");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ShoppingList", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FinishedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FinishedAt");
+
+                    b.ToTable("ShoppingLists");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ShoppingListName", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LastUsedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LastUsedAt");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique();
+
+                    b.ToTable("ShoppingListNames");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ShoppingListRecipe", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AddedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("RecipeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double>("Scale")
+                        .HasColumnType("REAL");
+
+                    b.Property<int>("ShoppingListId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipeId");
+
+                    b.HasIndex("ShoppingListId");
+
+                    b.ToTable("ShoppingListRecipes");
                 });
 
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Tag", b =>
@@ -1840,6 +2010,48 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.Navigation("Tag");
                 });
 
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ShoppingCheck", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.ShoppingList", null)
+                        .WithMany("Checks")
+                        .HasForeignKey("ShoppingListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ShoppingLine", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Food", null)
+                        .WithMany()
+                        .HasForeignKey("FoodId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("RecipeWarden.Infrastructure.Data.ShoppingListRecipe", null)
+                        .WithMany()
+                        .HasForeignKey("ListRecipeId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("RecipeWarden.Infrastructure.Data.ShoppingList", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("ShoppingListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ShoppingListRecipe", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
+                        .WithMany()
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("RecipeWarden.Infrastructure.Data.ShoppingList", null)
+                        .WithMany("Recipes")
+                        .HasForeignKey("ShoppingListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.UserPreference", b =>
                 {
                     b.HasOne("RecipeWarden.Infrastructure.Data.AppUser", null)
@@ -1878,6 +2090,15 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeCollection", b =>
                 {
+                    b.Navigation("Recipes");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ShoppingList", b =>
+                {
+                    b.Navigation("Checks");
+
+                    b.Navigation("Lines");
+
                     b.Navigation("Recipes");
                 });
 #pragma warning restore 612, 618

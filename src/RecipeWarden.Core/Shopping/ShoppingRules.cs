@@ -1,6 +1,7 @@
 using System.Globalization;
 using RecipeWarden.Core.Measurement;
 using RecipeWarden.Core.Organization;
+using RecipeWarden.Core.Recipes;
 
 namespace RecipeWarden.Core.Shopping;
 
@@ -69,6 +70,12 @@ public sealed record ShoppingView(IReadOnlyList<ShoppingSection> Sections, IRead
 public static class ShoppingRules
 {
     public const string OtherSection = "Other";
+    public const int MaxListNameLength = 80;
+    public const int MaxItemLength = 200;
+    public const int MaxSectionLength = 40;
+    public const int MaxPackageNameLength = 24;
+    public const int MaxLinesPerList = 1000;
+    public const int MaxRecipesPerList = 50;
     public const string PantryHeading = "You probably have";
 
     /// <summary>ADR 0030: the walking order of a typical store; unknown sections come before "Other", by name.</summary>
@@ -81,6 +88,49 @@ public static class ShoppingRules
     /// <summary>The key a tick is stored under (ADR 0029): the food id, else the normalized name.</summary>
     public static string KeyFor(int? foodId, string name) =>
         foodId is { } id ? "f:" + id.ToString(CultureInfo.InvariantCulture) : "n:" + NameRules.Normalize(name);
+
+    /// <summary>
+    /// ADR 0029: the stored amount for one recipe line at <paramref name="factor"/>, in base units. A yield
+    /// conversion's purchase grams win (AC-35). "1 cup plus 2 Tbsp" adds the plus amount of the same kind. Vague
+    /// amounts ("pinch") and lines without a number store no amount.
+    /// </summary>
+    public static (UnitKind? Kind, decimal? Amount, decimal? AmountMax, string? CountUnit) Amount(ParsedIngredient line, decimal factor,
+        ParsedIngredient? plus = null, decimal? purchaseGrams = null, decimal? purchaseGramsMax = null)
+    {
+        ArgumentNullException.ThrowIfNull(line);
+        if (purchaseGrams is { } grams && grams > 0)
+        {
+            return (UnitKind.Mass, grams, purchaseGramsMax is { } gm && gm > grams ? gm : null, null);
+        }
+
+        if (line.Quantity is not { } quantity || quantity <= 0 || factor <= 0)
+        {
+            return (null, null, null, null);
+        }
+
+        var unit = UnitCatalog.FindByCode(line.UnitCode);
+        if (unit is null && line.UnitCode is not null)
+        {
+            return (null, null, null, null);
+        }
+
+        if (unit?.IsVague == true)
+        {
+            return (null, null, null, null);
+        }
+
+        var kind = unit?.Kind ?? UnitKind.Count;
+        var toBase = kind == UnitKind.Count ? 1m : unit!.ToBase;
+        var extra = 0m;
+        if (plus?.Quantity is { } pq && UnitCatalog.FindByCode(plus.UnitCode) is { } plusUnit && plusUnit.Kind == kind && kind != UnitKind.Count)
+        {
+            extra = pq * plusUnit.ToBase;
+        }
+
+        var low = (quantity * toBase + extra) * factor;
+        decimal? high = line.QuantityMax is { } max && max > quantity ? (max * toBase + extra) * factor : null;
+        return (kind, low, high, kind == UnitKind.Count ? unit?.Code : null);
+    }
 
     public static ShoppingView Merge(IEnumerable<ShoppingLineInput> lines, IReadOnlyDictionary<int, ShoppingFood> foods,
         IReadOnlySet<string> checkedKeys, UnitSystem system = UnitSystem.US, MeasurementCatalog? catalog = null)

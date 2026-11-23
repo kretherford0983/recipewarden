@@ -11,6 +11,7 @@ using RecipeWarden.Infrastructure.Kitchen;
 using RecipeWarden.Infrastructure.Measurement;
 using RecipeWarden.Infrastructure.Media;
 using RecipeWarden.Infrastructure.Recipes;
+using RecipeWarden.Infrastructure.Shopping;
 
 namespace RecipeWarden.Infrastructure;
 
@@ -57,6 +58,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<SafeFetcher>();
         services.AddScoped<ImageStore>();
         services.AddScoped<ImportService>();
+        services.AddScoped<ShoppingService>();
+        services.AddScoped<ShoppingSeeder>();
         return services;
     }
 

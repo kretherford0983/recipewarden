@@ -41,6 +41,7 @@ internal sealed class RecipeTestScope : IAsyncDisposable
     public ImportService Import => scope.ServiceProvider.GetRequiredService<ImportService>();
     public ImageStore Images => scope.ServiceProvider.GetRequiredService<ImageStore>();
     public DataOptions Data => scope.ServiceProvider.GetRequiredService<DataOptions>();
+    public Shopping.ShoppingService Shopping => scope.ServiceProvider.GetRequiredService<Shopping.ShoppingService>();
 
     public static async Task<RecipeTestScope> CreateAsync(TimeProvider? clock = null, FakeWeb? web = null) =>
         new(await TestDatabase.CreateAsync(clock: clock, configure: web is null ? null : s =>
