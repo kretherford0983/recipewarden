@@ -1,0 +1,29 @@
+@page "/admin/nutrition-data"
+@model RecipeWarden.Web.Pages.Admin.NutritionDataModel
+@{
+    ViewData["Title"] = "Nutrition data";
+}
+<p><a href="/admin">Admin</a></p>
+<h1>Nutrition data</h1>
+@if (Model.Message is not null) { <div class="notice" role="status"><p>@Model.Message</p></div> }
+@if (Model.Error is not null) { <div class="form-errors" role="alert"><p>@Model.Error</p></div> }
+<p>Nutrition is calculated from a USDA FoodData Central dataset stored on this server; the app never looks anything up online.
+    To apply a newer release, download the <strong>CSV</strong> zip of SR Legacy or Foundation Foods from FoodData Central on another
+    computer and upload it here. Your ingredient mappings are kept; foods missing from the new data are flagged on
+    <a href="/manage/nutrition">Nutrition</a> for re-mapping.</p>
+<form method="post" action="/admin/nutrition-data" asp-antiforgery="true" enctype="multipart/form-data" class="form narrow">
+    <div class="field"><label for="ds-file">Dataset (.zip, up to 100 MB)</label><input id="ds-file" name="file" type="file" accept=".zip" required></div>
+    <div class="field"><label for="ds-version">Name for this version</label><input id="ds-version" name="version" maxlength="80" placeholder="Foundation Foods 2026-04"></div>
+    <button type="submit">Apply dataset</button>
+</form>
+<p>Larger files: copy them to the server and run <code>sudo recipewarden nutrition-import &lt;file.zip&gt;</code>.</p>
+<h2>Applied datasets</h2>
+<table class="list">
+    <thead><tr><th scope="col">Version</th><th scope="col">Applied</th><th scope="col">Foods</th><th scope="col">Changes</th></tr></thead>
+    <tbody>
+    @foreach (var d in Model.Datasets)
+    {
+        <tr><td>@d.Version</td><td>@d.AppliedAt.ToLocalTime().ToString("yyyy-MM-dd") by @d.AppliedBy</td><td>@d.Foods.ToString("N0")</td><td>@d.Added new, @d.Updated updated, @d.Removed flagged</td></tr>
+    }
+    </tbody>
+</table>

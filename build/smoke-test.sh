@@ -33,6 +33,9 @@ curl -fs "http://127.0.0.1:$port/" | grep -q "RecipeWarden $expected<" \
 
 cli_version=$("$app/cli/recipewarden" --version)
 [[ ${cli_version%%+*} == "$expected" ]] || { echo "::error::CLI reports '$cli_version', expected $expected"; exit 1; }
-"$app/cli/recipewarden" --config "$work/config.json" health
+# The health command also judges the build machine's disk (BR-81), so only the database line decides here.
+health_out=$("$app/cli/recipewarden" --config "$work/config.json" health || true)
+echo "$health_out"
+grep -q "quick_check: ok" <<<"$health_out" || { echo "::error::CLI health did not find a sound database"; exit 1; }
 
 echo "Smoke test passed: web and CLI report $expected"

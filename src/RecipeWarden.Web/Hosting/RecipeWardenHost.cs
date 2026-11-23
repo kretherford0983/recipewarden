@@ -5,7 +5,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Text.Encodings.Web;
 using System.Text.Unicode;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using RecipeWarden.Core.Health;
 using RecipeWarden.Core.Security;
+using RecipeWarden.Infrastructure.Audit;
+using RecipeWarden.Infrastructure.Health;
+using RecipeWarden.Web.Operations;
 using RecipeWarden.Infrastructure;
 using RecipeWarden.Infrastructure.Data;
 using RecipeWarden.Web.Security;
@@ -109,12 +114,23 @@ public static class RecipeWardenHost
             o.Conventions.AddPageApplicationModelConvention("/Shopping/Details", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.ShoppingCheckPolicy)));
             o.Conventions.AuthorizeFolder("/Manage", AppPolicies.CanEditRecipes);
             o.Conventions.AuthorizeFolder("/Admin", AppPolicies.CanAdminister);
+            o.Conventions.AllowAnonymousToPage("/Setup"); // SEC-15: the page itself requires the one-time token, and 404s once set up
+            o.Conventions.AddPageApplicationModelConvention("/Setup", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.SearchPolicy)));
         });
 
         services.AddScoped<ThemeResolver>();
         services.AddScoped<Permissions>();
         services.AddRecipeWardenRateLimits(builder.Configuration);
         services.AddHostedService<TrashPurgeService>(); // BR-05
+
+        // M7 Operations (ADR 0037 to 0041): the request's user and IP are the audit actor; backups and health run in the background.
+        services.AddHttpContextAccessor();
+        services.Replace(ServiceDescriptor.Singleton<IAuditActor, HttpAuditActor>());
+        if (builder.Configuration.GetValue("Operations:Background", defaultValue: true))
+        {
+            services.AddHostedService<BackupSchedulerService>();
+            services.AddHostedService<HealthMonitorService>();
+        }
 
         var network = new NetworkOptions();
         builder.Configuration.GetSection(NetworkOptions.SectionName).Bind(network);
@@ -211,6 +227,7 @@ public static class RecipeWardenHost
         app.UseMiddleware<CloudflareClientIpMiddleware>(network.ParseTrustedProxies());
 
         app.UseMiddleware<SecurityHeadersMiddleware>();
+        app.UseMiddleware<MaintenanceMiddleware>(); // BR-63: a restore blocks every other request
 
         if (app.Environment.IsDevelopment())
         {
@@ -236,6 +253,13 @@ public static class RecipeWardenHost
         app.MapGet("/health", () => Results.Text("ok", "text/plain"))
             .AllowAnonymous()
             .WithName("Health");
+
+        // FR-OPS-05: readiness for Uptime Kuma or similar; 503 only when Critical, and no details (section 7.2).
+        app.MapGet("/health/ready", (HealthState health) => health.Status == HealthStatus.Critical
+                ? Results.Text("critical", "text/plain", statusCode: StatusCodes.Status503ServiceUnavailable)
+                : Results.Text(health.Status == HealthStatus.Warning ? "warning" : "ok", "text/plain"))
+            .AllowAnonymous()
+            .WithName("Ready");
 
         app.MapRazorPages();
         return app;

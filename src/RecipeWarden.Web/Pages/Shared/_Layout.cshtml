@@ -3,7 +3,10 @@
 @inject RecipeWarden.Web.Theme.ThemeResolver ThemeResolver
 @inject IAntiforgery Antiforgery
 @inject IAuthorizationService Authz
+@inject RecipeWarden.Infrastructure.Settings.SettingsStore SiteSettings
+@inject RecipeWarden.Infrastructure.Health.HealthState Health
 @{
+    var siteName = (await SiteSettings.GetAsync(RecipeWarden.Infrastructure.Settings.SettingKeys.SiteName)) ?? "RecipeWarden";
     var theme = await ThemeResolver.GetValueAsync(Context);
     var signedIn = User.Identity?.IsAuthenticated == true;
     var canEdit = signedIn && (await Authz.AuthorizeAsync(User, AppPolicies.CanEditRecipes)).Succeeded;
@@ -21,7 +24,7 @@
     {
         <meta name="rw-csrf" content="@Antiforgery.GetAndStoreTokens(Context).RequestToken">
     }
-    <title>@(ViewData["Title"] is string t ? t + " · " : "")RecipeWarden</title>
+    <title>@(ViewData["Title"] is string t ? t + " · " : "")@siteName</title>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
     <script src="~/js/theme.js" asp-append-version="true" defer></script>
     <script src="~/lib/htmx/htmx.min.js" defer></script>
@@ -30,7 +33,7 @@
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
 <header class="site-header">
-    <a class="brand" href="/">RecipeWarden</a>
+    <a class="brand" href="/">@siteName</a>
     <form class="search" role="search" method="get" action="/search">
         <label for="site-search" class="visually-hidden">Search recipes</label>
         <input id="site-search" name="q" type="search" placeholder="Search recipes" autocomplete="off">
@@ -73,6 +76,14 @@
         @if (canEdit) { <li><a href="/manage">Manage</a></li> }
     </ul>
 </nav>
+@if (canAdmin && (Health.Banner is not null || Health.BackupBanner is not null))
+{
+    @* FR-OPS-03, FR-BKP-14: Admins see health and failed-backup banners on every page. *@
+    <div class="admin-banner status-@Health.Status.ToString().ToLowerInvariant()" role="status">
+        @if (Health.Banner is not null) { <p>@Health.Banner <a href="/admin/health">Health</a></p> }
+        @if (Health.BackupBanner is not null) { <p>@Health.BackupBanner <a href="/admin/backups">Backups</a></p> }
+    </div>
+}
 <main id="main" class="content">
     @RenderBody()
 </main>

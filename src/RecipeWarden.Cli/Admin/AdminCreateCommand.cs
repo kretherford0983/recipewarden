@@ -30,6 +30,7 @@ internal static class AdminCreateCommand
 
         var services = new ServiceCollection();
         services.AddLogging(b => b.SetMinimumLevel(LogLevel.Warning));
+        services.AddSingleton<RecipeWarden.Infrastructure.Audit.IAuditActor>(new Operations.CliActor()); // FR-ADM-01: audited as cli:<os user>
         services.AddRecipeWardenData(config);
         services.AddRecipeWardenIdentityCore();
 
@@ -55,14 +56,17 @@ internal static class AdminCreateCommand
     }
 
     /// <summary>Reads a password without echo when interactive, or one line from stdin when piped.</summary>
-    public static string ReadPassword(bool fromStdin)
+    public static string ReadPassword(bool fromStdin) => ReadSecret(fromStdin, "Password (12+ characters): ");
+
+    /// <summary>Reads a secret from standard input, or from the terminal without echo.</summary>
+    public static string ReadSecret(bool fromStdin, string prompt)
     {
         if (fromStdin || Console.IsInputRedirected)
         {
             return Console.In.ReadLine() ?? string.Empty;
         }
 
-        Console.Error.Write("Password (12+ characters): ");
+        Console.Error.Write(prompt);
         var chars = new List<char>();
         while (true)
         {

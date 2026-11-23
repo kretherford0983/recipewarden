@@ -38,6 +38,7 @@ public sealed partial class SEC_30_FormTokenTests(RecipeWardenFactory factory) :
             "/shopping", "/shopping/new", listPath, "/recipes/" + slug + "/cook",
             "/recipes/" + slug + "/export-ai?go=1&g=Healthier", "/manage/import/ai-response?parent=" + slug,
             $"/manage/recipes/{id}/nutrition", "/manage/nutrition?map=gochujang",
+            "/admin", "/admin/users", "/admin/settings", "/admin/backups", "/admin/health", "/admin/nutrition-data",
         };
 
         var forms = 0;

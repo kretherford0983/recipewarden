@@ -1,9 +1,12 @@
+using Microsoft.Extensions.Configuration;
 using System.CommandLine;
 using RecipeWarden.Cli.Admin;
 using RecipeWarden.Cli.ApplyConfig;
 using RecipeWarden.Cli.Health;
 using RecipeWarden.Cli.Hosting;
 using RecipeWarden.Cli.Nutrition;
+using RecipeWarden.Cli.Operations;
+using RecipeWarden.Infrastructure.Data;
 
 var configOption = new Option<string?>("--config")
 {
@@ -27,14 +30,85 @@ adminCreate.SetAction(async (parse, ct) =>
 var admin = new Command("admin", "Account administration") { adminCreate };
 root.Subcommands.Add(admin);
 
-// health
-var health = new Command("health", "Print a health summary");
+// health (FR-OPS-02 for SSH use)
+var health = new Command("health", "Print a health summary (exit 0 OK or Warning, 2 Critical)");
 health.SetAction(async (parse, ct) =>
 {
     var config = CliConfig.Load(CliConfig.ResolvePath(parse.GetValue(configOption)));
-    return await HealthCommand.RunAsync(config, Console.Out, ct);
+    return await OperationsCommands.HealthAsync(config, Console.Out, ct);
 });
 root.Subcommands.Add(health);
+
+// backup (FR-BKP-01; also the installer's pre-upgrade backup)
+var backupFolder = new Option<string?>("--folder") { Description = "An allowed backup folder (default: the built-in folder)" };
+var backupKind = new Option<string?>("--kind") { Description = "manual (default) or pre-upgrade" };
+var backup = new Command("backup", "Make a backup now and print its path") { backupFolder, backupKind };
+backup.SetAction(async (parse, ct) =>
+{
+    var config = CliConfig.Load(CliConfig.ResolvePath(parse.GetValue(configOption)));
+    return await OperationsCommands.BackupAsync(config, parse.GetValue(backupFolder), parse.GetValue(backupKind), Console.Out, Console.Error, ct);
+});
+root.Subcommands.Add(backup);
+
+// restore (FR-BKP-07, AC-85)
+var restoreArchive = new Argument<string>("archive") { Description = "A backup archive (.tar.gz or .tar.gz.rwenc)" };
+var restoreKit = new Option<string?>("--kit") { Description = "The recovery kit file (encrypted archives)" };
+var restorePassStdin = new Option<bool>("--passphrase-stdin") { Description = "Read the kit passphrase from standard input" };
+var restoreCheck = new Option<bool>("--check") { Description = "Only check the archive (as the service user); change nothing" };
+var restoreApply = new Option<bool>("--apply") { Description = "Restore as the service user; the service must be stopped" };
+var restoreNoPre = new Option<bool>("--no-pre-restore") { Description = "With --apply: skip the pre-restore backup (fresh installs)" };
+var restoreYes = new Option<bool>("--yes") { Description = "Do not ask for the confirmation word" };
+var restore = new Command("restore", "Restore a backup: check it, stop the service, restore, migrate, start (run with sudo)")
+{
+    restoreArchive, restoreKit, restorePassStdin, restoreCheck, restoreApply, restoreNoPre, restoreYes,
+};
+restore.SetAction(async (parse, ct) =>
+{
+    var configPath = Path.GetFullPath(CliConfig.ResolvePath(parse.GetValue(configOption)));
+    var config = CliConfig.Load(configPath);
+    var kit = parse.GetValue(restoreKit);
+    var passphrase = kit is null ? null : AdminCreateCommand.ReadSecret(parse.GetValue(restorePassStdin), "Recovery kit passphrase: ");
+    if (parse.GetValue(restoreCheck) || parse.GetValue(restoreApply))
+    {
+        return await OperationsCommands.RestoreOfflineAsync(config, parse.GetValue(restoreArchive)!, kit, passphrase, parse.GetValue(restoreApply),
+            !parse.GetValue(restoreNoPre), "cli", Console.Out, Console.Error, ct);
+    }
+
+    if (!Environment.IsPrivilegedProcess)
+    {
+        await Console.Error.WriteLineAsync("error: run with sudo (it stops and starts the service), or use --check / --apply as the service user.");
+        return 1;
+    }
+
+    var data = new DataOptions();
+    config.GetSection(DataOptions.SectionName).Bind(data);
+    var orchestrator = new RestoreOrchestrator(new HostRunner(Console.Out, Console.Error), new Systemctl(),
+        new HttpHealthProbe(CliConfig.HealthUri(config), TimeProvider.System), data, Console.Out, Console.Error, Console.ReadLine);
+    return await orchestrator.RunAsync(new RestoreRequest(parse.GetValue(restoreArchive)!, kit is null ? null : Path.GetFullPath(kit), passphrase,
+        parse.GetValue(restoreYes), configPath), ct);
+});
+root.Subcommands.Add(restore);
+
+// setup-token (SEC-15)
+var setupToken = new Command("setup-token", "Print a one-time token for the /setup page (only before the first Admin exists)");
+setupToken.SetAction(async (parse, ct) =>
+{
+    var config = CliConfig.Load(CliConfig.ResolvePath(parse.GetValue(configOption)));
+    return await OperationsCommands.SetupTokenAsync(config, Console.Out, Console.Error, ct);
+});
+root.Subcommands.Add(setupToken);
+
+// internal-audit (hidden): lets root-run commands leave an audit entry written by the service user
+var auditAction = new Argument<string>("action");
+var auditDetails = new Argument<string?>("details") { Arity = ArgumentArity.ZeroOrOne };
+var internalAudit = new Command("internal-audit", "Record an audit entry (used by apply-config)") { auditAction, auditDetails };
+internalAudit.Hidden = true;
+internalAudit.SetAction(async (parse, ct) =>
+{
+    var config = CliConfig.Load(CliConfig.ResolvePath(parse.GetValue(configOption)));
+    return await OperationsCommands.InternalAuditAsync(config, parse.GetValue(auditAction)!, parse.GetValue(auditDetails), ct);
+});
+root.Subcommands.Add(internalAudit);
 
 // apply-config
 var dryRun = new Option<bool>("--dry-run") { Description = "Validate and show what would change; change nothing" };
@@ -52,11 +126,30 @@ applyConfig.SetAction(async (parse, ct) =>
         Console.Out,
         Console.Error);
     var osUser = Environment.GetEnvironmentVariable("SUDO_USER") ?? Environment.UserName;
-    return await runner.RunAsync(
+    var exit = await runner.RunAsync(
         new ApplyConfigRequest(folders, parse.GetValue(dryRun), parse.GetValue(noRestart), Environment.IsPrivilegedProcess, osUser)
         {
             NoReload = parse.GetValue(noReload),
         }, ct);
+
+    // FR-ADM-01, FR-BKP-09: the change is also recorded in the audit log, written by the service user (never as root,
+    // so no database file can end up owned by root). Best effort: the install may not have a database yet.
+    if (exit == 0 && !parse.GetValue(dryRun) && Environment.IsPrivilegedProcess)
+    {
+        var data = new DataOptions();
+        config.GetSection(DataOptions.SectionName).Bind(data);
+        if (File.Exists(data.DatabasePath))
+        {
+            var host = new HostRunner(TextWriter.Null, TextWriter.Null);
+            if (await host.OwnerOfAsync(data.Directory, ct) is { } owner and not "root")
+            {
+                await host.RunCliAsAsync(owner, ["--config", Path.GetFullPath(CliConfig.ResolvePath(parse.GetValue(configOption))), "internal-audit", "ApplyConfig.Run",
+                    "by " + osUser + ": " + string.Join(", ", folders)], null, ct);
+            }
+        }
+    }
+
+    return exit;
 });
 root.Subcommands.Add(applyConfig);
 

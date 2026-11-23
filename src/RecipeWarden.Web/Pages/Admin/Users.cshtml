@@ -1,0 +1,101 @@
+@page "/admin/users"
+@model RecipeWarden.Web.Pages.Admin.UsersModel
+@using RecipeWarden.Core.Security
+@{
+    ViewData["Title"] = "Users";
+}
+<p><a href="/admin">Admin</a></p>
+<h1>Users and roles</h1>
+<p>Admins manage users, backups and settings. Editors add and change recipes. Accounts with no role can sign in and read.
+    There is no self sign-up: accounts are created here.</p>
+@if (Model.Message is not null)
+{
+    <div class="notice" role="status"><p>@Model.Message</p></div>
+}
+@if (Model.Errors.Count > 0)
+{
+    <div class="form-errors" role="alert">
+        <ul>@foreach (var e in Model.Errors) { <li>@e</li> }</ul>
+    </div>
+}
+<table class="list">
+    <thead><tr><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Status</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+    <tbody>
+    @foreach (var u in Model.Users)
+    {
+        var self = u.Id == Model.CurrentUserId;
+        <tr>
+            <td>@u.Email @if (self) { <span>(you)</span> }</td>
+            <td>
+                @if (self)
+                {
+                    @u.Role
+                }
+                else
+                {
+                    <form method="post" action="/admin/users?handler=Role" asp-antiforgery="true" class="inline-form">
+                        <input type="hidden" name="id" value="@u.Id">
+                        <label class="visually-hidden" for="role-@u.Id">Role for @u.Email</label>
+                        <select id="role-@u.Id" name="role">
+                            @foreach (var r in UserAdminRules.AssignableRoles)
+                            {
+                                <option value="@r" selected="@(r == u.Role)">@r</option>
+                            }
+                        </select>
+                        <button type="submit">Change</button>
+                    </form>
+                }
+            </td>
+            <td>@(u.LockedOut ? "Locked" : "Active")@(u.TwoFactor ? ", two-factor on" : "")</td>
+            <td class="actions">
+                @if (!self)
+                {
+                    <form method="post" action="/admin/users?handler=@(u.LockedOut ? "Unlock" : "Lock")" asp-antiforgery="true">
+                        <input type="hidden" name="id" value="@u.Id">
+                        <button type="submit">@(u.LockedOut ? "Unlock" : "Lock")</button>
+                    </form>
+                    <details class="confirm">
+                        <summary>Set password…</summary>
+                        <form method="post" action="/admin/users?handler=Password" asp-antiforgery="true">
+                            <input type="hidden" name="id" value="@u.Id">
+                            <label for="pw-@u.Id">New password for @u.Email (at least @AccountRules.MinimumPasswordLength characters)</label>
+                            <input id="pw-@u.Id" name="password" type="password" autocomplete="new-password" minlength="@AccountRules.MinimumPasswordLength" required>
+                            <button type="submit">Set password</button>
+                        </form>
+                    </details>
+                    <details class="confirm">
+                        <summary>Delete…</summary>
+                        <form method="post" action="/admin/users?handler=Delete" asp-antiforgery="true">
+                            <input type="hidden" name="id" value="@u.Id">
+                            <p>Recipes they made stay. This cannot be undone.</p>
+                            <button type="submit" class="danger">Delete @u.Email</button>
+                        </form>
+                    </details>
+                }
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+<h2>Add a user</h2>
+<form method="post" action="/admin/users?handler=Create" asp-antiforgery="true" class="form narrow">
+    <div class="field">
+        <label for="new-email">Email (also the sign-in name)</label>
+        <input id="new-email" name="NewUser.Email" type="email" autocomplete="off" required maxlength="254">
+    </div>
+    <div class="field">
+        <label for="new-password">First password (at least @AccountRules.MinimumPasswordLength characters)</label>
+        <input id="new-password" name="NewUser.Password" type="password" autocomplete="new-password" required minlength="@AccountRules.MinimumPasswordLength">
+    </div>
+    <div class="field">
+        <label for="new-role">Role</label>
+        <select id="new-role" name="NewUser.Role">
+            @foreach (var r in UserAdminRules.AssignableRoles)
+            {
+                <option value="@r" selected="@(r == AppRoles.Editor)">@r</option>
+            }
+        </select>
+    </div>
+    <button type="submit">Add user</button>
+</form>

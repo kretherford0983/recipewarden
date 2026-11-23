@@ -37,9 +37,9 @@ readonly HEALTH_TIMEOUT="${RECIPEWARDEN_HEALTH_TIMEOUT:-60}"
 mode=install
 tag=""; channel=auto; package=""
 port=""; bind=""; trusted_proxy=""; allowed_ips=""
-data_dir=""; backup_dir=""; restore=""
+data_dir=""; backup_dir=""; restore=""; restore_kit=""; restore_passphrase_file=""
 admin_email=""; admin_password_file=""
-yes=0; unattended=0; no_start=0; purge=0; framework_dependent=0
+yes=0; unattended=0; no_start=0; purge=0; framework_dependent=0; no_firewall=0; admin_created=0
 
 log()  { printf '%s\n' "$*"; }
 step() { printf '==> %s\n' "$*"; }
@@ -69,6 +69,10 @@ First install:
   --admin-password-file <f>  Read the Admin password from a file (unattended installs)
   --data-dir <path>          Data directory (default $DATA_DEFAULT)
   --backup-dir <path>        Also allow scheduled backups to this folder (Backup:AllowedFolders)
+  --restore <archive>        Start from a backup instead of empty (moving hosts, FR-BKP-06): the archive is checked
+                             first; recipes, images, accounts and kitchen come from it, network settings from this host
+  --restore-kit <file>       The recovery kit for an encrypted archive (the passphrase is asked for)
+  --restore-passphrase-file <f>  Read the kit passphrase from a file (unattended installs)
 
 Other:
   --reconfigure              Change port, bind, trusted proxy or allowed IPs of an existing install
@@ -76,6 +80,7 @@ Other:
   --yes                      Don't wait 5 seconds before changing anything
   --unattended               Never prompt (implies --yes)
   --no-start                 Install everything but don't touch systemd (containers and tests)
+  --no-firewall              Don't add the host firewall rule for a LAN bind (SEC-60)
   -h, --help                 Show this help
 USAGE
 }
@@ -130,6 +135,9 @@ parse_args() {
       --admin-email)         need_value "$@"; admin_email=$2; shift 2 ;;
       --admin-password-file) need_value "$@"; admin_password_file=$2; shift 2 ;;
       --restore)             need_value "$@"; restore=$2; shift 2 ;;
+      --restore-kit)         need_value "$@"; restore_kit=$2; shift 2 ;;
+      --restore-passphrase-file) need_value "$@"; restore_passphrase_file=$2; shift 2 ;;
+      --no-firewall)         no_firewall=1; shift ;;
       --upgrade)             shift ;;   # accepted for compatibility: an existing install is always upgraded
       --reconfigure)         set_mode reconfigure; shift ;;
       --uninstall)           set_mode uninstall; shift ;;
@@ -164,7 +172,11 @@ parse_args() {
   [[ -z $admin_password_file || -r $admin_password_file ]] || die $EXIT_USAGE "--admin-password-file: cannot read $admin_password_file"
   (( purge == 0 )) || [[ $mode == uninstall ]] || die $EXIT_USAGE "--purge is only valid with --uninstall"
   (( framework_dependent == 0 )) || die $EXIT_NOT_IMPLEMENTED "--framework-dependent is not available yet (self-contained builds only, D-05)"
-  [[ -z $restore ]] || die $EXIT_NOT_IMPLEMENTED "--restore arrives with backups in milestone M7"
+  [[ -z $restore || -r $restore ]] || die $EXIT_USAGE "--restore: file not found: $restore"
+  [[ -z $restore_kit || -r $restore_kit ]] || die $EXIT_USAGE "--restore-kit: file not found: $restore_kit"
+  [[ -z $restore_passphrase_file || -r $restore_passphrase_file ]] || die $EXIT_USAGE "--restore-passphrase-file: cannot read $restore_passphrase_file"
+  [[ -n $restore || ( -z $restore_kit && -z $restore_passphrase_file ) ]] || die $EXIT_USAGE "--restore-kit needs --restore"
+  [[ -z $restore || $mode == install ]] || die $EXIT_USAGE "--restore is for a new install; on an installed host use: sudo recipewarden restore <archive>"
 }
 
 require_root() {
@@ -326,6 +338,8 @@ create_user_and_folders() {
   install -d -m 0755 "$OPT" "$OPT/releases"
   install -d -m 0750 -o root -g "$APP" "$ETC"
   install -d -m 0750 -o "$APP" -g "$APP" "$data" "$data/backups" "$LOG"
+  # FR-BKP-12: the built-in backup folder carries its mount marker like any other backup folder.
+  [[ -e $data/backups/.recipewarden-backup-target ]] || install -m 0600 -o "$APP" -g "$APP" /dev/null "$data/backups/.recipewarden-backup-target"
 }
 
 unpack_release() {
@@ -392,10 +406,18 @@ write_command_wrapper() {
 # RecipeWarden host-command wrapper (written by install.sh). Run with sudo, e.g.:
 #   sudo recipewarden health          sudo recipewarden admin create --email you@example.com
 #   sudo recipewarden apply-config    (after changing Backup:AllowedFolders)
+#   sudo recipewarden backup          sudo recipewarden restore <archive> [--kit recovery-kit.txt]
+#   sudo recipewarden setup-token     (a new token for the /setup page, before the first Admin exists)
 export RECIPEWARDEN_CONFIG="${RECIPEWARDEN_CONFIG:-/etc/recipewarden/appsettings.Production.json}"
 cli=/opt/recipewarden/current/cli/recipewarden
-# apply-config writes systemd files and needs root; everything else runs as the service user so new files belong to it.
-if [ "$(id -u)" = 0 ] && [ "${1:-}" != apply-config ]; then
+# apply-config writes systemd files, and restore stops and starts the service: they need root (restore runs its own
+# data work as the service user). Everything else runs as the service user so new files belong to it.
+stay_root=0
+case "${1:-}" in
+  apply-config) stay_root=1 ;;
+  restore) stay_root=1; for a in "$@"; do case "$a" in --check|--apply) stay_root=0 ;; esac; done ;;
+esac
+if [ "$(id -u)" = 0 ] && [ "$stay_root" = 0 ]; then
   exec runuser -u recipewarden -- env RECIPEWARDEN_CONFIG="$RECIPEWARDEN_CONFIG" "$cli" "$@"
 fi
 exec "$cli" "$@"
@@ -437,6 +459,12 @@ start_service() {
 snapshot_data() {
   local db="$data/db" snap
   [[ -d $db ]] || return 0
+  # FR-INST-03: a full backup (database, images, keys) with the installed version's CLI, while it still runs. Older
+  # versions without "backup" skip this; the database copy below is always made and is what a rollback uses.
+  if "$OPT/current/cli/$APP" backup --help >/dev/null 2>&1; then
+    step "pre-upgrade backup"
+    "$CMD" backup --kind pre-upgrade || warn "the pre-upgrade backup failed; continuing with the database copy only"
+  fi
   snap="$data/backups/pre-upgrade-$(date +%Y%m%d-%H%M%S)"
   step "stopping the service and copying the database to $snap"
   (( no_start == 1 )) || systemctl stop "$APP" 2>/dev/null || true
@@ -471,11 +499,116 @@ create_admin() {
   fi
   step "creating Admin account $admin_email"
   if [[ -n $admin_password_file ]]; then
-    "$CMD" admin create --email "$admin_email" --password-stdin < "$admin_password_file" \
-      || warn "Admin not created; retry with: sudo $APP admin create --email $admin_email"
+    if "$CMD" admin create --email "$admin_email" --password-stdin < "$admin_password_file"; then admin_created=1
+    else warn "Admin not created; retry with: sudo $APP admin create --email $admin_email"; fi
   else
-    "$CMD" admin create --email "$admin_email" < /dev/tty \
-      || warn "Admin not created; retry with: sudo $APP admin create --email $admin_email"
+    if "$CMD" admin create --email "$admin_email" < /dev/tty; then admin_created=1
+    else warn "Admin not created; retry with: sudo $APP admin create --email $admin_email"; fi
+  fi
+}
+
+# SEC-15, FR-INST-04: without an Admin, print a one-time token for the /setup page (start new or restore a backup).
+print_setup_token() {
+  (( is_upgrade == 0 && admin_created == 0 )) && [[ -z $restore ]] || return 0
+  local token
+  token=$("$CMD" setup-token 2>/dev/null) || return 0
+  cat <<TOKEN
+
+No Admin account yet. Open $(current_url)/setup (or your tunnel's address + /setup) and use this one-time
+setup token to create the first Admin or to restore a backup:
+
+    $token
+
+(New token: sudo $APP setup-token. The page disappears once setup is done.)
+TOKEN
+}
+
+cli_as_app() { runuser -u "$APP" -- env RECIPEWARDEN_CONFIG="$ETC/appsettings.Production.json" "$OPT/current/cli/$APP" "$@"; }
+
+# FR-BKP-06, BR-64, AC-83: check the archive as the service user, then restore it into the new install. The archive's
+# config and network settings are never applied; this host's network.json stays.
+restore_backup() {
+  [[ -n $restore ]] || return 0
+  local stage="$data/tmp/install-restore-$$" pass="" args=()
+  install -d -m 0750 -o "$APP" -g "$APP" "$data/tmp"
+  install -d -m 0700 -o "$APP" -g "$APP" "$stage"
+  install -m 0600 -o "$APP" -g "$APP" "$restore" "$stage/archive"
+  if [[ -n $restore_kit ]]; then
+    install -m 0600 -o "$APP" -g "$APP" "$restore_kit" "$stage/kit.txt"
+    args=(--kit "$stage/kit.txt" --passphrase-stdin)
+    if [[ -n $restore_passphrase_file ]]; then
+      pass=$(head -n 1 "$restore_passphrase_file")
+    elif (( unattended == 0 )) && [[ -r /dev/tty ]]; then
+      printf 'Recovery kit passphrase: ' > /dev/tty; read -rs pass < /dev/tty; printf '\n' > /dev/tty
+    else
+      rm -rf "$stage"; die $EXIT_USAGE "--restore-kit needs the passphrase: give --restore-passphrase-file"
+    fi
+  fi
+  step "checking the backup $(basename "$restore")"
+  if ! printf '%s\n' "$pass" | cli_as_app restore "$stage/archive" "${args[@]}" --check; then
+    rm -rf "$stage"; die $EXIT_FAILED "the backup was refused; nothing was restored (the app is installed but empty: run install.sh --uninstall --purge to start over)"
+  fi
+  step "restoring the backup"
+  if ! printf '%s\n' "$pass" | cli_as_app restore "$stage/archive" "${args[@]}" --apply --no-pre-restore; then
+    rm -rf "$stage"; die $EXIT_FAILED "the restore failed"
+  fi
+  rm -rf "$stage"
+}
+
+# SEC-60: for a LAN bind, only the tunnel host (and --allowed-ips) may reach the port. ufw when it is active,
+# otherwise nftables (re-applied at every service start by a drop-in); the app refuses other addresses either way.
+firewall_sources() {
+  local IFS=, ip out=""
+  for ip in ${trusted_proxy:+$trusted_proxy,}${allowed_ips}; do [[ -n $ip ]] && out+="${out:+,}$ip"; done
+  echo "$out"
+}
+
+remove_firewall() {
+  if [[ -f $ETC/firewall.ufw ]] && command -v ufw >/dev/null; then
+    local parts
+    while read -r -a parts; do (( ${#parts[@]} )) && { ufw --force delete "${parts[@]}" >/dev/null 2>&1 || true; }; done < "$ETC/firewall.ufw"
+    rm -f "$ETC/firewall.ufw"
+  fi
+  if [[ -f $ETC/firewall.nft ]]; then
+    if command -v nft >/dev/null; then nft delete table inet "$APP" 2>/dev/null || true; fi
+    rm -f "$ETC/firewall.nft" "$DROPIN_DIR/firewall.conf"
+  fi
+}
+
+apply_firewall() {
+  (( no_firewall == 0 )) || return 0
+  remove_firewall
+  [[ $bind != 127.* ]] || return 0
+  local sources ip nft_bin IFS=,
+  sources=$(firewall_sources)
+  if command -v ufw >/dev/null && ufw status 2>/dev/null | grep -q "Status: active"; then
+    step "firewall (ufw): port $port only from $sources"
+    : > "$ETC/firewall.ufw"
+    for ip in $sources; do
+      ufw allow from "$ip" to any port "$port" proto tcp comment "$APP" >/dev/null
+      printf 'allow from %s to any port %s proto tcp\n' "$ip" "$port" >> "$ETC/firewall.ufw"
+    done
+    ufw deny "$port/tcp" comment "$APP" >/dev/null
+    printf 'deny %s/tcp\n' "$port" >> "$ETC/firewall.ufw"
+  elif nft_bin=$(command -v nft); then
+    step "firewall (nftables): port $port only from $sources"
+    cat > "$ETC/firewall.nft" <<NFT
+# Written by install.sh (SEC-60): only the tunnel host and --allowed-ips reach RecipeWarden's port.
+table inet $APP
+delete table inet $APP
+table inet $APP {
+  chain input {
+    type filter hook input priority -10; policy accept;
+    tcp dport $port ip saddr != { $sources } drop
+    tcp dport $port meta nfproto ipv6 drop
+  }
+}
+NFT
+    "$nft_bin" -f "$ETC/firewall.nft" || warn "nftables rule not applied; the app still refuses other addresses"
+    install -d -m 0755 "$DROPIN_DIR"
+    printf '# Written by install.sh (SEC-60)\n[Service]\nExecStartPre=+%s -f %s\n' "$nft_bin" "$ETC/firewall.nft" > "$DROPIN_DIR/firewall.conf"
+  else
+    warn "no ufw or nftables found: port $port is not limited in the host firewall (the app still refuses addresses outside Network:AllowedSourceIps)"
   fi
 }
 
@@ -497,7 +630,7 @@ RecipeWarden $new_version is installed$( (( no_start )) && echo " (not started: 
   Service:     systemctl status $APP     Logs: journalctl -u $APP -f
   Settings:    $ETC/appsettings.Production.json   (then: sudo systemctl restart $APP)
   Network:     $ETC/network.json   (bind/port/proxy/allowed IPs; then: sudo systemctl restart $APP)
-  Commands:    sudo $APP health | admin create --email ... | apply-config
+  Commands:    sudo $APP health | backup | restore <archive> | admin create --email ... | apply-config
   Data:        $data      Previous releases: $OPT/releases (3 kept)
 
 Cloudflare Tunnel ingress rule for this host:
@@ -507,7 +640,7 @@ DONE
   if [[ $bind != 127.* ]]; then
     cat <<NOTE
 Only the tunnel host ($trusted_proxy) and the addresses in Network:AllowedSourceIps may connect; the app refuses
-everyone else. For defence in depth, also limit port $port to the tunnel host in the host firewall.
+everyone else, and the host firewall limits port $port the same way when ufw or nftables is present.
 NOTE
   fi
 }
@@ -522,6 +655,7 @@ do_install() {
     data=$(sed -n 's/.*"Directory": *"\([^"]*\)".*/\1/p' "$ETC/appsettings.Production.json" | head -1)
     data=${data:-$DATA_DEFAULT}
     [[ -z $trusted_proxy && -z $allowed_ips ]] || warn "network options are ignored on upgrade; use --reconfigure"
+    [[ -z $restore ]] || die $EXIT_USAGE "RecipeWarden is already installed; restore with: sudo recipewarden restore <archive>"
     step "upgrading the existing installation"
   else
     port=${port:-5080}; bind=${bind:-127.0.0.1}; data=${data_dir:-$DATA_DEFAULT}
@@ -553,6 +687,8 @@ do_install() {
   ln -sfn "$release" "$OPT/current"
   write_command_wrapper
   install_unit
+  (( is_upgrade )) || apply_firewall
+  restore_backup
 
   if ! start_service; then
     journalctl -u "$APP" -n 40 --no-pager 2>/dev/null || true
@@ -567,9 +703,10 @@ do_install() {
     die $EXIT_FAILED "RecipeWarden did not start; see the log above and $ETC/network.json"
   fi
 
-  create_admin
+  [[ -n $restore ]] || create_admin
   prune_releases
   print_summary
+  print_setup_token
 }
 
 do_reconfigure() {
@@ -585,6 +722,7 @@ do_reconfigure() {
   [[ $port == "$old_port" ]] || check_port
   data=$DATA_DEFAULT
   write_network
+  apply_firewall
   new_version=$(basename "$(readlink -f "$OPT/current")"); new_version=${new_version%-*-*}
   start_service || die $EXIT_FAILED "RecipeWarden did not start with the new network settings; edit $ETC/network.json and restart"
   print_summary
@@ -592,6 +730,7 @@ do_reconfigure() {
 
 do_uninstall() {
   step "removing RecipeWarden"
+  remove_firewall
   if (( no_start == 0 )) && [[ -d /run/systemd/system ]]; then
     systemctl disable --now "$APP" >/dev/null 2>&1 || true
   fi

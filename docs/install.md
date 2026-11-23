@@ -78,14 +78,58 @@ The installer asks for the first Admin's email and password on a new install. Un
 ```bash
 sudo recipewarden admin create --email you@example.com
 ```
+If no Admin was created, the installer prints a one-time **setup token** and the address of `/setup`, where you
+either create the first Admin or restore a backup (SEC-15). The page disappears for good once either is done.
+A new token: `sudo recipewarden setup-token`.
 
 ## Everyday commands
 ```bash
-sudo recipewarden health                 # database, journal mode, data folder
+sudo recipewarden health                 # database, disks, backups, capacity (exit 2 when Critical)
+sudo recipewarden backup                 # a backup now, into /var/lib/recipewarden/backups
 systemctl status recipewarden            # service state
 journalctl -u recipewarden -f            # logs (also /var/log/recipewarden/)
 curl http://127.0.0.1:5080/health        # liveness: "ok"
+curl http://127.0.0.1:5080/health/ready  # readiness for Uptime Kuma: 200 (ok/warning) or 503 (critical)
 ```
+
+## Backups
+In the app, **Admin → Backups**: back up now, create the encryption key (downloads the **recovery kit** once — keep
+it and its passphrase away from the server), add schedules with retention, and restore. Until the key exists,
+backups stay in the built-in folder on this server; with it, every backup is encrypted and can go to other folders.
+
+### Backup folders (e.g. a NAS share)
+The app only writes to folders you list, and never mounts anything itself (section 9.6.1):
+1. `sudo mkdir -p /mnt/nas/recipewarden`
+2. Mount the share owned by the service account, e.g. in `/etc/fstab`:
+   `//nas/backups/recipewarden /mnt/nas/recipewarden cifs credentials=/etc/recipewarden-nas.cred,uid=recipewarden,gid=recipewarden,file_mode=0600,dir_mode=0700,_netdev,nofail,x-systemd.automount 0 0`
+   (credentials file 0600 root). For NFS, make the export writable by the service UID.
+3. The marker: `sudo -u recipewarden touch /mnt/nas/recipewarden/.recipewarden-backup-target`
+4. Add the folder to `Backup:AllowedFolders` in `/etc/recipewarden/appsettings.Production.json`.
+5. `sudo recipewarden apply-config` (opens the folder in the service sandbox, restarts, checks health).
+6. In the app: add a schedule to that folder, press **Test folder**, save, and **Run now** once.
+
+If Test says "Read-only file system" after mounting the share, restart the service.
+
+## Restore
+- **In the app**: Backups → an archive's **Restore…** (or upload one up to 100 MB) → check → type `RESTORE`.
+  A pre-restore backup is made first; the site shows a maintenance page while it runs.
+- **From the shell** (works when the web app is down):
+  `sudo recipewarden restore /path/backup-….tar.gz.rwenc --kit /path/recipe-recovery-kit.txt`
+  — checks the archive, asks for `RESTORE`, stops the service, makes a pre-restore backup, restores, migrates and
+  starts the service. An archive from a newer version is refused before anything changes.
+
+## Moving to a new host
+1. On the old host: Admin → Backups → **Back up now**, then download the archive (or copy it from the backup folder).
+2. Copy it and your recovery kit to the new host.
+3. On the new host:
+   ```bash
+   curl -fsSLO https://github.com/kretherford0983/recipewarden/releases/latest/download/install.sh
+   sudo bash install.sh --restore backup-….tar.gz.rwenc --restore-kit recovery-kit.txt \
+     --bind 192.168.1.30 --port 5080 --trusted-proxy 192.168.1.20
+   ```
+   The archive is checked first; recipes, images, accounts and kitchen come from it, the network settings from this
+   host. No Admin is created and no setup token is issued (the accounts are in the backup).
+4. Point the tunnel's ingress `service` at the new address; check the site; stop the old host.
 
 ## Rolling back by hand
 ```bash
@@ -94,7 +138,8 @@ sudo ln -sfn /opt/recipewarden/releases/<previous> /opt/recipewarden/current
 sudo systemctl restart recipewarden
 ```
 The database moves forward with each release; to go back across a database change, restore the matching
-`pre-upgrade-*` copy in `/var/lib/recipewarden/backups/` with the service stopped (full backup and restore arrive in M7).
+`pre-upgrade-*` copy in `/var/lib/recipewarden/backups/` with the service stopped, or restore the full pre-upgrade
+backup the installer made (`backup-*.tar.gz`, listed on Admin → Backups) with `sudo recipewarden restore`.
 
 ## Uninstall
 ```bash
@@ -103,5 +148,8 @@ curl -fsSL https://github.com/kretherford0983/recipewarden/releases/latest/downl
 Keeps the data, settings, logs and service user. Add `--purge` to remove them as well.
 
 ## All options
-Run `sudo bash install.sh --help`. Not available yet: `--restore` (M7), `--framework-dependent`, and managing the
-host firewall (for a LAN bind, also limit the port to the tunnel host with ufw/nftables yourself).
+Run `sudo bash install.sh --help`. Not available yet: `--framework-dependent`.
+
+For a LAN bind the installer also limits the port to the tunnel host (and `--allowed-ips`) in the host firewall:
+with ufw when it is active, otherwise with an nftables table that a service drop-in re-applies at every start.
+`--no-firewall` skips this; the app refuses other addresses either way (SEC-60).

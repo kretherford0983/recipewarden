@@ -189,7 +189,7 @@ public sealed partial class SafeFetcher : IDisposable
     {
         for (var hop = 0; ; hop++)
         {
-            var vetted = await VetAsync(uri, ct).ConfigureAwait(false);
+            var vetted = await VetAsync(uri, allowPrivate: false, ct).ConfigureAwait(false);
             if (vetted.Error is not null)
             {
                 return vetted.Error;
@@ -268,7 +268,7 @@ public sealed partial class SafeFetcher : IDisposable
         }
     }
 
-    private async Task<(IPAddress? Address, FetchResult? Error)> VetAsync(Uri uri, CancellationToken ct)
+    private async Task<(IPAddress? Address, FetchResult? Error)> VetAsync(Uri uri, bool allowPrivate, CancellationToken ct)
     {
         var host = uri.IdnHost.Trim('[', ']');
         IPAddress[] addresses;
@@ -294,7 +294,7 @@ public sealed partial class SafeFetcher : IDisposable
         }
 
         // Refuse when any address is private, so a name cannot mix a public and a private answer.
-        if (addresses.Any(UrlRules.IsBlocked))
+        if (!allowPrivate && addresses.Any(UrlRules.IsBlocked))
         {
             LogRefused(_logger, host, UrlRules.PrivateAddress);
             return (null, FetchResult.Fail(FetchFailure.Blocked, UrlRules.PrivateAddress));

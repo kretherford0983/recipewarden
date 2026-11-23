@@ -1,4 +1,4 @@
-# RecipeWarden — Specification v0.16
+# RecipeWarden — Specification v0.17
 
 Version 0.16 · 2026-11-23
 
@@ -327,7 +327,7 @@ Additional restore rules:
 | BR-81 | Disk thresholds apply to each volume holding data or backups. Defaults: Warning below 20% or 2 GB free; Critical below 10% or 500 MB free; both configurable. |
 | BR-82 | Projection: linear trend of used bytes over the last 30 daily snapshots; "days until full" shows only when at least 7 snapshots exist and growth is positive; Warning when under 60 days, Critical when under 14. |
 | BR-83 | Database: Critical if the last integrity check failed; Warning if reclaimable free pages exceed 25% of the file (suggest VACUUM) or the WAL file exceeds 64 MB. Quick check runs daily, full integrity check weekly. |
-| BR-84 | Backups: Warning when the last successful backup is older than 2x its schedule interval (or 48 h if none is scheduled); Critical after 7 days or when the backup destination is unreachable. |
+| BR-84 | Backups: Warning when the last successful backup is older than 2x its schedule interval (or 48 h if none is scheduled); Critical after 7 days or when the backup destination is unreachable. With no backup yet, the age counts from when health tracking began (ADR 0037). |
 | BR-85 | Recommendations are explicit: below threshold with mostly backups → tighten retention or move backups off-volume; database or images dominant → add disk or migrate to a larger host (link to guide). |
 
 ### 4.9 Export for AI
@@ -694,14 +694,14 @@ SQLite via EF Core 10 with code-first migrations applied at startup. Images live
 | ImportJob | Id, BatchId, SourceKind (Url/Paste/Markdown/Text/Docx/Pdf), SourceRef, Status (Review/Saved/Discarded), RawPath, ParsedJson, WarningsJson, ImageUrl, CopyImage, DuplicateOfRecipeId, CreatedRecipeId, CreatedById, CreatedAt, UpdatedAt | One job per recipe found; a file's recipes share a BatchId. Jobs and raw payloads (`<data>/imports`) kept 30 days (FR-IMP-08, ADR 0024/0025). |
 | AspNet\* tables | Identity users, roles, claims, tokens | Standard Identity schema. |
 | UserPreference | UserId, Theme, Units, DefaultScale | Units: as written, US, metric or weight (ADR 0014). |
-| AuditEntry | Id, At, UserId, Action, EntityType, EntityId, Ip, DetailsJson | Append-only. |
-| BackupRecord | Id, Kind (Manual/Scheduled/PreRestore/PreUpgrade), StartedAt, CompletedAt, Path, Bytes, Sha256, Status, Error |  |
+| AuditEntry | Id, At, UserId, UserName, Action, EntityType, EntityId, Ip, DetailsJson | Append-only. UserName keeps the email (or "system", "anonymous", "cli:&lt;user&gt;") when an account is deleted; details hold changed property names, never values (ADR 0041). |
+| BackupRecord | Id, Kind (Manual/Scheduled/PreRestore/PreUpgrade), ScheduleId, StartedAt, CompletedAt, DestinationFolder, FileName, Bytes, Sha256, Encrypted, KeyFingerprint, Status (Running/Succeeded/Failed), Error, StartedBy, DeletedAt | The path is DestinationFolder + FileName. DeletedAt is set when retention or an Admin removes the file; the row stays as history (ADR 0037). |
 | AppSetting | Key, Value | Schedule, retention, site name, defaults. |
 | StorageSnapshot | Id, TakenAt, DbBytes, WalBytes, FreePages, MediaBytes, ImportBytes, BackupBytes, LogBytes, DataVolumeTotal, DataVolumeFree, BackupVolumeTotal, BackupVolumeFree | One per day; kept 400 days. Drives growth chart and projection. |
 | HealthCheckResult | Id, CheckName, RanAt, Status, Message, DurationMs | Latest per check shown on dashboard; 90 days history. |
 | AiGoalTemplate | Id, Key, Name, DetailsSchemaJson, InstructionTemplate, IsBuiltIn, IsActive, SortOrder | Seeded with the goal catalogue (4.9); built-ins can be edited or reset. |
 | AiPromptHistory | Id, RecipeId, GoalsJson, PromptText, IncludedInventory, CreatedAt, CreatedById, ResultVariantId | Saved when an Editor generates a prompt; links to the variant created from the AI reply. |
-| BackupSchedule | Id, Name, Cron, DestinationFolder (config entry), RetentionJson, IsEnabled, LastRunAt, NextRunAt, RetryAttempt, NextRetryAt | One row per schedule; DestinationFolder must match an allowed folder at save and at run time. BackupRecord gains ScheduleId, DestinationFolder and Encrypted; retention reads only its own BackupRecord rows. |
+| BackupSchedule | Id, Name, Cron, DestinationFolder (config entry), KeepLast, KeepDaily, KeepWeekly, KeepMonthly, IsEnabled, LastRunAt, NextRunAt, RetryAttempt, NextRetryAt, CreatedAt, UpdatedAt | One row per schedule; DestinationFolder must match an allowed folder at save and at run time; retention reads only its own BackupRecord rows. Retention is four columns (ADR 0037). |
 
 An ER diagram will be generated from the EF model in the repo (`docs/erd.md`, Mermaid) so it never drifts from code.
 
@@ -807,7 +807,7 @@ Pure, deterministic code in Core, and the most heavily tested part of the system
 
 One command installs or upgrades (ADR 0007, docs/install.md): `curl -fsSL https://github.com/<owner>/recipewarden/releases/latest/download/install.sh | sudo bash`, or `…/releases/download/<tag>/install.sh | sudo bash -s -- --version <tag>` for a specific (e.g. development) build. `install.sh` resolves the release through the public GitHub API, downloads the package and `SHA256SUMS.txt`, and refuses a checksum mismatch.
 
-`install.sh` flags: `--version`, `--channel auto|release|dev`, `--package <file>`, `--port`, `--bind`, `--trusted-proxy`, `--allowed-ips`, `--data-dir`, `--backup-dir`, `--admin-email`, `--admin-password-file`, `--yes`, `--unattended`, `--no-start`, `--reconfigure`, `--uninstall [--purge]`, `--restore` (M7), `--framework-dependent` (later). Steps: require root, a supported OS and systemd → check the port from `/proc/net/tcp` (suggest the next free one) → download and verify → install missing packages (ICU, CA certificates) → create user and directories with permissions → unpack the release to `/opt/recipewarden/releases/<version>-<time>/` → on upgrade, stop and copy the database to `backups/pre-upgrade-<time>/` → write settings (new installs) → point `current` at the release, install the unit and the backup drop-in (`apply-config`) → start and poll `/health` → create the first admin → keep the three newest releases → print the URL and the cloudflared ingress example. An upgrade that fails health rolls back to the previous release automatically.
+`install.sh` flags: `--version`, `--channel auto|release|dev`, `--package <file>`, `--port`, `--bind`, `--trusted-proxy`, `--allowed-ips`, `--data-dir`, `--backup-dir`, `--admin-email`, `--admin-password-file`, `--yes`, `--unattended`, `--no-start`, `--no-firewall`, `--reconfigure`, `--uninstall [--purge]`, `--restore <archive>` with `--restore-kit <file>` and `--restore-passphrase-file <file>` (M7, ADR 0040), `--framework-dependent` (later). Steps: require root, a supported OS and systemd → check the port from `/proc/net/tcp` (suggest the next free one) → download and verify → install missing packages (ICU, CA certificates) → create user and directories with permissions → unpack the release to `/opt/recipewarden/releases/<version>-<time>/` → on upgrade, stop and copy the database to `backups/pre-upgrade-<time>/` → write settings (new installs) → point `current` at the release, install the unit and the backup drop-in (`apply-config`) → start and poll `/health` → create the first admin → keep the three newest releases → print the URL and the cloudflared ingress example. An upgrade that fails health rolls back to the previous release automatically.
 
 Settings: `/etc/recipewarden/appsettings.Production.json` belongs to the server owner and is never overwritten; `/etc/recipewarden/network.json` (Kestrel URL, `Network:TrustedProxies`, `Network:AllowedSourceIps`) is written by the installer and `--reconfigure`, and may be edited by hand followed by a service restart. The app and CLI load both. `/usr/local/bin/recipewarden` runs CLI commands as the service user (root only for `apply-config`).
 
@@ -955,7 +955,7 @@ The repository is public (ADR 0005): GitHub-hosted Actions minutes are free and 
 6. **M5 Output** — print, Markdown export (single, zip with images, bulk), cook mode, shopping lists (ADR 0027 to 0032).
 7. **M5b AI exchange** — Export for AI, the recipe-md JSON Schema, AI-response import as a variant (ADR 0027, ADR 0033; FR-EXP-08 deferred).
 8. **M6 Nutrition and allergens** — bundled SR Legacy data, calculated nutrition, imported and manual panels, allergen detection and overrides, the "free of" filter, the unmatched report, mapping, label foods, and the `nutrition-import` CLI. The upload page for a newer dataset is M7; AI mapping suggestions (FR-NUT-06) are M8 (ADR 0034 to 0036).
-9. **M7 Operations** — backups, schedule, retention, restore (ad hoc, CLI and at install), audit, health and capacity dashboard, installer upgrade/rollback.
+9. **M7 Operations** — backups, schedule, retention, encryption and recovery kit, restore (ad hoc, CLI and at install), `/setup`, audit, users, settings, health and capacity dashboard, `/admin/nutrition-data`, installer restore, pre-upgrade backup and firewall rule (ADR 0037 to 0041). TOTP, `/account/password` and `/admin/ai` are M8.
 10. **M8 Hardening** — optional AI parser (FR-IMP-09/10, FR-NUT-06, ADR 0026), security test pass, accessibility pass, performance at 5,000 recipes, v1.0 release.
 
 ## 10. Requirements traceability
@@ -1190,6 +1190,8 @@ We are starting milestone M0 (Foundations) from docs/spec.md, section 9.10.
 Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. Show me the test list for these ACs before writing implementation code."
 
 ## Changelog
+
+- v0.17 (2026-11-23): M7 Operations, built unattended (ADR 0037 to 0041, for owner review). 8.5 AuditEntry.UserName; BackupRecord and BackupSchedule columns as built. BR-84: with no backup yet, the age counts from when health tracking began (ADR 0037). 9.5 installer flags `--restore-kit`, `--restore-passphrase-file`, `--no-firewall`; `recipewarden backup`, `restore`, `setup-token`. Data Protection keys are part of every backup (ADR 0038). Backup encryption format (ADR 0039). Restore and setup (ADR 0040). Audit through EF Core and the single LAN exception for outbound calls (ADR 0041).
 
 - v0.16 (2026-11-23): M6 Nutrition and allergens (ADR 0034 to 0036; details for owner review). D-06 names SR Legacy as the bundled dataset; Foundation Foods can be applied later with the same importer. 7.2 adds `/manage/recipes/{id}/nutrition`. 8.2 NutritionFacts keeps manual and imported panels only (calculated on view); RecipeAllergen stores codes as text with Origin in the key. 8.3 NutrientRef columns, NutrientDataset, Food.NutrientRefId; no Allergen or FoodAllergen tables. 9.7 `per_serving` keys and allergen codes. 9.10: the dataset upload page moves to M7 and FR-NUT-06 to M8.
 - v0.15 (2026-11-23): M5b AI exchange (ADR 0033, for owner review). Export for AI for a recipe, a collection or all recipes (7.2 adds `/recipes/export-ai`), with built-in goal templates; FR-EXP-08 (editable templates, prompt history) deferred. Import AI response saves a draft variant by default, keeps the original's source, adds the "Adapted with AI assistance" note, and can replace the original after a version check. 7.2 adds `/docs/recipe-md.schema.json`. The recipe page links variants and their parent.

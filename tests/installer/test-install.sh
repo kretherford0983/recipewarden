@@ -74,7 +74,9 @@ run 1 "not a valid email" "admin email with # after the @ is rejected (AC-100)" 
 run 1 "not a valid email" "admin email without a domain dot is rejected (AC-100)" -- bash "$installer" --admin-email 'name@example'
 run 1 "not a valid email" "admin email with .. is rejected (AC-100)" -- bash "$installer" --admin-email 'na..me@example.com'
 run 1 "file not found" "missing package is rejected" -- bash "$installer" --package /nope.tar.gz
-run 3 "milestone M7" "restore is not available yet" -- bash "$installer" --restore /tmp/backup.tar.gz
+run 1 "--restore: file not found" "--restore with a missing archive is refused" -- bash "$installer" --restore /tmp/no-such-backup.tar.gz
+run 1 "--restore-kit needs --restore" "a recovery kit without --restore is refused" -- bash "$installer" --restore-kit /etc/hostname
+run 1 "is for a new install" "--restore with --reconfigure is refused" -- bash "$installer" --reconfigure --restore /etc/hostname
 
 # ------------------------------------------------------------------ root, OS, systemd, port
 run 2 "run as root" "non-root is refused" -- setpriv --reuid=65534 --regid=65534 --clear-groups bash "$installer"
@@ -138,13 +140,17 @@ check "network.json allows the LAN range and the host's own bind IP" grep -q '"A
 check "backup folder added to Backup:AllowedFolders" grep -q '/srv/rw-backups' /etc/recipewarden/appsettings.Production.json
 check "systemd unit installed" grep -q 'ExecStart=/opt/recipewarden/current/web/RecipeWarden.Web' /etc/systemd/system/recipewarden.service
 check "apply-config wrote the backup drop-in" grep -q 'ReadWritePaths="-/srv/rw-backups"' /etc/systemd/system/recipewarden.service.d/backup-folders.conf
+check "FR-BKP-12: the built-in backup folder has its marker" test -f /var/lib/recipewarden/backups/.recipewarden-backup-target
+check "SEC-15: without an Admin a one-time /setup token was issued" test -f /var/lib/recipewarden/setup/token.json
 run 0 "$version" "CLI reports the package version" -- /usr/local/bin/recipewarden --version
 
 pwfile=$(mktemp); echo "correct horse battery staple" > "$pwfile"; chmod 0644 "$pwfile"
 run 0 "created" "FR-INST-04: Admin account from the CLI as the service user" -- \
   /usr/local/bin/recipewarden admin create --email admin@example.com --password-stdin < "$pwfile"
 check "database belongs to the service user" test "$(stat -c %U /var/lib/recipewarden/db/recipewarden.db)" == recipewarden
-run 0 "Status: OK" "CLI health is OK" -- /usr/local/bin/recipewarden health
+# The health command also judges this machine's disk (BR-81), so only the database line is asserted here.
+run_health() { { /usr/local/bin/recipewarden health 2>&1 || true; } | grep -q "quick_check: ok"; }
+check "CLI health: the database is sound" run_health
 
 # ------------------------------------------------------------------ upgrade
 echo '{ "Data": { "Directory": "/var/lib/recipewarden" }, "Backup": { "AllowedFolders": [ "/var/lib/recipewarden/backups" ] }, "Mine": 1 }' \
@@ -158,7 +164,8 @@ check "the previous release is kept" test -d "$first"
 check "settings were not overwritten" grep -q '"Mine": 1' /etc/recipewarden/appsettings.Production.json
 check "network settings kept" grep -q "http://192.168.1.15:$((port + 1))" /etc/recipewarden/network.json
 check "database snapshot taken before upgrade" compgen -G "/var/lib/recipewarden/backups/pre-upgrade-*/db/recipewarden.db"
-run 0 "Status: OK" "data still healthy after upgrade" -- /usr/local/bin/recipewarden health
+check "FR-INST-03: full pre-upgrade backup archive" compgen -G "/var/lib/recipewarden/backups/backup-*.tar.gz"
+check "data still healthy after upgrade" run_health
 
 # ------------------------------------------------------------------ reconfigure
 run 0 "network.json" "reconfigure changes the port and keeps the proxy" -- \
@@ -183,7 +190,26 @@ check "loopback: proxy defaults to the bind IP" grep -q '"TrustedProxies": \[ "1
 check "loopback: no extra allowed addresses" grep -q '"AllowedSourceIps": \[  \]' /etc/recipewarden/network.json
 run 0 "network.json" "reconfigure works with an empty allowed list" -- bash "$installer" --no-start --reconfigure --port "$((port + 4))"
 check "loopback: new port written" grep -q "http://127.0.0.1:$((port + 4))" /etc/recipewarden/network.json
+
+# ------------------------------------------------------------------ AC-83: move to a new host with --restore
+run 0 "created" "an Admin on host A" -- /usr/local/bin/recipewarden admin create --email mover@example.com --password-stdin < "$pwfile"
+archive=$(/usr/local/bin/recipewarden backup 2>&1 | head -1)
+check "FR-BKP-01: CLI backup prints the archive path" test -f "$archive"
+cp "$archive" /root/rw-move.tar.gz
+run 0 "Removed the app, its data" "host A is wiped" -- bash "$installer" --no-start --uninstall --purge
+run 0 "is installed" "AC-83: install --restore on a clean host" -- \
+  bash "$installer" --no-start --yes --unattended --package "$package" --port "$((port + 5))" --restore /root/rw-move.tar.gz
+run 1 "already exists" "AC-83: the Admin came from the backup" -- /usr/local/bin/recipewarden admin create --email mover@example.com --password-stdin < "$pwfile"
+check "AC-83: the new host's port is used, not host A's" grep -q "http://127.0.0.1:$((port + 5))" /etc/recipewarden/network.json
+check "BR-66: /setup is disabled after a restore" test -f /var/lib/recipewarden/setup/complete
+run 1 "already installed" "--restore on an installed host points to the CLI" -- \
+  bash "$installer" --no-start --yes --unattended --package "$package" --restore /root/rw-move.tar.gz
+bad_archive=$(mktemp --suffix=.tar.gz); echo "not a backup" > "$bad_archive"
 run 0 "Removed the app, its data" "clean up" -- bash "$installer" --no-start --uninstall --purge
+run 4 "the backup was refused" "AC-83: a damaged archive is refused" -- \
+  bash "$installer" --no-start --yes --unattended --package "$package" --port "$((port + 6))" --restore "$bad_archive"
+run 0 "Removed the app, its data" "clean up" -- bash "$installer" --no-start --uninstall --purge
+rm -f /root/rw-move.tar.gz "$bad_archive"
 
 echo "installer tests: $pass passed, $fail failed"
 [[ $fail -eq 0 ]]

@@ -55,6 +55,64 @@ public static class UploadValidator
         return (new ValidatedUpload(check.Kind!.Value, name, bytes), null);
     }
 
+    /// <summary>
+    /// SEC-50, ADR 0040: a backup archive or dataset zip is streamed to <paramref name="targetPath"/> (on the data
+    /// volume, never in memory) with a hard cap, after its name and first bytes are checked. On any error the file is
+    /// removed. Its content is checked by its reader before anything is applied.
+    /// </summary>
+    public static async Task<string?> SaveArchiveAsync(Stream stream, string? fileName, long length, ArchiveUploadKind kind, long maxBytes,
+        string targetPath, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        var name = SafeName(fileName);
+        if (name is null)
+        {
+            return NoFileName;
+        }
+
+        var head = new byte[8];
+        var read = await stream.ReadAtLeastAsync(head, head.Length, throwOnEndOfStream: false, cancellationToken).ConfigureAwait(false);
+        var error = ArchiveUploadRules.Check(kind, name, length, head.AsSpan(0, read), maxBytes);
+        if (error is not null)
+        {
+            return error;
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
+        var output = new FileStream(targetPath, FileMode.CreateNew, FileAccess.Write);
+        var ok = false;
+        try
+        {
+            await using (output.ConfigureAwait(false))
+            {
+                await output.WriteAsync(head.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+                var buffer = new byte[81920];
+                long total = read;
+                int n;
+                while ((n = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+                {
+                    total += n;
+                    if (total > maxBytes)
+                    {
+                        return ArchiveUploadRules.Check(kind, name, total, head.AsSpan(0, read), maxBytes);
+                    }
+
+                    await output.WriteAsync(buffer.AsMemory(0, n), cancellationToken).ConfigureAwait(false);
+                }
+            }
+
+            ok = true;
+            return null;
+        }
+        finally
+        {
+            if (!ok)
+            {
+                File.Delete(targetPath);
+            }
+        }
+    }
+
     public static async Task<(ValidatedUpload? Upload, string? Error)> ReadImageAsync(Stream stream, string? fileName, long length, CancellationToken cancellationToken = default)
     {
         var name = SafeName(fileName);

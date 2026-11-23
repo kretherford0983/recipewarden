@@ -1,0 +1,94 @@
+@page "/admin/health"
+@model RecipeWarden.Web.Pages.Admin.HealthModel
+@using RecipeWarden.Core.Health
+@{
+    ViewData["Title"] = "Health";
+    var r = Model.Report;
+    var points = Model.ChartPoints();
+}
+<p><a href="/admin">Admin</a></p>
+<h1>Health and capacity</h1>
+@if (Model.Message is not null) { <div class="notice" role="status"><p>@Model.Message</p></div> }
+<p class="overall @RecipeWarden.Web.Pages.Admin.HealthModel.CssStatus(r.Status)">Overall: <strong>@r.Status</strong></p>
+@if (r.Recommendation is not null) { <div class="notice" role="note"><p><strong>Recommendation:</strong> @r.Recommendation</p></div> }
+
+<table class="list">
+    <thead><tr><th scope="col">Check</th><th scope="col">Status</th><th scope="col">Details</th></tr></thead>
+    <tbody>
+    @foreach (var c in r.Checks)
+    {
+        <tr><td>@c.Name</td><td class="@RecipeWarden.Web.Pages.Admin.HealthModel.CssStatus(c.Status)">@c.Status</td><td>@c.Message</td></tr>
+    }
+    </tbody>
+</table>
+
+<h2>Storage</h2>
+<table class="list">
+    <thead><tr><th scope="col">Volume</th><th scope="col">Total</th><th scope="col">Used</th><th scope="col">Free</th></tr></thead>
+    <tbody>
+    @foreach (var v in r.Volumes)
+    {
+        <tr><td>@v.Label <code>@v.Path</code></td><td>@HealthRules.FormatBytes(v.TotalBytes)</td><td>@HealthRules.FormatBytes(v.UsedBytes)</td><td>@HealthRules.FormatBytes(v.FreeBytes) (@v.FreePercent%)</td></tr>
+    }
+    </tbody>
+</table>
+<h3>Space by category</h3>
+<dl class="facts">
+    <dt>Database</dt><dd>@HealthRules.FormatBytes(r.Space.Database)</dd>
+    <dt>Images</dt><dd>@HealthRules.FormatBytes(r.Space.Media)</dd>
+    <dt>Import files</dt><dd>@HealthRules.FormatBytes(r.Space.Imports)</dd>
+    <dt>Backups on this server</dt><dd>@HealthRules.FormatBytes(r.Space.Backups)</dd>
+    <dt>Logs</dt><dd>@HealthRules.FormatBytes(r.Space.Logs)</dd>
+    <dt>Days until full</dt><dd>@(r.DaysUntilFull is { } d ? Math.Floor(d).ToString() : "not enough history yet")</dd>
+</dl>
+<figure class="chart">
+    <figcaption>Used space on the data volume, last 90 days (@r.History.Count daily snapshots)</figcaption>
+    @if (points.Length == 0)
+    {
+        <p class="empty-state">The chart appears after two daily snapshots.</p>
+    }
+    else
+    {
+        <svg viewBox="0 0 600 170" width="100%" height="170" role="img" aria-label="Used space over the last 90 days">
+            <polyline points="@points" fill="none" stroke="currentColor" stroke-width="2"></polyline>
+        </svg>
+    }
+</figure>
+
+<h2>Database</h2>
+<dl class="facts">
+    <dt>File</dt><dd>@HealthRules.FormatBytes(r.Database.FileBytes) (WAL @HealthRules.FormatBytes(r.Database.WalBytes))</dd>
+    <dt>Reclaimable free pages</dt><dd>@r.Database.FreePages of @r.Database.PageCount (@HealthRules.FormatBytes(r.Database.FreePages * r.Database.PageSize))</dd>
+    <dt>Last integrity check</dt><dd>@(r.LastIntegrityAt is { } at ? at.ToLocalTime().ToString("yyyy-MM-dd HH:mm") + (r.LastIntegrityOk == true ? ", passed" : ", FAILED") : "not run yet")</dd>
+    <dt>Schema version</dt><dd><code>@r.Database.SchemaVersion</code></dd>
+    @foreach (var (name, count) in r.Database.Counts) { <dt>@name</dt><dd>@count</dd> }
+</dl>
+
+<h2>Backups and app</h2>
+<dl class="facts">
+    <dt>Last successful backup</dt><dd>@(r.LastBackupAt is { } b ? b.ToLocalTime().ToString("yyyy-MM-dd HH:mm") + " (" + HealthRules.FormatAge(r.At - b) + " ago)" : "none yet") — <a href="/admin/backups">Backups</a></dd>
+    <dt>Version</dt><dd>@Model.Version</dd>
+    <dt>Uptime</dt><dd>@HealthRules.FormatAge(Model.Uptime)</dd>
+    <dt>Memory</dt><dd>@HealthRules.FormatBytes(Model.WorkingSetBytes) in use (managed heap @HealthRules.FormatBytes(Model.MemoryBytes))</dd>
+</dl>
+
+<h2>Maintenance</h2>
+<div class="actions">
+    <form method="post" action="/admin/health?handler=Integrity" asp-antiforgery="true"><button type="submit">Run integrity check</button></form>
+    <form method="post" action="/admin/health?handler=Compact" asp-antiforgery="true"><button type="submit">Compact the database (VACUUM)</button></form>
+    <form method="post" action="/admin/health?handler=Purge" asp-antiforgery="true"><button type="submit">Purge expired imports and trash</button></form>
+</div>
+
+<details id="move-guide" class="guide">
+    <summary><h2>Move to a new host</h2></summary>
+    <ol>
+        <li>On <a href="/admin/backups">Backups</a>, press <strong>Back up now</strong> and download the archive (and have your recovery kit and passphrase ready if it is encrypted).</li>
+        <li>Copy the archive to the new host, e.g. <code>scp backup-….tar.gz.rwenc you@@new-host:</code></li>
+        <li>On the new host run the installer with the archive and its new address:
+            <pre><code>curl -fsSLO https://github.com/kretherford0983/recipewarden/releases/latest/download/install.sh
+sudo bash install.sh --restore backup-….tar.gz.rwenc --restore-kit recovery-kit.txt --bind 192.168.1.30 --port 5080 --trusted-proxy 192.168.1.20</code></pre>
+            It checks the archive first, then installs, restores recipes, images, accounts and kitchen, and keeps the new host's network settings.</li>
+        <li>Point the Cloudflare Tunnel's ingress <code>service</code> at the new address and check the site.</li>
+        <li>Stop the old host: <code>sudo systemctl disable --now recipewarden</code>.</li>
+    </ol>
+</details>

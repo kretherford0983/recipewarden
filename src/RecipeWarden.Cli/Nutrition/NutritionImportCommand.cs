@@ -34,6 +34,7 @@ internal static class NutritionImportCommand
 
         var services = new ServiceCollection();
         services.AddLogging(b => b.SetMinimumLevel(LogLevel.Warning));
+        services.AddSingleton<RecipeWarden.Infrastructure.Audit.IAuditActor>(new Operations.CliActor()); // FR-ADM-01: audited as cli:<os user>
         services.AddRecipeWardenData(config);
         services.AddRecipeWardenIdentityCore();
         await using var provider = services.BuildServiceProvider();

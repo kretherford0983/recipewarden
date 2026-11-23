@@ -24,7 +24,7 @@
     <Product>RecipeWarden</Product>
     <!-- The release version. Bump it on the first feature branch of a new release (docs/branching.md);
          CI adds the pre-release suffix for develop builds (0.1.0-dev.<run>). -->
-    <VersionPrefix>0.6.0</VersionPrefix>
+    <VersionPrefix>0.7.0</VersionPrefix>
   </PropertyGroup>
 
   <!-- SEC-20, SEC-22: banned APIs (raw SQL with interpolation, Html.Raw) fail the build. -->

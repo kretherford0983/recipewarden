@@ -3,6 +3,26 @@
 Each release has a `## <version> — unreleased` section until it ships; the GitHub release carries the publish date.
 The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.Build.props` and adds its section.
 
+## 0.7.0 — unreleased
+
+### M7 Operations
+- Version bumped to 0.7.0 (docs/branching.md).
+- ADRs 0037 to 0041 (decisions made while the owner was away, for review).
+- Backups (FR-BKP-01 to 05): back up now, schedules (daily, weekly or cron) to allowed folders, grandfather-father-son
+  retention that only touches the schedule's own archives, run history with download and delete, failure banner and
+  retries after 1, 2, 4 … hours (AC-80, AC-81, AC-87 to 89).
+- Encrypted backups with a one-time recovery kit (FR-BKP-15, ADR 0039); Data Protection keys included (ADR 0038).
+- Restore from a listed or uploaded archive with a validation report and the word RESTORE, maintenance page,
+  pre-restore backup and rollback on failure (FR-BKP-04, AC-82); `sudo recipewarden restore` (AC-85);
+  `install.sh --restore` for moving hosts (AC-83); first-run `/setup` with a one-time token (AC-84).
+- Audit log of every write with user, time and IP, and `/admin/audit` (FR-ADM-01, AC-74).
+- `/admin/users` (create, roles, lock, password, delete; the last Admin is protected, AC-72), `/admin/settings`
+  (site name, disk thresholds, webhook), `/admin` dashboard, `/admin/nutrition-data` upload.
+- Health and capacity (FR-OPS-02 to 05): `/admin/health` with storage by category, 90-day chart, days-until-full,
+  integrity check, compact and purge; Admin banners; `/health/ready`; status-change webhook; `recipewarden health`.
+- Installer: full pre-upgrade backup, setup token, host firewall rule for LAN binds (SEC-60), `--restore-kit`.
+- New CLI commands: `backup`, `restore`, `setup-token`. New package: Cronos (MIT). Migration `M7_Operations`.
+
 ## 0.6.0 — unreleased
 
 ### M6 Nutrition and allergens
