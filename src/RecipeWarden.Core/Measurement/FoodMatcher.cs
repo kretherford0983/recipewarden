@@ -53,6 +53,9 @@ public sealed class FoodMatcher
 
     public int Count => byKey.Count;
 
+    /// <summary>True for a size, state or preparation word ("large", "diced"), which does not say which food it is.</summary>
+    public static bool IsModifier(string word) => Modifiers.Contains(word);
+
     /// <summary>The food for an ingredient name, or null when nothing matches exactly.</summary>
     public int? Match(string? ingredientName)
     {
