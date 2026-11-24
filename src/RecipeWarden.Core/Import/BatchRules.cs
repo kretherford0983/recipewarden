@@ -11,7 +11,7 @@ namespace RecipeWarden.Core.Import;
 public sealed record FoldedBatch(ImportedRecipe Recipe, string Note, string Remark);
 
 /// <summary>
-/// BR-124 to BR-126 (FR-IMP-04, owner decisions D1 and D2, ADR 0055): one file can hold the same recipe at several
+/// BR-124 to BR-126 (FR-IMP-04, owner decisions D1 and D2, ADR 0056): one file can hold the same recipe at several
 /// batch sizes ("Kansas Corn Bake (Single Batch)" and "(Double Batch)"). Only the base recipe is imported; what scaling
 /// cannot reproduce goes into its notes. Variations with different titles are always separate recipes.
 /// </summary>
@@ -190,7 +190,7 @@ public static partial class BatchRules
     }
 
     /// <summary>
-    /// Owner decision D3 (ADR 0055): ingredient groups that are two versions of one part ("Sauce (Side Dish)" and
+    /// Owner decision D3 (ADR 0056): ingredient groups that are two versions of one part ("Sauce (Side Dish)" and
     /// "Sauce (Taco Topping)"). Returns the shared names; the review warns, it does not decide.
     /// </summary>
     public static IReadOnlyList<string> AlternativeGroups(IEnumerable<string> ingredientLines)

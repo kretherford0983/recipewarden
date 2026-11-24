@@ -6,7 +6,7 @@ using RecipeWarden.Infrastructure.Shopping;
 namespace RecipeWarden.Web.Pages.Manage;
 
 /// <summary>
-/// FR-SHOP-05, ADR 0056, route /manage/staples: the household's staples (one list for everyone). Editor-only by
+/// FR-SHOP-05, ADR 0057, route /manage/staples: the household's staples (one list for everyone). Editor-only by
 /// folder policy; every change is audited (AC-74).
 /// </summary>
 public sealed class StaplesModel(StapleService staples) : PageModel

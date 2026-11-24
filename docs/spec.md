@@ -1,6 +1,6 @@
-# RecipeWarden — Specification v0.26
+# RecipeWarden — Specification v0.27
 
-Version 0.26 · 2026-11-24
+Version 0.27 · 2026-11-24
 
 ## 1. Overview
 
@@ -141,7 +141,7 @@ Requirements carry stable IDs (FR = functional, NFR = non-functional) used by th
 | FR-TOOL-02 | Add, edit, retire and re-activate tools at any time; retired tools are kept for history. | M |
 | FR-TOOL-03 | All display plans (FR-MEAS-02) use only active tools. | M |
 | FR-TOOL-04 | When a recipe is opened and the inventory has changed since that recipe last evaluated suggestions, show applicable suggestions (e.g. "You now have a scale — show flour by weight?", "New 1/8 tsp spoon replaces 'scant 1/4 tsp'", "Instant Pot added — pressure-cook variation available"). | M |
-| FR-TOOL-05 | Suggestions can be applied (to the view, or saved to the recipe by an editor) or dismissed per recipe; dismissed suggestions do not return unless the inventory changes again in a way that creates a new suggestion. | M |
+| FR-TOOL-05 | Suggestions can be applied (to the view, or saved to the recipe by an editor) or dismissed per recipe, and a scale suggestion line by line: ticked ingredients are weighed, unticked ones stay as written (BR-122). Dismissed suggestions do not return unless the inventory changes again in a way that creates a new suggestion. | M |
 
 ### 3.7 Shopping list (SHOP)
 
@@ -149,8 +149,9 @@ Requirements carry stable IDs (FR = functional, NFR = non-functional) used by th
 | --- | --- | --- |
 | FR-SHOP-01 | Create a shopping list from one or more recipes at chosen scales. | M |
 | FR-SHOP-02 | Merge like ingredients across recipes with unit conversion (1 cup + 4 Tbsp butter → 1 1/4 cups / 10 oz); use purchase state from yield conversions. | M |
-| FR-SHOP-03 | Group items by store section; manual items can be added; items can be checked off; pantry staples are excluded by default and listed separately. | M |
+| FR-SHOP-03 | Group items by store section; manual items can be added; items can be checked off; pantry staples needed by recipes are not added to the main list but shown under **Check before you buy** with the amount needed and the recipes; each can be marked **Have it** or **Need it** (BR-43, BR-44). | M |
 | FR-SHOP-04 | Print a shopping list and export it as plain text/Markdown. | S |
+| FR-SHOP-05 | Editors keep the household staples list (catalogue foods or household items, each with a kitchen location, an optional usual amount and store section). **Check staples** on a list, or "Start with a staples check" for a new one, walks through the recipe staples first, then every other staple by location; ticked ones go on the list as restock items (BR-45 to BR-47, ADR 0057). | S |
 
 ### 3.8 Nutrition and allergens (NUT / ALG)
 
@@ -262,6 +263,10 @@ These rules are enforced in the domain layer (not only the UI) and each has unit
 | BR-117 | (M10, FR-IMP-12) URL extraction order: JSON-LD → microdata; if that result is complete (title, ≥ 1 ingredient, ≥ 1 step) it wins; else, if the host has a site scraper and the scraper's result is complete, it wins; else the heading heuristic. `Import:SiteScrapers` turns the scraper step off; its default follows the `import-compare` data (ADR 0051, D6). |
 | BR-118 | (FR-IMP-11) Second-opinion comparison: quantities equal within 0.001 (ranges compare both ends), units equal after the unit alias table, food names equal after removing the FoodMatcher modifier words and plurals, with "or" read as "and" (alternatives). A count word the .NET parser keeps in the name ("6 garlic cloves") that the NLP parser reads as the unit ("6 cloves garlic") is the same reading. Only quantity, unit or food differences are flagged; preparation and notes are not. |
 | BR-119 | Python results are advisory: a failure, timeout or invalid response never blocks an import, a save or a page; the .NET result is used and the event is logged once per request (ADR 0051). |
+| BR-124 | (FR-IMP-04, ADR 0056) Two recipes in one file are batch sizes of one recipe when their titles match once a batch word is removed ("(Single Batch)", "Double", "x2", "for 12") and their ingredients overlap by more than 80% with one consistent ratio (at least 70% of matched amounts within ±15%). |
+| BR-125 | Only the base batch ("single", else the one without a batch word) is imported. The other's differences from the base scaled by the ratio (ingredient lines off the ratio or in only one, servings, pan, times, steps, notes) go into the base's notes, and the review offers "Import it as its own recipe". |
+| BR-126 | Recipes whose titles still differ without a batch word are variations: always separate drafts. Two versions of one ingredient group ("Sauce (Side Dish)", "Sauce (Taco Topping)") get a review warning, not a change. |
+| BR-127 | Loose Markdown: dividers and in-file links are dropped; servings and times are read from bullets ("- **Prep:** 10 minutes", "Bake:"); a pan under Yield prefills the pan; a bold line before a numbered item, or a `###` heading holding one step, is that step's heading; indented bullets stay in their step; italics are removed; a Nutrition section becomes the imported panel. |
 
 ### 4.3 Scaling and conversion
 
@@ -292,6 +297,10 @@ These rules are enforced in the domain layer (not only the UI) and each has unit
 | BR-31 | Each recipe stores the inventory version at which suggestions were last accepted (`InventoryVersionSeen`). On view, suggestions are re-evaluated in memory against the snapshot at that version; viewing never writes (SEC-31, ADR 0017). Measures (spoons, cups) apply at once; a new scale is offered as weights. Dismissing or applying needs Editor and moves the stored version. |
 | BR-32 | A suggestion is shown only if it changes at least one displayed amount, tool or method, and it is keyed (e.g. `scale:flour`) so a dismissal is remembered per recipe. |
 | BR-33 | If no measuring tools are in the inventory, the planner assumes a standard US set (1/4, 1/2 and 1 tsp; 1 Tbsp; 1/4, 1/3, 1/2 and 1 cup) and says so. |
+| BR-120 | (ADR 0055) A kitchen tool keeps only its type's fields: size (spoons, cups, jugs, containers, scales, pans), scale units (scales), fill % (containers). The form shows only those; anything else posted is cleared on save. |
+| BR-121 | A scale's resolution is its smallest step, from the "Max … x [step]" label; a bare number is grams; at most 50 g. Units are g and oz (ml and fl oz modes assume water; lb is shown from oz). |
+| BR-122 | Each ingredient line has a measure: Auto (BR-22), Weight or As written. Applying a scale suggestion weighs the ticked lines and stores As written on the unticked ones; Show me weighs ticked lines for that view only. A choice follows its line while the line's text is unchanged. |
+| BR-123 | A weight under five steps of the scale shows "Small amount for this scale: weigh onto a zeroed plate, or use …" with the spoon amount; it never blocks the choice. |
 
 ### 4.5 Shopping lists
 
@@ -300,6 +309,12 @@ These rules are enforced in the domain layer (not only the UI) and each has unit
 | BR-40 | Items merge only when the ingredient matches and units are convertible; otherwise they list as separate lines under the same ingredient. |
 | BR-41 | Merged quantities round up to purchasable amounts where a package size is known (e.g. butter in 1/2 cup sticks). |
 | BR-42 | Each item keeps links to the recipes it came from. |
+| BR-43 | (ADR 0057) A staple needed by a recipe on the list starts as *to check*, with the merged amount and its recipes. It is never added to or dropped from the main list without someone choosing. |
+| BR-44 | *Have it* marks it checked off for this list only; *Need it* moves it to the main list in its store section, merged by BR-40/41. Either can be undone. Answering is anonymous like a tick (ADR 0028). |
+| BR-45 | A restock item uses the staple's usual amount ("1 dozen" = 12), else no amount. If a recipe on the list needs the same food the two merge into one item showing both sources ("Restock"). A staple is restocked once per list. |
+| BR-46 | Unanswered staples do not stop a list from finishing; the heading shows "N staples to check" while any are unanswered. |
+| BR-47 | Ticking a restock item records when its staple was last bought; the walk-through shows "last bought 3 weeks ago". |
+| BR-48 | A shopping line records whether its food was a staple when it was added, so changing the staples list never moves items on open lists. |
 
 ### 4.6 Nutrition and allergens
 
@@ -563,7 +578,7 @@ The site should feel like a well-designed cookbook: calm, readable, fast, and us
 **W6 — Build a shopping list**
 
 1. From a recipe, "Add to shopping list" with the current scale; repeat for other recipes.
-2. Shopping list page merges and groups by store section; pantry staples collapse into "You probably have".
+2. Shopping list page merges and groups by store section; staples the recipes need wait under "Check before you buy" (Have it / Need it); "Check staples" walks the kitchen to restock.
 3. In the store, tap to check off; print or copy as text.
 
 **W7 — Back up and restore (Admin)**
@@ -616,6 +631,9 @@ Three zones: public reading pages, `/manage` for editors, `/admin` for admins. T
 | `/collections`, `/collections/{slug}` | Collection index and detail | Anonymous |
 | `/shopping`, `/shopping/{id}` | Lists; view, print, text/Markdown export and check off (POST `?handler=Check`: antiforgery, 120 a minute per IP) | Anonymous (per D-10, ADR 0028) |
 | `/shopping/new`, `/shopping/{id}` editing handlers | Create, start again, add a recipe (from the recipe page) or item, remove, delete | Editor |
+| `/shopping/{id}` `?handler=Staple` | Have it / Need it for a staple on the list (BR-44; antiforgery, the check-off rate limit) | Anonymous (ADR 0057) |
+| `/shopping/{id}/staples` | Staples walk-through: recipe staples, then the rest by location; adds restock items (FR-SHOP-05) | Editor |
+| `/manage/staples` | The household staples list: add, edit, remove (FR-SHOP-05) | Editor |
 | `/manage/recipes/new`, `/manage/recipes/{id}/edit` | Recipe editor | Editor |
 | `/manage/import` | Import from a URL, pasted text or HTML, or files (ADR 0024); imports waiting for review | Editor |
 | `/manage/import/{id}/review` | Review an import in the editor form, then save or discard (ADR 0025) | Editor |
@@ -674,7 +692,7 @@ SQLite via EF Core 10 with code-first migrations applied at startup. Images live
 | --- | --- | --- |
 | Recipe | Id, Slug, Title, Description, Servings, ServingsMax, ServingsEstimated, YieldText, YieldAmount, YieldUnitId, YieldSource (Measured/Entered/Estimated), FinishedDensityGPerMl, PanShape, PanWidth, PanLength, PrepMinutes, PrepMinutesMax, CookMinutes, CookMinutesMax, TotalMinutes, TotalMinutesMax, IsPrecision, Status (Draft/Published), SourceType (Manual/Web/File/Personal), SourceUrl, SourceName, SourceAuthor, SourceImportedAt, FinishImageId, ParentRecipeId, Notes, Rating, LastCookedAt, InventoryVersionSeen, Version, DeletedAt, DeletedById | Root entity. FinishImageId arrives with images in M4 (ADR 0009). Pan is one field, prefilled from the steps (ADR 0020). |
 | IngredientGroup | Id, RecipeId, Name, SortOrder | "For the sauce". Optional. |
-| RecipeIngredient | Id, RecipeId, GroupId, SortOrder, RawText, Quantity, QuantityMax, QuantityText, UnitId, Name, FoodId, Preparation, State (raw/cooked/…), IsOptional, Note, ParseConfidence | RawText always kept (BR-04). Name is the parsed ingredient text, kept whether or not a Food matches (ADR 0009). FoodId is set on save by exact name or alias, and by a startup pass for unlinked lines; null when nothing matches (ADR 0013). |
+| RecipeIngredient | Id, RecipeId, GroupId, SortOrder, RawText, Quantity, QuantityMax, QuantityText, UnitId, Name, FoodId, Preparation, State (raw/cooked/…), IsOptional, Note, ParseConfidence, Measure (Auto/Weight/AsWritten, BR-122) | RawText always kept (BR-04). Name is the parsed ingredient text, kept whether or not a Food matches (ADR 0009). FoodId is set on save by exact name or alias, and by a startup pass for unlinked lines; null when nothing matches (ADR 0013). |
 | Step | Id, RecipeId, SortOrder, Title, Text, ImageId, SectionName, TimerSeconds | Title is an optional step heading (ADR 0015). Timer parsed from text. A step photo follows its step across edits: same text, else same position (ADR 0023). |
 | Image | Id (32 random hex), StoragePath, ContentType, Width, Height, Bytes, ThumbBytes, Sha256, AltText, SourceUrl, CreatedAt, CreatedById | Shared by finish and step images. WebP at most 2400 px plus a 640 px thumbnail under `<data>/media`; unused images are deleted after 24 hours (ADR 0022). |
 | RecipeTag | RecipeId, TagId | Composite PK. |
@@ -714,8 +732,10 @@ SQLite via EF Core 10 with code-first migrations applied at startup. Images live
 | --- | --- | --- |
 | ShoppingList | Id, Name, CreatedById, CreatedAt, UpdatedAt, FinishedAt | FinishedAt starts the 15-minute undo window, then the list is deleted (ADR 0028). |
 | ShoppingListRecipe | Id, ShoppingListId, RecipeId (null once purged), Title, Scale, AddedAt | BR-42 (ADR 0029). |
-| ShoppingLine | Id, ShoppingListId, ListRecipeId (null for a manual item), Name, Kind, Amount, AmountMax, CountUnit, FoodId, RawText, Position | Amounts in base units (ml, g, count), purchase state for yield conversions (AC-35); merged on view by `ShoppingRules` (ADR 0029). |
+| ShoppingLine | Id, ShoppingListId, ListRecipeId (null for a manual or restock item), Name, Kind, Amount, AmountMax, CountUnit, FoodId, RawText, Position, IsStaple (BR-48), IsRestock, Section (BR-45) | Amounts in base units (ml, g, count), purchase state for yield conversions (AC-35); merged on view by `ShoppingRules` (ADR 0029). |
 | ShoppingCheck | ShoppingListId, ItemKey, CheckedAt | A tick per merged item ("f:{foodId}" or "n:{name}"). |
+| ShoppingStapleCheck | ShoppingListId, ItemKey, Answer (Have/Need), At | BR-44. |
+| Staple | Id, FoodId (null for a household item), Name, NormalizedName (unique), Location, Restock, Section, LastRestockedAt, CreatedAt | FR-SHOP-05, ADR 0057. A food is a staple when Food.IsPantryStaple is set; this row holds its details. |
 | ShoppingListName | Id, Name, NormalizedName, LastUsedAt | Remembered names for "Start again" (ADR 0028). |
 | ImportJob | Id, BatchId, SourceKind (Url/Paste/Markdown/Text/Docx/Pdf), SourceRef, Status (Review/Saved/Discarded), RawPath, ParsedJson, WarningsJson, ImageUrl, CopyImage, DuplicateOfRecipeId, CreatedRecipeId, CreatedById, CreatedAt, UpdatedAt | One job per recipe found; a file's recipes share a BatchId. Jobs and raw payloads (`<data>/imports`) kept 30 days (FR-IMP-08, ADR 0024/0025). |
 | AspNet\* tables | Identity users, roles, claims, tokens | Standard Identity schema. |
@@ -1058,6 +1078,10 @@ Each criterion is written Given / When / Then and becomes at least one automated
 | AC-14 | Given a recipe exported as recipe-md v1, when re-imported, then all fields are identical (round-trip test over the fixture set). |
 | AC-15 | Given a .docx and a text PDF with "Ingredients" and "Directions" headings, when imported, then ingredients and steps are separated correctly. A .docm, an encrypted PDF or a 60 MB file is rejected with a clear message. |
 | AC-16 | Given an import whose source URL already exists, then the review page shows "Possible duplicate" with a link and requires a choice before saving. |
+| AC-117 | Given a Markdown file with five custard variations, then five drafts are made, each with servings, prep and cook times, headed steps from its `###` headings, its nutrition panel, and no table of contents, dividers or Markdown marks. |
+| AC-118 | Given a file with a recipe's single and double batch, then one draft "Kansas Corn Bake" is made with servings 6–8, pan 8x12 and five headed steps; its notes hold the double batch's pan, times, steps and doneness notes; the review offers "Import it as its own recipe", which makes the second draft. |
+| AC-119 | Given a recipe whose steps are headed by bold lines and whose ingredients hold two versions of a sauce, then five headed steps are made, indented bullets stay in step 5, italics are removed, and the review warns about the two sauces. |
+| AC-120 | Given two recipes titled "Chocolate Custard" and "Vanilla Custard" with overlapping ingredients at double amounts, then both are imported as separate drafts. |
 | AC-17 | Given the AI parser is disabled, then no request is made to any AI host during any import (asserted by test). Given it is enabled with the Claude provider, when a blog-prose fixture with no structure is imported, then a draft with ingredients and steps reaches the review screen with AI-parsed fields marked, and nothing is saved until the user confirms. |
 | AC-18 | Given an OpenAI-compatible endpoint at 192.168.1.50:11434 is configured, then calls to it succeed while any other private address is still refused; the saved API key never appears in the UI, logs or audit; when the monthly cap is reached, AI parsing pauses with a message and the rules-based parser is used; a model reply containing HTML or script is stored as inert text. |
 
@@ -1098,13 +1122,21 @@ Each criterion is written Given / When / Then and becomes at least one automated
 | AC-40 | Given an Editor adds a 1/8 tsp spoon, then the inventory version increments, and recipes viewed afterwards use it in display plans. |
 | AC-41 | Given a recipe last evaluated at version 3 and current version 4 (scale added), when it is opened, then a banner offers weight measurements; after dismiss, it does not show again at version 4. |
 | AC-42 | Given an inventory change that does not affect a recipe's display plan, then no banner shows on that recipe. |
+| AC-113 | Given the kitchen form, then only the chosen type's fields are shown (no units or fill % for a spoon); posting a fill % or scale units with a spoon stores neither. |
+| AC-114 | Given a scale labelled "Max 14000g x 1g", when "1" is entered as its resolution, then it is saved as 1 g; "60 g" is refused with a reason. |
+| AC-115 | Given a 1 g scale just added and a recipe offering flour and milk by weight, when an Editor unticks flour and saves, then milk shows in grams, flour stays "2 cups", no banner returns, and the editor shows "By weight" for milk and "As written" for flour. A weight under 5 g shows the small-amount hint. |
+| AC-116 | Given the same banner, when a reader ticks only milk and presses Show me, then only milk is weighed in that view and nothing is saved. |
 
 ### 11.5 Shopping, nutrition, allergens, home and theme
 
 | ID | Criterion |
 | --- | --- |
 | AC-50 | Given two recipes needing 1 cup and 4 Tbsp butter, when added to a list, then one line shows 1 1/4 cups (2 1/2 sticks) with both recipes as sources. |
-| AC-51 | Given salt marked as a pantry staple, then it appears under "You probably have", not the main list; checked state persists across devices. |
+| AC-51 | (revised, ADR 0057) Given a roux recipe needing butter and all-purpose flour, both staples, when added to a list, then both appear under "Check before you buy" with their amounts and the recipe, and neither is on the main list. When Need it is pressed for butter, butter moves to its store section and flour stays to check. Answers persist across devices. |
+| AC-52 | Given flour is answered Have it, when the list is opened on another device, then flour shows "You have it" and is not counted in "staples to check"; an unanswered staple does not stop the list finishing. |
+| AC-53 | Given staples eggs (Fridge, usual amount 1 dozen) and foil (household item, Under the sink) that no recipe needs, when Check staples is opened, then they appear after recipe staples, grouped by location in kitchen order; ticking eggs adds "egg 12" to Dairy and Eggs marked Restock. |
+| AC-54 | Given butter is both needed by a recipe and restocked, then one butter item shows both sources. |
+| AC-125 | Given an anonymous visitor, then /manage/staples and /shopping/{id}/staples redirect to sign-in; Have it / Need it needs a valid antiforgery token and only answers staples on that list; staple changes are audited. |
 | AC-55 | Given imported nutrition, then it displays labelled "from source"; given none, calculated values show with completeness %, and below 70% are labelled partial. |
 | AC-56 | Given "2 Tbsp soy sauce", then Soy and Wheat badges appear; an Editor override to remove Wheat (gluten-free tamari) persists after re-detection. |
 | AC-60 | Given 20+ recipes, then home shows a search box, up to 8 recommended, 8 recently added, collections and tag links, with no empty sections rendered. |
@@ -1247,6 +1279,7 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
+- v0.27 (2026-11-24): Owner testing (ADR 0055 to 0057). Kitchen form fields and scale resolution (BR-120, BR-121); per-ingredient weights (FR-TOOL-05, BR-122, BR-123); batch sizes and variations in one import file and Markdown clean-up (BR-124 to BR-127); staples: FR-SHOP-03 changed to "Check before you buy", new FR-SHOP-05 restock walk-through, BR-43 to BR-48. 7.2 adds `/manage/staples`, `/shopping/{id}/staples` and the Staple handler; 8.2 RecipeIngredient.Measure; 8.5 Staple, ShoppingStapleCheck and ShoppingLine columns; ACs 51 (revised), 52 to 54, 113 to 120, 125.
 - v0.26 (2026-11-24): M9 drafts (ADR 0051 to 0054). FR-IMP-11, FR-IMP-12 (M10), FR-NUT-07, FR-OPS-06; BR-116 to BR-119; new section 5.10 (SEC-90 to SEC-95); NFR-10; 11.8 AC-101 to AC-112; 9.1 Python adapters row; 9.10 M9 and M10. NFR-02 and AC-90 drop Ubuntu 22.04 (ADR 0054).
 - v0.25 (2026-11-24): UX-14 amendment — JSON-LD follows Safari HomeView and Google Recipe guidance (ADR 0050 amendment 1). Changelog renumbered (two v0.24 lines; v0.22 was on an unmerged branch).
 - v0.24 (2026-11-23): Recipe JSON-LD (ADR 0050); SEC-23 allows that one data block.

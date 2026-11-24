@@ -3,7 +3,7 @@ using System.Globalization;
 namespace RecipeWarden.Core.Shopping;
 
 /// <summary>
-/// FR-SHOP-05 (ADR 0056): one staple as the walk-through sees it. <see cref="FoodId"/> is null for a non-food staple
+/// FR-SHOP-05 (ADR 0057): one staple as the walk-through sees it. <see cref="FoodId"/> is null for a non-food staple
 /// (foil, dish soap). <see cref="Restock"/> is the usual amount ("1 dozen", "5 lb"), read like an ingredient line.
 /// </summary>
 public sealed record StapleInfo(
@@ -29,7 +29,7 @@ public static class StapleRules
     public const string AlreadyAStaple = "That is already a staple.";
     public const string TooMany = "The staples list is full.";
 
-    /// <summary>ADR 0056: where staples live, in the order a walk around the kitchen visits them.</summary>
+    /// <summary>ADR 0057: where staples live, in the order a walk around the kitchen visits them.</summary>
     public static IReadOnlyList<string> Locations { get; } = ["Fridge", "Freezer", "Pantry", "Spice rack", "Under the sink", "Other"];
 
     public const string DefaultLocation = "Pantry";

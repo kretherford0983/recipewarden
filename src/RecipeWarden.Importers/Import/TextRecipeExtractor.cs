@@ -228,7 +228,7 @@ public static partial class TextRecipeExtractor
 
         if (BatchRules.AlternativeGroups(ingredientText) is { Count: > 0 } alternatives)
         {
-            remarks.Add(BatchRules.AlternativeGroupsRemark(alternatives)); // owner decision D3 (ADR 0055)
+            remarks.Add(BatchRules.AlternativeGroupsRemark(alternatives)); // owner decision D3 (ADR 0056)
         }
 
         return new ImportedRecipe

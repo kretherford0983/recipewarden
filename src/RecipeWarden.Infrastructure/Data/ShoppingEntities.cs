@@ -64,7 +64,7 @@ public sealed class ShoppingStapleCheck
 }
 
 /// <summary>
-/// FR-SHOP-05, ADR 0056: the household's staples. A catalogue food's staple flag stays on Food.IsPantryStaple; this row
+/// FR-SHOP-05, ADR 0057: the household's staples. A catalogue food's staple flag stays on Food.IsPantryStaple; this row
 /// holds its details. A row without a food is a non-food staple (foil, dish soap).
 /// </summary>
 public sealed class Staple

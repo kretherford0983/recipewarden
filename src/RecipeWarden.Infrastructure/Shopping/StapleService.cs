@@ -8,7 +8,7 @@ using RecipeWarden.Infrastructure.Measurement;
 namespace RecipeWarden.Infrastructure.Shopping;
 
 /// <summary>
-/// FR-SHOP-05, ADR 0056: the household staples list (one list, any Editor can change it; every change is audited by
+/// FR-SHOP-05, ADR 0057: the household staples list (one list, any Editor can change it; every change is audited by
 /// the save interceptor, AC-74). A catalogue food is a staple when Food.IsPantryStaple is set (FR-SHOP-03, also set
 /// from /manage/conversions); its <see cref="Staple"/> row holds where it lives and the usual amount, and is made on
 /// demand. Rows without a food are non-food staples.
