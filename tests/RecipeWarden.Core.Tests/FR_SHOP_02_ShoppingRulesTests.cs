@@ -190,7 +190,7 @@ public sealed class FR_SHOP_02_ShoppingRulesTests
         var md = ShoppingText.Markdown("Trip #1", view);
         md.ShouldStartWith("# Trip \\#1\n");
         md.ShouldContain("- [ ] \\[evil\\]\\(http://x\\) \\*b\\*");
-        md.ShouldContain("## You probably have");
+        md.ShouldContain("## Check before you buy");
         ShoppingText.Markdown("Trip", view, includeChecked: true).ShouldContain("- [x] butter");
         ShoppingText.Markdown("Trip", ShoppingRules.Merge([Line("butter", null, null, 1)], Foods, keys)).ShouldBe("# Trip\n");
     }

@@ -8,6 +8,7 @@
 <form class="inline-form" method="post" asp-antiforgery="true">
     <label for="list-name">Name</label>
     <input id="list-name" name="Name" required maxlength="@RecipeWarden.Core.Shopping.ShoppingRules.MaxListNameLength" value="@Model.Name" placeholder="Saturday">
+    <label><input type="checkbox" name="StaplesCheck" value="true"> Start with a staples check</label>
     <button type="submit" class="primary">Start list</button>
 </form>
 <p><a href="/shopping">All lists</a></p>

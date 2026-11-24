@@ -38,6 +38,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
     public DbSet<ShoppingLine> ShoppingLines => Set<ShoppingLine>();
     public DbSet<ShoppingCheck> ShoppingChecks => Set<ShoppingCheck>();
     public DbSet<ShoppingListName> ShoppingListNames => Set<ShoppingListName>();
+    public DbSet<ShoppingStapleCheck> ShoppingStapleChecks => Set<ShoppingStapleCheck>();
+    public DbSet<Staple> Staples => Set<Staple>();
     public DbSet<NutrientRef> NutrientRefs => Set<NutrientRef>();
     public DbSet<NutrientDataset> NutrientDatasets => Set<NutrientDataset>();
     public DbSet<NutritionFacts> NutritionFacts => Set<NutritionFacts>();
@@ -228,6 +230,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
             e.Property(l => l.RawText).HasMaxLength(ShoppingRules.MaxItemLength * 2);
             e.Property(l => l.CountUnit).HasMaxLength(16);
             e.Property(l => l.Kind).HasConversion<string>().HasMaxLength(16);
+            e.Property(l => l.Section).HasMaxLength(ShoppingRules.MaxSectionLength);
             Real(e.Property(l => l.Amount));
             Real(e.Property(l => l.AmountMax));
             e.HasIndex(l => new { l.ShoppingListId, l.Position });
@@ -239,6 +242,26 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         {
             e.HasKey(c => new { c.ShoppingListId, c.ItemKey });
             e.Property(c => c.ItemKey).HasMaxLength(ShoppingRules.MaxItemLength + 2);
+        });
+
+        builder.Entity<ShoppingStapleCheck>(e =>
+        {
+            e.HasKey(c => new { c.ShoppingListId, c.ItemKey });
+            e.Property(c => c.ItemKey).HasMaxLength(ShoppingRules.MaxItemLength + 2);
+            e.Property(c => c.Answer).HasConversion<string>().HasMaxLength(8);
+            e.HasOne<ShoppingList>().WithMany().HasForeignKey(c => c.ShoppingListId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<Staple>(e =>
+        {
+            e.Property(s => s.Name).HasMaxLength(StapleRules.MaxNameLength);
+            e.Property(s => s.NormalizedName).HasMaxLength(StapleRules.MaxNameLength * 2);
+            e.Property(s => s.Location).HasMaxLength(24);
+            e.Property(s => s.Restock).HasMaxLength(StapleRules.MaxRestockLength);
+            e.Property(s => s.Section).HasMaxLength(ShoppingRules.MaxSectionLength);
+            e.HasIndex(s => s.NormalizedName).IsUnique();
+            e.HasIndex(s => s.FoodId).IsUnique();
+            e.HasOne<Food>().WithMany().HasForeignKey(s => s.FoodId).OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<ShoppingListName>(e =>

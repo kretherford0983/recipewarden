@@ -5,7 +5,7 @@ namespace RecipeWarden.Core.Shopping;
 
 /// <summary>
 /// FR-SHOP-04: a list as plain text or Markdown, for printing, pasting into a phone note or a message. Unticked items
-/// only by default; pantry items follow under "You probably have". Names are plain text (BR-13); Markdown escapes them.
+/// only by default; staples to check follow under "Check before you buy". Names are plain text (BR-13); Markdown escapes them.
 /// </summary>
 public static class ShoppingText
 {

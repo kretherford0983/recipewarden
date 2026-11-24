@@ -20,6 +20,10 @@ public sealed class NewModel(ShoppingService shopping) : PageModel
     [BindProperty]
     public string? Name { get; set; }
 
+    /// <summary>FR-SHOP-05: open the staples walk-through first.</summary>
+    [BindProperty]
+    public bool StaplesCheck { get; set; }
+
     public void OnGet()
     {
     }
@@ -33,7 +37,7 @@ public sealed class NewModel(ShoppingService shopping) : PageModel
             return Page();
         }
 
-        return Redirect("/shopping/" + created.Id);
+        return Redirect("/shopping/" + created.Id + (StaplesCheck ? "/staples" : string.Empty));
     }
 
     /// <summary>From the recipe page: an existing list, or a new one named in the same form.</summary>

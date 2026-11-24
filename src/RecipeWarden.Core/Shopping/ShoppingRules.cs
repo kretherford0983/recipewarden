@@ -10,6 +10,7 @@ namespace RecipeWarden.Core.Shopping;
 /// base units for <see cref="Kind"/> (ml, g or count); null when the line has no amount ("salt to taste").
 /// <see cref="CountUnit"/> is a count unit code ("can", "clove", "stick") for counted lines.
 /// </summary>
+/// BR-45: <see cref="IsRestock"/> marks a line added by a staples check; <see cref="Section"/> is a custom staple's store section.
 public sealed record ShoppingLineInput(
     int Id,
     string Name,
@@ -20,7 +21,16 @@ public sealed record ShoppingLineInput(
     int? FoodId,
     string RawText,
     string? RecipeTitle,
-    bool IsManual = false);
+    bool IsManual = false,
+    bool IsRestock = false,
+    string? Section = null);
+
+/// <summary>BR-44: the answer to "do you have it?" for a staple on one list.</summary>
+public enum StapleAnswer
+{
+    Have,
+    Need,
+}
 
 /// <summary>
 /// What the list needs to know about a food (8.3, ADR 0030). The package is one unit you buy, e.g. butter: 118 ml,
@@ -36,7 +46,11 @@ public sealed record ShoppingFood(
     UnitKind? PackageKind = null,
     string? PackageName = null);
 
-/// <summary>One line on the list as shown: everything one food (or name) needs, merged.</summary>
+/// <summary>
+/// One line on the list as shown: everything one food (or name) needs, merged. <see cref="IsPantry"/> items are staples
+/// still to check (BR-43); <see cref="Answer"/> is the Have it / Need it answer (BR-44); <see cref="IsRestock"/> items
+/// came from a staples check (BR-45).
+/// </summary>
 public sealed record ShoppingItem(
     string Key,
     string Name,
@@ -46,15 +60,22 @@ public sealed record ShoppingItem(
     bool IsPantry,
     bool IsChecked,
     IReadOnlyList<string> Recipes,
-    IReadOnlyList<string> Lines);
+    IReadOnlyList<string> Lines)
+{
+    public StapleAnswer? Answer { get; init; }
+    public bool IsRestock { get; init; }
+}
 
 /// <summary>A store section and its items, in walking order.</summary>
 public sealed record ShoppingSection(string Name, IReadOnlyList<ShoppingItem> Items);
 
-/// <summary>The merged list (FR-SHOP-02, FR-SHOP-03): sections to buy and the pantry ("You probably have").</summary>
+/// <summary>The merged list (FR-SHOP-02, FR-SHOP-03): sections to buy and the staples to check ("Check before you buy").</summary>
 public sealed record ShoppingView(IReadOnlyList<ShoppingSection> Sections, IReadOnlyList<ShoppingItem> Pantry)
 {
     public IEnumerable<ShoppingItem> ToBuy => Sections.SelectMany(s => s.Items);
+
+    /// <summary>BR-46: staples nobody has answered yet ("2 staples to check").</summary>
+    public int ToCheck => Pantry.Count(i => i.Answer is null);
 
     /// <summary>ADR 0028: finished when there is something to buy and all of it is ticked. Pantry items do not count.</summary>
     public bool IsFinished => ToBuy.Any() && ToBuy.All(i => i.IsChecked);
@@ -65,7 +86,7 @@ public sealed record ShoppingView(IReadOnlyList<ShoppingSection> Sections, IRead
 /// (or per name when no food matched). Volume and mass merge when the food has a density, counts with counts; what
 /// cannot be converted stays as a separate amount on the same item ("1 cup + 2"). A known package size adds the
 /// package count: whole and half packages as they are ("2½ sticks"), otherwise rounded up ("buy 2 cans"). Items keep
-/// their recipes. Pantry staples go to "You probably have".
+/// their recipes. Staples a recipe needs wait under "Check before you buy" (BR-43, BR-44).
 /// </summary>
 public static class ShoppingRules
 {
@@ -76,7 +97,10 @@ public static class ShoppingRules
     public const int MaxPackageNameLength = 24;
     public const int MaxLinesPerList = 1000;
     public const int MaxRecipesPerList = 50;
-    public const string PantryHeading = "You probably have";
+    public const string PantryHeading = "Check before you buy";
+
+    /// <summary>BR-45: the source shown for a restock item.</summary>
+    public const string RestockSource = "Restock";
 
     /// <summary>ADR 0030: the walking order of a typical store; unknown sections come before "Other", by name.</summary>
     public static IReadOnlyList<string> SectionOrder { get; } =
@@ -162,13 +186,20 @@ public static class ShoppingRules
         return (kind, low, high, kind == UnitKind.Count ? unit?.Code : null);
     }
 
+    /// <summary>
+    /// BR-43, BR-44, BR-45: <paramref name="answers"/> holds the Have it / Need it answers by item key. A staple a recipe
+    /// needs waits under "Check before you buy" until answered; Need it (or a restock line) puts it on the list in its
+    /// section; Have it keeps it checked off below.
+    /// </summary>
     public static ShoppingView Merge(IEnumerable<ShoppingLineInput> lines, IReadOnlyDictionary<int, ShoppingFood> foods,
-        IReadOnlySet<string> checkedKeys, UnitSystem system = UnitSystem.US, MeasurementCatalog? catalog = null)
+        IReadOnlySet<string> checkedKeys, UnitSystem system = UnitSystem.US, MeasurementCatalog? catalog = null,
+        IReadOnlyDictionary<string, StapleAnswer>? answers = null)
     {
         ArgumentNullException.ThrowIfNull(lines);
         ArgumentNullException.ThrowIfNull(foods);
         ArgumentNullException.ThrowIfNull(checkedKeys);
         catalog ??= MeasurementCatalog.Default;
+        answers ??= new Dictionary<string, StapleAnswer>(StringComparer.Ordinal);
 
         var items = new List<ShoppingItem>();
         foreach (var group in lines.Where(l => !string.IsNullOrWhiteSpace(l.Name)).GroupBy(l => KeyFor(l.FoodId, l.Name)))
@@ -176,16 +207,31 @@ public static class ShoppingRules
             var list = group.ToList();
             var food = list[0].FoodId is { } fid && foods.TryGetValue(fid, out var f) ? f : null;
             var (amount, package) = Amounts(list, food, system, catalog);
+            var restock = list.Any(l => l.IsRestock);
+            StapleAnswer? answer = answers.TryGetValue(group.Key, out var a) ? a : null;
+            var staple = food?.IsPantryStaple == true && !restock && answer != StapleAnswer.Need;
+            var section = list.Select(l => l.Section).FirstOrDefault(s => !string.IsNullOrWhiteSpace(s))
+                          ?? (string.IsNullOrWhiteSpace(food?.StoreSection) ? OtherSection : food!.StoreSection!.Trim());
+            var sources = list.Select(l => l.RecipeTitle).Where(t => !string.IsNullOrEmpty(t)).Select(t => t!).Distinct(StringComparer.Ordinal).ToList();
+            if (restock)
+            {
+                sources.Add(RestockSource);
+            }
+
             items.Add(new ShoppingItem(
                 group.Key,
                 food?.Name ?? list[0].Name.Trim(),
                 amount,
                 package,
-                string.IsNullOrWhiteSpace(food?.StoreSection) ? OtherSection : food!.StoreSection!.Trim(),
-                food?.IsPantryStaple == true,
+                section,
+                staple,
                 checkedKeys.Contains(group.Key),
-                list.Select(l => l.RecipeTitle).Where(t => !string.IsNullOrEmpty(t)).Select(t => t!).Distinct(StringComparer.Ordinal).ToList(),
-                list.Select(l => l.RawText).ToList()));
+                sources,
+                list.Select(l => l.RawText).ToList())
+            {
+                Answer = answer,
+                IsRestock = restock,
+            });
         }
 
         var sections = items.Where(i => !i.IsPantry)
@@ -193,7 +239,7 @@ public static class ShoppingRules
             .OrderBy(g => SectionRank(g.Key)).ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
             .Select(g => new ShoppingSection(g.First().Section, g.OrderBy(i => i.Name, StringComparer.OrdinalIgnoreCase).ToList()))
             .ToList();
-        var pantry = items.Where(i => i.IsPantry).OrderBy(i => i.Name, StringComparer.OrdinalIgnoreCase).ToList();
+        var pantry = items.Where(i => i.IsPantry).OrderBy(i => i.Answer is null ? 0 : 1).ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase).ToList();
         return new ShoppingView(sections, pantry);
     }
 

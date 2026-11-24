@@ -42,6 +42,7 @@ internal sealed class RecipeTestScope : IAsyncDisposable
     public ImageStore Images => scope.ServiceProvider.GetRequiredService<ImageStore>();
     public DataOptions Data => scope.ServiceProvider.GetRequiredService<DataOptions>();
     public Shopping.ShoppingService Shopping => scope.ServiceProvider.GetRequiredService<Shopping.ShoppingService>();
+    public Shopping.StapleService Staples => scope.ServiceProvider.GetRequiredService<Shopping.StapleService>();
     public RecipeExporter Exporter => scope.ServiceProvider.GetRequiredService<RecipeExporter>();
     public AiExchange.AiExchangeService Ai => scope.ServiceProvider.GetRequiredService<AiExchange.AiExchangeService>();
     public Nutrition.NutritionService Nutrition => scope.ServiceProvider.GetRequiredService<Nutrition.NutritionService>();
