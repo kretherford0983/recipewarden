@@ -5,6 +5,9 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 
 ## 1.0.0 — unreleased
 
+### M9 Python adapters (ADR 0051 to 0054)
+- Ubuntu 22.04 is no longer supported (ADR 0054): the installer warns on it and carries on; CI no longer tests it.
+
 ### Ounces on liquids (BR-115, ADR 0049)
 - "24 oz chicken broth" now converts and scales as fluid ounces (24 fl oz, 710 ml), not 1½ lb or grams. This applies
   to broth, milk, cream, wine, juice and other water-like liquids; honey, syrups, solids and unmatched lines keep

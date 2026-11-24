@@ -189,8 +189,10 @@ check_os() {
   id=$(sed -n 's/^ID=//p' "$OS_RELEASE_FILE" | tr -d '"')
   version=$(sed -n 's/^VERSION_ID=//p' "$OS_RELEASE_FILE" | tr -d '"')
   case "$id:$version" in
-    debian:12|debian:13|ubuntu:22.04|ubuntu:24.04|ubuntu:26.04) log "OS: $id $version (supported)" ;;
-    *) die $EXIT_PREFLIGHT "unsupported OS '$id $version'. Supported: Debian 12/13, Ubuntu 22.04/24.04/26.04 LTS (NFR-02)" ;;
+    debian:12|debian:13|ubuntu:24.04|ubuntu:26.04) log "OS: $id $version (supported)" ;;
+    # ADR 0054: 22.04 is no longer supported, but an existing host can still install and upgrade.
+    ubuntu:22.04) warn "Ubuntu 22.04 is no longer supported (ADR 0054); upgrade the host to Ubuntu 24.04 or 26.04. Continuing." ;;
+    *) die $EXIT_PREFLIGHT "unsupported OS '$id $version'. Supported: Debian 12/13, Ubuntu 24.04/26.04 LTS (NFR-02)" ;;
   esac
   [[ $(uname -m) == x86_64 ]] || die $EXIT_PREFLIGHT "architecture $(uname -m) is not supported yet (x86_64 only in v1)"
 }

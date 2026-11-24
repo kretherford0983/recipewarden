@@ -11,6 +11,8 @@ rules (BR-, SEC-, UX-) and acceptance criteria (AC-) are referenced in code, tes
 - Target: Linux x64 headless, self-contained build, systemd service `recipewarden` behind Cloudflare Tunnel;
   bind IP/port set at install (loopback, or the host's LAN IP when cloudflared runs in a separate container)
 - Optional AI parser (off by default): Claude API or an OpenAI-compatible endpoint, via plain HttpClient
+- Python adapters (ADR 0051): bundled CPython 3.13 runs `rw_worker` (python/, uv-locked) as a short-lived, offline
+  process behind Core interfaces; .NET stays the parser of record and every Python feature falls back to it
 
 ## How we work
 1. Before coding, restate the requirement IDs in scope and list the acceptance criteria you will satisfy.
