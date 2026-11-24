@@ -97,7 +97,15 @@ public static partial class PanRules
             return null;
         }
 
-        return PanInSteps().Match(steps) is { Success: true } m ? Parse(m.Value) : null;
+        try
+        {
+            return PanInSteps().Match(steps) is { Success: true } m ? Parse(m.Value) : null;
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            // Prefilling the pan is a convenience: a busy host must never fail the recipe page over it.
+            return null;
+        }
     }
 
     public static string Describe(Pan pan)
