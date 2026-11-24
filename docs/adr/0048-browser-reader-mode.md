@@ -30,3 +30,14 @@ from the ingredients and steps. Mozilla Readability (Firefox Reader View) offere
   controls), so this is checked with Firefox's library and on the owner's devices. Cook mode and print are not in
   scope (they already are their own simplified views).
 - New tools on the recipe page go inside an aside (docs/ui-standards.md).
+
+## Amendment 1 (2026-11-23): what Safari still wanted
+On the dev build, Safari (Mac and iPhone) and Chrome did not offer reader mode. Compared with an Allrecipes recipe
+page that Safari Reader accepts (saved by the owner): there, every ingredient line is a `<p>` inside its list item,
+the head declares `og:type=article` with a description, and the page carries JSON-LD Recipe data. It also has about
+3,300 characters of paragraph text against 350 to 750 on ours. Changes, in two pull requests so each can be tested:
+1. (This one) Each ingredient line is a `<p class="ingredient-line">`; recipe pages have `meta name="description"`
+   (plain text, `CardSummary`), `og:type=article`, `og:title`, `og:description` and `og:site_name`. No visible
+   change.
+2. (Next, ADR 0050) JSON-LD Recipe data.
+Short recipes may still have too little text for Safari; a built-in reading view stays the fallback.

@@ -5,6 +5,10 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 
 ## 1.0.0 — unreleased
 
+### Reader mode, try 2 (UX-14, ADR 0048 amendment 1)
+- Each ingredient line is now a paragraph, and recipe pages say they are articles (`og:type`, title and a
+  plain-text description in the page head), like recipe sites where Safari Reader works. Nothing changes on screen.
+
 ### UI polish (owner feedback on the dev build)
 - The scale box's "More scaling options" is closed on every page load; its summary names the options in use
   (for example "Units: US").

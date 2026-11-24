@@ -42,5 +42,30 @@ public sealed partial class UX_14_RecipeMarkupTests(RecipeWardenFactory factory)
         html.ShouldNotContain("recipe-header");
     }
 
+    [Fact]
+    public async Task Ingredient_lines_are_paragraphs_and_the_page_says_it_is_an_article()
+    {
+        // Owner comparison with a page Safari Reader accepts (2026-11-23): every ingredient line is a <p>, and the head
+        // carries og:type=article, og:title and a plain-text description.
+        using var editor = await factory.SignInAsync("ux14-meta@example.com");
+        var created = await editor.CreateRecipeAsync("Meta Chili", "1 lb beef\n2 cups beans\n1 onion, diced", "Brown the beef.",
+            extra: [("Input.Description", "A **hearty** chili, ready in [an hour](https://example.com).")]);
+        created.StatusCode.ShouldBe(HttpStatusCode.Redirect, await created.TextAsync());
+        var html = WebUtility.HtmlDecode(await editor.GetStringAsync(created.Headers.Location!.ToString(), Ct));
+
+        IngredientParagraph().Count(html).ShouldBe(3);
+        html.ShouldContain("<meta property=\"og:type\" content=\"article\">");
+        html.ShouldContain("<meta property=\"og:title\" content=\"Meta Chili\">");
+        html.ShouldContain("<meta name=\"description\" content=\"A hearty chili, ready in an hour.\">");
+        html.ShouldContain("<meta property=\"og:description\" content=\"A hearty chili, ready in an hour.\">");
+
+        // Other pages are not articles.
+        var home = WebUtility.HtmlDecode(await editor.GetStringAsync("/", Ct));
+        home.ShouldNotContain("og:type");
+    }
+
+    [GeneratedRegex("""<li[^>]*>\s*<p class="ingredient-line"><span itemprop="recipeIngredient">""")]
+    private static partial Regex IngredientParagraph();
+
     private static Regex Prop(string name) => new($"itemprop=\"{name}\"");
 }

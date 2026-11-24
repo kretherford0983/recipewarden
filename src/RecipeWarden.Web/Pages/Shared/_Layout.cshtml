@@ -38,6 +38,18 @@
         <meta name="rw-csrf" content="@Antiforgery.GetAndStoreTokens(Context).RequestToken">
     }
     <title>@(ViewData["Title"] is string t ? t + " · " : "")@siteName</title>
+    @if (ViewData["Description"] is string description)
+    {
+        <meta name="description" content="@description">
+    }
+    @if (ViewData["OgType"] is string ogType)
+    {
+        @* UX-14, ADR 0048: pages that are articles (a recipe) say so, as article sites do. *@
+        <meta property="og:type" content="@ogType">
+        <meta property="og:site_name" content="@siteName">
+        @if (ViewData["Title"] is string ogTitle) { <meta property="og:title" content="@ogTitle"> }
+        @if (ViewData["Description"] is string ogDescription) { <meta property="og:description" content="@ogDescription"> }
+    }
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
     <script src="~/js/theme.js" asp-append-version="true" defer></script>
     <script src="~/lib/htmx/htmx.min.js" defer></script>
