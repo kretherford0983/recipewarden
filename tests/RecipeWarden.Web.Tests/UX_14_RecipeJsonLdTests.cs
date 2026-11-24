@@ -1,6 +1,8 @@
 using System.Net;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using RecipeWarden.Core.Organization;
+using RecipeWarden.Infrastructure.Recipes;
 using RecipeWarden.Web.Content;
 
 namespace RecipeWarden.Web.Tests;
@@ -41,7 +43,9 @@ public sealed partial class UX_14_RecipeJsonLdTests(RecipeWardenFactory factory)
         data.GetProperty("@type").GetString().ShouldBe("Recipe");
         data.GetProperty("name").GetString().ShouldBe("Ld Chili");
         data.GetProperty("description").GetString().ShouldBe("A hearty chili.");
-        data.GetProperty("recipeYield").GetString().ShouldBe("4");
+        data.GetProperty("recipeYield").GetString().ShouldBe("4 servings"); // as in Apple's HomeView example
+        data.GetProperty("url").GetString()!.ShouldEndWith("/recipes/ld-chili");
+        data.GetProperty("url").GetString()!.ShouldStartWith("http");
         data.GetProperty("prepTime").GetString().ShouldBe("PT15M");
         data.GetProperty("cookTime").GetString().ShouldBe("PT1H15M");
         data.GetProperty("recipeIngredient").EnumerateArray().Select(e => e.GetString()).ShouldBe(["1 lb beef", "2 cups beans"]);
@@ -75,6 +79,88 @@ public sealed partial class UX_14_RecipeJsonLdTests(RecipeWardenFactory factory)
     {
         using var client = factory.CreateHttpsClient();
         (await client.GetStringAsync("/", Ct)).ShouldNotContain("application/ld+json");
+    }
+
+    private static RecipeView Sample() => new()
+    {
+        Id = 7,
+        Slug = "green-curry",
+        Title = "Green Curry",
+        Description = "A **fragrant** curry.\n\nGood with [jasmine rice](https://example.com), and better the next day when the flavours settle.",
+        Servings = 4,
+        ServingsMax = 6,
+        PrepMinutes = 20,
+        CookMinutes = 25,
+        TotalMinutes = 45,
+        SourceAuthor = "Ana",
+        FinishImageId = "abc123",
+        UpdatedAt = new DateTimeOffset(2026, 11, 20, 9, 30, 0, TimeSpan.Zero),
+        Tags = [new("Dinner", "dinner", TagType.Meal), new("Main", "main", TagType.Course), new("Thai", "thai", TagType.Cuisine),
+                new("Weeknight", "weeknight", null), new("Spicy", "spicy", TagType.Diet)],
+        Ingredients =
+        [
+            new(null, [new("400 ml coconut milk", "- 400 ml coconut milk", false, false)]),
+            new("For the paste", [new("2 tbsp green curry paste", "2 tbsp green curry paste", false, false)]),
+        ],
+        Steps =
+        [
+            new(null, [new(null, "Fry the paste in a splash of coconut cream.", "step1img")]),
+            new("To finish", [new("Simmer", "Add the rest of the coconut milk and simmer."), new(null, "Season with fish sauce.")]),
+        ],
+    };
+
+    [Fact]
+    public void The_data_follows_apples_and_googles_recipe_guidance()
+    {
+        var data = JsonDocument.Parse(RecipeJsonLd.Json(Sample(), "https://kitchen.example", 412.6m)).RootElement;
+
+        data.GetProperty("url").GetString().ShouldBe("https://kitchen.example/recipes/green-curry");
+        data.GetProperty("image").GetString().ShouldBe("https://kitchen.example/media/abc123");
+        data.GetProperty("description").GetString().ShouldBe(
+            "A fragrant curry. Good with jasmine rice, and better the next day when the flavours settle."); // whole, plain
+        data.GetProperty("recipeYield").GetString().ShouldBe("4–6 servings");
+        data.GetProperty("prepTime").GetString().ShouldBe("PT20M");
+        data.GetProperty("cookTime").GetString().ShouldBe("PT25M");
+        data.GetProperty("totalTime").GetString().ShouldBe("PT45M");
+        data.GetProperty("author").GetProperty("name").GetString().ShouldBe("Ana");
+        data.GetProperty("dateModified").GetString().ShouldBe("2026-11-20");
+
+        // Typed tags go to category and cuisine, and are not repeated as keywords (Google's guidance).
+        data.GetProperty("recipeCategory").GetString().ShouldBe("Dinner, Main");
+        data.GetProperty("recipeCuisine").GetString().ShouldBe("Thai");
+        data.GetProperty("keywords").GetString().ShouldBe("Weeknight, Spicy");
+
+        data.GetProperty("recipeIngredient").EnumerateArray().Select(e => e.GetString())
+            .ShouldBe(["400 ml coconut milk", "2 tbsp green curry paste"]);
+
+        // An unnamed step section is plain steps; a named one is a HowToSection; step photos have full addresses.
+        var steps = data.GetProperty("recipeInstructions").EnumerateArray().ToList();
+        steps.Count.ShouldBe(2);
+        steps[0].GetProperty("@type").GetString().ShouldBe("HowToStep");
+        steps[0].GetProperty("image").GetString().ShouldBe("https://kitchen.example/media/step1img");
+        steps[1].GetProperty("@type").GetString().ShouldBe("HowToSection");
+        steps[1].GetProperty("name").GetString().ShouldBe("To finish");
+        var inner = steps[1].GetProperty("itemListElement").EnumerateArray().ToList();
+        inner.Select(i => i.GetProperty("text").GetString()).ShouldBe(["Add the rest of the coconut milk and simmer.", "Season with fish sauce."]);
+        inner[0].GetProperty("name").GetString().ShouldBe("Simmer");
+        inner[1].TryGetProperty("name", out _).ShouldBeFalse();
+
+        var nutrition = data.GetProperty("nutrition");
+        nutrition.GetProperty("@type").GetString().ShouldBe("NutritionInformation");
+        nutrition.GetProperty("calories").GetString().ShouldBe("413 calories");
+
+        data.TryGetProperty("aggregateRating", out _).ShouldBeFalse(); // a household's own rating is not a review
+    }
+
+    [Fact]
+    public void Unknown_values_are_left_out()
+    {
+        var bare = Sample() with { Description = null, FinishImageId = null, SourceAuthor = null, Tags = [], PrepMinutes = null };
+        var data = JsonDocument.Parse(RecipeJsonLd.Json(bare, "https://kitchen.example", null)).RootElement;
+        foreach (var gone in new[] { "description", "image", "author", "prepTime", "recipeCategory", "recipeCuisine", "keywords", "nutrition" })
+        {
+            data.TryGetProperty(gone, out _).ShouldBeFalse(gone);
+        }
     }
 
     [Theory]

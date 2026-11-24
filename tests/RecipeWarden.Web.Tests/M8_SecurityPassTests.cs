@@ -106,7 +106,7 @@ public sealed partial class M8_SecurityPassTests(RecipeWardenFactory factory) : 
         var allowed = new[]
         {
             "src/RecipeWarden.Web/Content/MarkdownRenderer.cs: return new HtmlString(Sanitizer.Sanitize(html));",
-            "src/RecipeWarden.Web/Content/RecipeJsonLd.cs: public static IHtmlContent Html(RecipeView recipe, string? imageUrl) => new HtmlString(Json(recipe, imageUrl));",
+            "src/RecipeWarden.Web/Content/RecipeJsonLd.cs: public static IHtmlContent Html(RecipeView recipe, string baseUrl, decimal? caloriesPerServing) => new HtmlString(Json(recipe, baseUrl, caloriesPerServing));",
         };
         var hits = Sources("src", "*.cs", "*.cshtml")
             .SelectMany(f => File.ReadLines(f).Select((line, i) => (f, i, line)))

@@ -26,6 +26,21 @@ Pages had no inline `<script>` elements at all, and two tests enforce that (SEC-
 5. The script tag helper is kept off this element (`<!script>`), so the type is written as `application/ld+json`
    (the helper would encode the `+`).
 
+## Amendment 1 (2026-11-24): Safari HomeView
+The owner's goal is Safari's HomeView cooking view, which (per the WebKit post) is built from Recipe JSON-LD, and
+which reads the data the way Google's Recipe guidance describes it. The block now follows both:
+- `recipeYield` as "4 servings" (or "4–6 servings"), as in WebKit's example; `url` and `dateModified`.
+- The whole plain-text description (`CardSummary.PlainText`), not the 160-character card cut.
+- Absolute image addresses: the finished photo and each step photo (`HowToStep.image`).
+- A named step section is a `HowToSection` with its steps; unnamed sections stay plain `HowToStep`s.
+- Meal and Course tags go to `recipeCategory`, Cuisine tags to `recipeCuisine`; only the other tags are `keywords`
+  (Google: do not repeat categories as keywords).
+- `nutrition.calories` per serving only when the local estimate is complete; a partial one would understate it.
+- No `aggregateRating`: a household's own star rating is not a review, and Google treats self-rating as spam.
+- Short windows (`max-height: 480px`, HomeView is 448×364): the header no longer sticks and the phone tab bar keeps
+  its icons only (labels stay for screen readers), so the recipe gets the height. `homeview` is a screenshot device.
+`RecipeJsonLd.Html` now takes the site address and calories; the allowed line in the source scan changed with it.
+
 ## Consequences
 - Search engines and link previews can read the recipe; reader modes get the same signal as on recipe sites.
 - If the owner rejects the exception, close the pull request; part A stands on its own.

@@ -9,7 +9,7 @@ using SkiaSharp;
 namespace RecipeWarden.E2E.Tests;
 
 /// <summary>
-/// ADR 0047, docs/ui-standards.md: the main screens in both themes, on a desktop and on a phone. Every screen must fit
+/// ADR 0047, docs/ui-standards.md: the main screens in both themes, on a desktop, on a phone and in Safari's HomeView window (448×364). Every screen must fit
 /// its window (UX-01: nothing wider than the screen). When RW_SCREENSHOTS names a folder, a screenshot of each screen
 /// is written there for a visual review (docs/screenshots is refreshed this way).
 /// </summary>
@@ -45,7 +45,7 @@ public sealed class UX_ScreenshotTests(BrowserHost host) : IClassFixture<Browser
             Directory.CreateDirectory(folder);
         }
 
-        foreach (var (device, width, height) in new[] { ("desktop", 1280, 860), ("phone", 390, 844) })
+        foreach (var (device, width, height) in new[] { ("desktop", 1280, 860), ("phone", 390, 844), ("homeview", 448, 364) })
         {
             foreach (var scheme in new[] { ColorScheme.Light, ColorScheme.Dark })
             {
