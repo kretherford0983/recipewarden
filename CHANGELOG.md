@@ -5,6 +5,13 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 
 ## 1.0.0 — unreleased
 
+### UI polish (owner feedback on the dev build)
+- The scale box's "More scaling options" is closed on every page load; its summary names the options in use
+  (for example "Units: US").
+- A converted ingredient line now says what was written under it ("Written: 24 oz. chicken broth") with an accent
+  edge, instead of a dot that looked like a second bullet and a tooltip phones cannot show (UX-06).
+- The recipe editor explains ingredient groups with an example.
+
 ### UI alignment with PennyWarden (ADR 0047)
 - New look: one design system (colour tokens in both themes, one control height, cards on a tinted background, filled
   pills, original line icons) written down in `docs/ui-standards.md` (UX-13).

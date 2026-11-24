@@ -124,11 +124,24 @@
     </fieldset>
 
     <div class="field">
-        <label asp-for="Input.Ingredients">Ingredients <span class="hint">(one per line; a line ending in “:” starts a group)</span></label>
+        <label asp-for="Input.Ingredients">Ingredients <span class="hint">(one per line)</span></label>
         <textarea asp-for="Input.Ingredients" rows="10" class="lines" data-reorder="ingredients"
                   hx-post="@Model.FormAction?handler=Parse" hx-trigger="input changed delay:800ms, load"
                   hx-target="#ingredient-preview" hx-include="this"></textarea>
         <span asp-validation-for="Input.Ingredients" class="field-error"></span>
+        @* FR-REC-01 ingredient groups, explained with an example (owner feedback 2026-11-23). *@
+        <details class="field-help">
+            <summary>Grouping ingredients (for example, crust and filling)</summary>
+            <p>Type a heading on its own line, ending in a colon. The lines under it are that group, until the next heading.</p>
+            <pre class="example">For the crust:
+1 cup flour
+1/2 cup butter, softened
+For the filling:
+3 eggs
+1 cup sugar</pre>
+            <p>The recipe then shows two short lists headed “For the crust” and “For the filling”. A heading has no amount
+                and at most eight words; “For the …” lines of three to five words work without the colon.</p>
+        </details>
         <div id="ingredient-preview" class="ingredient-preview" aria-live="polite"></div>
     </div>
 

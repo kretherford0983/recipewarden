@@ -626,6 +626,7 @@ a.tile:hover { color: var(--text); border-color: var(--border-strong); box-shado
   font-size: .9rem; font-weight: 600; color: var(--link);
 }
 .scale-more > summary::-webkit-details-marker { display: none; }
+.more-active { margin-left: .15rem; padding: .1rem .5rem; border-radius: 999px; background: var(--accent-soft); color: var(--accent-soft-text); font-size: .8rem; }
 .scale-more > summary::after { content: "▾"; font-size: .8em; transition: transform .15s; }
 .scale-more[open] > summary::after { transform: rotate(180deg); }
 .scale-more > summary:hover { background: var(--surface-2); }
@@ -663,7 +664,8 @@ a.tile:hover { color: var(--text); border-color: var(--border-strong); box-shado
 .ingredients ul { list-style: none; padding: 0; margin: 0; }
 .ingredients li { padding: .4rem 0; border-bottom: 1px solid var(--border); }
 .ingredients li:last-child { border-bottom: 0; }
-.ingredients li.converted::before { content: "•"; color: var(--accent); margin-right: .3rem; font-weight: 700; }
+.ingredients li.converted { box-shadow: inset 3px 0 0 var(--accent); padding-left: .6rem; } /* UX-06: converted */
+.ingredients .written { display: block; font-size: .8rem; color: var(--muted); }
 .ingredients .secondary { color: var(--muted); }
 .ingredients .hint { display: block; font-size: .875rem; }
 .smart-note { margin: .125rem 0 0; font-size: .875rem; color: var(--muted); }
@@ -707,6 +709,10 @@ a.tile:hover { color: var(--text); border-color: var(--border-strong); box-shado
 .editor .checkbox label { display: inline-flex; font-weight: normal; margin: 0; }
 .editor fieldset { background: var(--surface-2); border-color: transparent; }
 .reorder-toggle { margin-top: .4rem; }
+.field-help { margin: .35rem 0 .5rem; font-size: .875rem; color: var(--muted); }
+.field-help > summary { color: var(--link); font-weight: 600; }
+.field-help p { margin: .4rem 0; }
+.field-help .example { margin: .4rem 0; padding: .55rem .75rem; background: var(--surface-2); border-radius: var(--radius); color: var(--text); font-size: .85rem; white-space: pre; overflow-x: auto; }
 .reorder-list { padding-left: 1.5rem; }
 .reorder-list li { display: flex; gap: .5rem; align-items: center; margin-bottom: .3rem; }
 .reorder-list .reorder-text { flex: 1; }

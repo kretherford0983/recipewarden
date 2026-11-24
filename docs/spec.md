@@ -491,7 +491,7 @@ The site should feel like a well-designed cookbook: calm, readable, fast, and us
 | UX-03 | Theme: light, dark, system. Applied before first paint (inline-free: a tiny external script reads the cookie) so there is no flash. Toggle in the header on every page. |
 | UX-04 | Type: system font stack, 18 px base body on recipe pages and cook mode, 1.6 line height, max 70 characters per line for steps; other pages 15 px (ADR 0047). |
 | UX-05 | Fractions render as proper glyphs or super/sub fractions (½, 1¼); units abbreviated consistently (tsp, Tbsp, cup, oz, lb, g, ml). |
-| UX-06 | Scaled or converted amounts are visibly marked (accent dot) with a tooltip showing the original. |
+| UX-06 | Scaled or converted amounts are visibly marked (an accent edge on the line) and say what was written underneath ("Written: 24 oz. chicken broth"), readable on a phone. |
 | UX-07 | Every destructive action has a confirm step or an undo toast; deletions go to trash. |
 | UX-08 | Forms validate inline and on the server with the same messages; errors summarize at the top and link to fields. |
 | UX-09 | Empty states explain the next action ("No recipes yet — Add or Import one"). |
@@ -1192,6 +1192,8 @@ We are starting milestone M0 (Foundations) from docs/spec.md, section 9.10.
 Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. Show me the test list for these ACs before writing implementation code."
 
 ## Changelog
+
+- v0.20 (2026-11-23): owner feedback on the dev build. UX-06: converted lines show the written text under the line instead of a dot and a tooltip. UX-13: the scale box's "More scaling options" is closed on every page load and its summary names the options in use.
 
 - v0.19 (2026-11-23): UI alignment with PennyWarden (ADR 0047). UX-02 control sizes by pointer type; UX-04 15 px app pages; new UX-13 design system and screen-fit check; 7.1 navigation with icons (side bar, rail, bottom tab bar); 7.3 recipe header and actions.
 

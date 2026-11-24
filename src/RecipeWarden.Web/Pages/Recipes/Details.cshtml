@@ -96,10 +96,13 @@
         @{
             var viewQuery = Model.ViewQuery();
             var customFactor = sc.Factor != 1m && !ScaleRules.Presets.Contains(sc.Factor);
-            // UX-13: "More scaling options" stays open while one of its options is in use.
-            var moreOpen = customFactor || ScaleRules.OtherPresets.Contains(sc.Factor) || sc.Units != DisplayUnits.AsWritten
-                || Model.TargetServings is not null || Model.FitRequested || Model.HowManyToolId is not null
-                || Request.Query.ContainsKey("from") || Model.ScaleMessage is not null;
+            // UX-13 (owner feedback): "More scaling options" is always closed when the page loads; recipe.js keeps it
+            // open across in-place updates. The summary names the options from it that are in use.
+            var moreActive = new List<string>();
+            if (sc.Units != DisplayUnits.AsWritten) { moreActive.Add("Units: " + DisplayUnitsRules.Label(sc.Units)); }
+            if (Model.TargetServings is { } servingsTarget) { moreActive.Add("Serves " + DetailsModel.Number(servingsTarget)); }
+            else if (customFactor || ScaleRules.OtherPresets.Contains(sc.Factor)) { moreActive.Add(ScaleRules.Label(sc.Factor)); }
+            if (Model.FitRequested) { moreActive.Add("Fit to container"); }
         }
         <nav class="recipe-actions" aria-label="Print, cook and export">
             @* ADR 0031: each takes this view's scale, units and weights. *@
@@ -140,8 +143,8 @@
                     Make this my default
                 </button>
             </div>
-            <details class="scale-more" open="@moreOpen">
-                <summary>More scaling options</summary>
+            <details class="scale-more">
+                <summary>More scaling options @if (moreActive.Count > 0) { <span class="more-active">@string.Join(" · ", moreActive)</span> }</summary>
                 <div class="scale-lines">
                     <form method="get" action="/recipes/@r.Slug" class="scale-line scale-presets" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
                           hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
@@ -344,7 +347,7 @@
                     <ul>
                         @foreach (var line in g.Lines)
                         {
-                            <li class="@(line.Changed ? "converted" : null)" title="@(line.Changed ? "Written: " + line.RawText + (line.Explanation is null ? "" : ". " + line.Explanation) : null)">
+                            <li class="@(line.Changed ? "converted" : null)" title="@(line.Changed && line.Explanation is not null ? line.Explanation : null)">
                                 @line.Text
                                 @if (line.NeedsReview && Model.CanEdit)
                                 {
@@ -353,6 +356,8 @@
                                 @if (line.Secondary is not null) { <span class="secondary">(@line.Secondary)</span> }
                                 @if (line.Hint is not null) { <span class="hint">@line.Hint</span> }
                                 @if (line.YieldNote is not null) { <p class="smart-note">@line.YieldNote</p> }
+                                @* UX-06: what was written, in words (readable on a phone, unlike a tooltip). *@
+                                @if (line.Changed) { <span class="written">Written: @line.RawText</span> }
                             </li>
                         }
                     </ul>
