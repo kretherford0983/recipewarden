@@ -787,7 +787,8 @@ recipewarden/
     RecipeWarden.Importers/       URL, Markdown, Docx, PDF parsers -> canonical recipe; ingredient line parser; optional AI parser
     RecipeWarden.Infrastructure/  EF Core, migrations, file store, safe HTTP fetcher, backup service, health monitor, nutrition calc
     RecipeWarden.Web/             Razor Pages, htmx partials, auth, middleware, static assets
-    RecipeWarden.Cli/             admin create, backup, restore, health, apply-config (also used by installer)
+    RecipeWarden.Cli/             admin create, backup, restore, health, apply-config, python-selftest, import-compare
+  python/                         rw_worker (ADR 0051): uv project, network guard, contract v1, commands; pytest; licence lists
   tests/
     RecipeWarden.Core.Tests/
     RecipeWarden.Importers.Tests/   (fixture corpus of real-world pages and files)
@@ -795,6 +796,7 @@ recipewarden/
     RecipeWarden.Web.Tests/         (integration: endpoints, auth matrix, CSRF, headers)
     RecipeWarden.Cli.Tests/
     RecipeWarden.E2E.Tests/         (Playwright: key workflows W1-W10)
+    contracts/                      (worker request/response fixtures shared by pytest and xUnit; corpus disagreements)
   deploy/
     install.sh  uninstall.sh  recipewarden.service  cloudflared-example.yml  fstab-nas-example
   docs/
@@ -826,7 +828,7 @@ Pure, deterministic code in Core, and the most heavily tested part of the system
 
 | Item | Location |
 | --- | --- |
-| Binaries | `/opt/recipewarden/releases/<version>-<time>/{web,cli}` + `current` symlink (3 kept, for rollback) |
+| Binaries | `/opt/recipewarden/releases/<version>-<time>/{web,cli,python}` + `current` symlink (3 kept, for rollback); `python/` is the bundled CPython and worker (ADR 0051), root-owned and read-only |
 | Config | `/etc/recipewarden/appsettings.Production.json` |
 | Data | `/var/lib/recipewarden/{db,media,imports,backups,keys}` |
 | Logs | journald + `/var/log/recipewarden/` |
@@ -954,7 +956,8 @@ Free text.
 | Snapshot | Parser output for a corpus of saved pages and files; Markdown export | Verify |
 | Integration | Every endpoint against an in-memory host: auth matrix, antiforgery, headers, CSP, SSRF block list, upload validation, backup/restore round-trip | WebApplicationFactory, temp SQLite |
 | End-to-end | W1–W7 in Chromium, both themes, phone and desktop sizes; accessibility scan | Playwright |
-| Installer | `install.sh` run in Debian and Ubuntu containers: install, upgrade, uninstall | GitHub Actions + Docker |
+| Installer | `install.sh` run in Debian and Ubuntu containers: install, upgrade, uninstall; `python-selftest` after each (AC-107) | GitHub Actions + Docker |
+| Python worker (ADR 0051) | Unit and contract tests (`tests/contracts`, shared with xUnit), licence and source-build checks; .NET tests against a fake worker for faults and the real one end to end (never skipped) | pytest, ruff, pip-audit; xUnit |
 
 Rules: tests are written with or before the code; every bug fix adds a failing test first; no test is skipped or deleted to make a build pass; coverage gates per NFR-06.
 
@@ -966,6 +969,7 @@ The repository is public (ADR 0005): GitHub-hosted Actions minutes are free and 
 
 - Branch flow (ADR 0004, docs/branching.md): `feature/*` → `develop` → `main`; `hotfix/*` → `main`, then back-merged into `develop`. A `promotion-rules` check enforces the flow, and that a version reaching `main` is unreleased and has a CHANGELOG section.
 - `ci.yml` on feature/hotfix pushes and every PR into `develop` or `main`: promotion rules → restore (NuGet cache) → build (warnings as errors) → all unit, integration and E2E tests (Playwright browsers cached) → coverage gate → vulnerable-package check → gitleaks → installer container tests. Target under 8 minutes.
+- The `python worker` job (ADR 0051, SEC-95): ruff, pytest with an 85% coverage gate, licences (ADR 0053) and source builds, pip-audit; `build-test` sets up the worker for the real-worker tests, and `package` bundles a pinned CPython (uv-verified).
 - `build.yml` on pushes to `develop` and `main`: build the self-contained linux-x64 package (and arm64 when added), smoke-test it, and publish it with `install.sh` + SHA-256: `develop` → pre-release `v<version>-dev.<run>` for the test host (newest 3 kept); `main` → release `v<version>`.
 - Workflow-run artifact retention 1 day (7 for hand-run builds); releases kept.
 - `ci.yml` jobs run side by side; the aggregate job `test` is the one required check (ADR 0006).
@@ -1029,6 +1033,10 @@ This matrix seeds `docs/traceability.md` in the repo. Test classes are named aft
 | FR-SCL-04/05/06 | BR-110–114; BR-20, BR-21, BR-27 | ContainerRules; Recipe.Yield\*; KitchenTool (Container); recipe page; `/manage/recipes/{id}/cooked` | Core.Tests ContainerRules; Infra.Tests YieldAndPanStore; Web.Tests ContainerPage | AC-37, AC-38, AC-39 |
 | FR-IMP-09/10 | BR-13, BR-93; SEC-44–47 | IAiRecipeParser, AI settings, AiCallLog; /admin/ai | Importers.Tests AiParser (stubbed provider); Web.Tests AiSettings, AiSsrfException | AC-17, AC-18 |
 | FR-NUT-03 to 06 | BR-50, BR-54 | Unmatched report, mapping, NutrientRef (Custom), NutrientDatasetImporter, CLI `nutrition-import`; /manage/nutrition (/admin/nutrition-data in M7; FR-NUT-06 in M8) | Core.Tests NutritionRules; Infra.Tests NutritionService (dataset refresh); Cli.Tests NutritionImport; Web.Tests NutritionPage | AC-57, AC-58 |
+| FR-NUT-07 | BR-116, BR-54 | FoodSuggestion, `FoodSuggestionService`, Python matcher (ADR 0051, 0052); `/manage/nutrition` | Core, Infra, Web, pytest | AC-101, AC-102, AC-103 |
+| FR-IMP-11 | BR-118, BR-119 | `SecondOpinionRules`, `ImportService`, review page | Core, Infra (corpus), Web | AC-104 |
+| FR-IMP-12 (M10) | BR-117 | Site reader in the URL import order | M10 | AC-110 to AC-112 |
+| FR-OPS-06 | BR-119; SEC-90–95; NFR-10 | `PythonWorker`, health section, CLI `python-selftest`, `import-compare` | Infra, Web, Cli, pytest, smoke and installer tests | AC-103, AC-105 to AC-109 |
 | FR-BKP-08 to 15 | BR-60–62; SEC-70, SEC-74, SEC-75 | Backup:AllowedFolders, apply-config, systemd drop-in, BackupSchedule, marker check, encryption (9.6.1) | Cli.Tests ApplyConfig; Infra.Tests BackupDestination, Retention, Encryption; installer container tests | AC-86, AC-87, AC-88, AC-89 |
 
 ## 11. Acceptance criteria

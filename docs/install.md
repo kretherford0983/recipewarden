@@ -104,6 +104,18 @@ such as Ollama on your network (e.g. `http://192.168.1.20:11434`, tick "on my ho
 optional monthly token cap, then **Test connection**. Only recipe text is sent; results always go to review
 (ADR 0042). The key is stored encrypted and is never shown again.
 
+## Python worker (on by default)
+The package carries its own Python 3.13 and two libraries under `/opt/recipewarden/current/python` (ADR 0051): they
+suggest USDA matches on **Manage → Nutrition** and add a "Second reading" to imported ingredient lines. They run on
+this server only and never go online; nothing to install. **Admin → Health** shows the state, runs the self-test and
+has the switch to turn them off; `"Python": { "Enabled": false }` in `appsettings.Production.json` turns them off for
+good. When off or not working, both features use the built-in behaviour.
+
+```bash
+sudo recipewarden python-selftest   # check the bundled worker (exit 0 passed)
+sudo recipewarden import-compare    # after a few weeks of URL imports: would site-specific readers have helped? (reads only)
+```
+
 ## Cloudflare Access (SEC-64)
 In the Cloudflare Zero Trust dashboard, protect the whole hostname with an Access application that allows only the
 household's email addresses, and add a bypass policy for `/health` and `/health/ready` limited to your monitoring
@@ -113,6 +125,7 @@ host. If Access is ever loosened, keep a policy on `/manage/*`, `/admin/*` and `
 ```bash
 sudo recipewarden health                 # database, disks, backups, capacity (exit 2 when Critical)
 sudo recipewarden backup                 # a backup now, into /var/lib/recipewarden/backups
+sudo recipewarden python-selftest        # the bundled Python worker works offline
 systemctl status recipewarden            # service state
 journalctl -u recipewarden -f            # logs (also /var/log/recipewarden/)
 curl http://127.0.0.1:5080/health        # liveness: "ok"
