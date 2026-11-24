@@ -4,8 +4,10 @@
 <form class="filters" method="get" action="@Model.ListPath" aria-label="Filter recipes">
     @if (Model.ListPath == "/search")
     {
-        <label for="q">Search</label>
-        <input id="q" name="q" type="search" value="@Model.Q" maxlength="@FtsQuery.MaxInputLength">
+        <div class="filter">
+            <label for="q">Search</label>
+            <input id="q" name="q" type="search" value="@Model.Q" maxlength="@FtsQuery.MaxInputLength">
+        </div>
     }
     else if (!string.IsNullOrEmpty(Model.Q))
     {
@@ -13,6 +15,7 @@
     }
     @if (Model.AllTags.Count > 0 && !Model.ListPath.StartsWith("/tags/", StringComparison.Ordinal))
     {
+        <div class="filter">
         <label for="tag">Tag</label>
         <select id="tag" name="tag">
             <option value="">Any tag</option>
@@ -21,9 +24,11 @@
                 <option value="@t.Slug" selected="@(Model.Criteria.TagSlugs.Contains(t.Slug))">@t.Name (@t.RecipeCount)</option>
             }
         </select>
+        </div>
     }
     @if (Model.AllCollections.Count > 0 && !Model.ListPath.StartsWith("/collections/", StringComparison.Ordinal))
     {
+        <div class="filter">
         <label for="collection">Collection</label>
         <select id="collection" name="collection">
             <option value="">Any collection</option>
@@ -32,7 +37,9 @@
                 <option value="@c.Slug" selected="@(Model.Criteria.CollectionSlug == c.Slug)">@c.Name</option>
             }
         </select>
+        </div>
     }
+    <div class="filter">
     <label for="time">Ready in</label>
     <select id="time" name="time">
         <option value="">Any time</option>
@@ -41,6 +48,8 @@
             <option value="@m" selected="@(Model.Criteria.MaxTotalMinutes == m)">@m min or less</option>
         }
     </select>
+    </div>
+    <div class="filter">
     <label for="sort">Sort</label>
     <select id="sort" name="sort">
         @if (!Model.Criteria.Query.IsEmpty)
@@ -51,7 +60,9 @@
         <option value="title" selected="@(Model.Criteria.Sort == SearchSort.Title)">Title</option>
         <option value="lastcooked" selected="@(Model.Criteria.Sort == SearchSort.LastCooked)">Last cooked</option>
     </select>
+    </div>
     <label class="inline"><input type="checkbox" name="image" value="1" checked="@Model.Criteria.HasImage"> With a photo</label>
+    <button type="submit" class="primary">Apply</button>
     <details class="free-of" open="@(Model.Criteria.FreeOf.Count > 0)">
         @* BR-53, ADR 0036 *@
         <summary>Free of@(Model.Criteria.FreeOf.Count > 0 ? " (" + Model.Criteria.FreeOf.Count + ")" : "")</summary>
@@ -66,7 +77,6 @@
     {
         <input type="hidden" name="status" value="draft">
     }
-    <button type="submit">Apply</button>
 </form>
 
 <p class="result-count" role="status">
@@ -90,16 +100,7 @@ else
     <ul class="recipe-grid">
         @foreach (var r in Model.Results.Items)
         {
-            <li class="recipe-card">
-                @if (r.ImageId is not null) { <img class="thumb" src="/media/@r.ImageId/thumb" alt="" loading="lazy"> }
-                <a href="/recipes/@r.Slug"><h2>@r.Title</h2></a>
-                @if (r.Status == RecipeWarden.Core.Recipes.RecipeStatus.Draft) { <span class="badge">Draft</span> }
-                @if (r.Summary is not null) { <p>@r.Summary</p> }
-                <p class="meta">
-                    @if (r.TotalMinutes is not null) { <span>@r.TimeText</span> }
-                    @if (r.Rating is int stars) { <span aria-label="Rated @stars of 5">@(new string('★', stars))</span> }
-                </p>
-            </li>
+            <partial name="_RecipeCard" model="@((r, 2))" />
         }
     </ul>
     @if (Model.Results.PageCount > 1)

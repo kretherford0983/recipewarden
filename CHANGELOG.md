@@ -5,6 +5,22 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 
 ## 1.0.0 — unreleased
 
+### UI alignment with PennyWarden (ADR 0047)
+- New look: one design system (colour tokens in both themes, one control height, cards on a tinted background, filled
+  pills, original line icons) written down in `docs/ui-standards.md` (UX-13).
+- App shell: side navigation with icons on desktop, an icon rail on tablets, a bottom tab bar on phones; Manage and
+  Admin get section tabs. Controls are 36 px with a mouse and 44 px on touch screens (UX-02).
+- Home, Browse and Search: photo-first recipe cards (compact rows on phones); card summaries are plain text, not
+  Markdown. Manage overview as tiles; Admin overview as cards; sign-in in a centred card.
+- Recipe page: photo beside the description and stat tiles; Cook mode, Print, an Export menu and I made this in one
+  row. The scale box shows 0.5x, 1x, 2x, 3x and "Make this my default"; "More scaling options" opens the rest, one
+  per line (owner feedback).
+- Ingredients typed or imported with their own bullet no longer show two bullets; "((…))" shows as "(…)".
+- Checkboxes are normal size; the recipe editor's tags are a dropdown multi-select showing the chosen tags as chips;
+  Save draft and Publish stay in view while editing.
+- Fixed two pages wider than a phone screen (Manage → Tags, Admin → Settings). New browser test checks the main
+  screens fit a phone and a desktop in both themes and can save screenshots for review.
+
 ### M8 Hardening and v1.0
 - Version bumped to 1.0.0 (ADR 0046).
 - Installer upgrade fixes (found on the test host): an older release's CLI without `backup` is now detected (its

@@ -4,12 +4,14 @@
 @{
     ViewData["Title"] = "Home";
 }
-<h1>RecipeWarden</h1>
-<form class="home-search" role="search" method="get" action="/search">
-    <label for="home-q" class="visually-hidden">Search recipes</label>
-    <input id="home-q" name="q" type="search" placeholder="Search recipes, ingredients, tags…">
-    <button type="submit">Search</button>
-</form>
+<section class="home-hero recipe-row" aria-label="Search">
+    <h1>What are we cooking?</h1>
+    <form class="home-search" role="search" method="get" action="/search">
+        <label for="home-q" class="visually-hidden">Search recipes</label>
+        <input id="home-q" name="q" type="search" placeholder="Search recipes, ingredients, tags…">
+        <button type="submit" class="primary">Search</button>
+    </form>
+</section>
 
 @if (Model.Recent.Count == 0)
 {
@@ -17,7 +19,7 @@
         <p>No recipes yet.</p>
         @if (Model.CanEdit)
         {
-            <p><a class="button-link" href="/manage/recipes/new">Add one</a></p>
+            <p><a class="button-link primary" href="/manage/recipes/new">Add one</a> <a class="button-link" href="/manage/import">Import</a></p>
         }
     </section>
 }
@@ -26,36 +28,44 @@ else
     @await Html.PartialAsync("_RecommendationRow", ("season-heading", "In season", Model.Picks.InSeason))
     @await Html.PartialAsync("_RecommendationRow", ("favorites-heading", "Favorites", Model.Picks.Favorites))
     @await Html.PartialAsync("_RecommendationRow", ("lately-heading", "Not cooked lately", Model.Picks.NotCookedLately))
-    <section aria-labelledby="recent-heading">
-        <h2 id="recent-heading">Recently added</h2>
+    <section class="recipe-row" aria-labelledby="recent-heading">
+        <div class="section-head">
+            <h2 id="recent-heading">Recently added</h2>
+            <a href="/recipes">Browse all recipes →</a>
+        </div>
         <ul class="recipe-grid">
             @foreach (var r in Model.Recent)
             {
-                <li class="recipe-card">
-                    @if (r.ImageId is not null) { <img class="thumb" src="/media/@r.ImageId/thumb" alt="" loading="lazy"> }
-                <a href="/recipes/@r.Slug"><h3>@r.Title</h3></a>
-                    @if (r.Summary is not null) { <p>@r.Summary</p> }
-                    @if (r.TotalMinutes is not null) { <p class="meta">@r.TimeText</p> }
-                </li>
+                <partial name="_RecipeCard" model="@((r, 3))" />
             }
         </ul>
-        <p><a href="/recipes">Browse all recipes</a></p>
     </section>
 }
 
 @if (Model.Collections.Count > 0)
 {
-    <section aria-labelledby="collections-heading">
-        <h2 id="collections-heading">Collections</h2>
-        <ul class="link-list">
-            @foreach (var c in Model.Collections) { <li><a href="/collections/@c.Slug">@c.Name</a></li> }
+    <section class="recipe-row" aria-labelledby="collections-heading">
+        <div class="section-head">
+            <h2 id="collections-heading">Collections</h2>
+            <a href="/collections">All collections →</a>
+        </div>
+        <ul class="collection-list">
+            @foreach (var c in Model.Collections)
+            {
+                <li>
+                    <a class="tile" href="/collections/@c.Slug">
+                        <span class="tile-icon"><partial name="_Icon" model="@("collections")" /></span>
+                        <span><span class="tile-title">@c.Name</span></span>
+                    </a>
+                </li>
+            }
         </ul>
     </section>
 }
 
 @if (Model.Tags.Count > 0)
 {
-    <section aria-labelledby="tags-heading">
+    <section class="recipe-row" aria-labelledby="tags-heading">
         <h2 id="tags-heading">Browse by tag</h2>
         <ul class="tags">
             @foreach (var t in Model.Tags) { <li><a href="/tags/@t.Slug">@t.Name</a></li> }

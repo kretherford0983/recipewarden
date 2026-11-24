@@ -8,8 +8,9 @@ using RecipeWarden.Web.Pages.Manage.Recipes;
 
 namespace RecipeWarden.Web.Tests;
 
-/// <summary>ADR 0016, FR-ORG-01, NFR-03: tags picked from checkbox groups by type, plus a box for new tags.</summary>
+/// <summary>ADR 0016, FR-ORG-01, NFR-03, UX-13: tags picked in a dropdown of checkbox groups by type, plus a box for new tags.</summary>
 [Trait("Req", "FR-ORG-01")]
+[Trait("Req", "UX-13")]
 public sealed partial class ADR_0016_TagPickerTests(RecipeWardenFactory factory) : IClassFixture<RecipeWardenFactory>
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
@@ -37,7 +38,7 @@ public sealed partial class ADR_0016_TagPickerTests(RecipeWardenFactory factory)
         html.ShouldContain("<legend>Tags</legend>");
         foreach (var group in new[] { "Meal", "Course", "Season", "Method", "Diet" })
         {
-            html.ShouldContain($"<summary>{group} ");
+            html.ShouldContain($"<p class=\"tag-group-label\">{group}</p>"); // UX-13: groups inside the dropdown
         }
 
         html.ShouldContain($"name=\"Input.TagIds\" value=\"{await TagIdAsync("Dinner")}\"");
@@ -60,7 +61,7 @@ public sealed partial class ADR_0016_TagPickerTests(RecipeWardenFactory factory)
         var id = await factory.RecipeIdAsync(slug);
         var edit = WebUtility.HtmlDecode(await editor.GetStringAsync($"/manage/recipes/{id}/edit", Ct));
         CheckedIds(edit).ShouldBe(new[] { dinner, soup, await TagIdAsync("Slow Cooker"), await TagIdAsync("Weeknight Favourite") }.Order().ToArray());
-        edit.ShouldContain("(Dinner)");
+        edit.ShouldContain("<span class=\"chip\">Dinner</span>"); // UX-13: the closed dropdown shows the ticked tags
         Regex.Match(edit, "id=\"Input_Tags\"[^>]*value=\"([^\"]*)\"").Groups[1].Value.ShouldBe(string.Empty);
     }
 

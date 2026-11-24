@@ -13,6 +13,16 @@ public sealed class FR_SCL_01_ScaleRulesTests
         ScaleRules.Presets.ShouldBe([0.5m, 1m, 1.5m, 2m, 3m]);
     }
 
+    [Fact]
+    [Trait("Req", "UX-13")]
+    public void The_collapsed_toolbar_shows_the_quick_presets_and_the_rest_are_under_more_options()
+    {
+        // Owner feedback 2026-11-23: 0.5x, 1x, 2x, 3x in the collapsed toolbar; 1.5x stays a preset under "More".
+        ScaleRules.QuickPresets.ShouldBe([0.5m, 1m, 2m, 3m]);
+        ScaleRules.QuickPresets.ShouldAllBe(p => ScaleRules.Presets.Contains(p));
+        ScaleRules.OtherPresets.ShouldBe([1.5m]);
+    }
+
     [Theory]
     [Trait("Req", "AC-30")]
     [InlineData("1.5", 1.5)]

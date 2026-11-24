@@ -28,6 +28,12 @@ public static class ScaleRules
     /// <summary>FR-SCL-01 presets.</summary>
     public static IReadOnlyList<decimal> Presets { get; } = [0.5m, 1m, 1.5m, 2m, 3m];
 
+    /// <summary>UX-13: the presets on the collapsed recipe toolbar (owner feedback 2026-11-23).</summary>
+    public static IReadOnlyList<decimal> QuickPresets { get; } = [0.5m, 1m, 2m, 3m];
+
+    /// <summary>UX-13: the other presets, under the toolbar's "More scaling options".</summary>
+    public static IReadOnlyList<decimal> OtherPresets { get; } = [.. Presets.Except(QuickPresets)];
+
     /// <summary>
     /// Reads <c>?scale=</c> or <c>?servings=</c> (servings wins when both are given). Anything that cannot be used
     /// falls back to 1x with a message, never an error page (ADR 0014).

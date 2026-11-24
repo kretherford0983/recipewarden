@@ -82,24 +82,41 @@
     </div>
     <p class="hint">Servings and times can be ranges (6-8, 20-25 min). Times take minutes or hours (1 hr 15 min). Leave total empty to add prep and cook.</p>
 
-    @* ADR 0016: tags grouped by type as checkboxes, plus a box for new names. Works without JavaScript. *@
+    @* ADR 0016, UX-13 (owner feedback 2026-11-23): a dropdown multi-select. Closed, it shows the chosen tags as chips;
+       open, a filter box and compact checkboxes grouped by type. Works without JavaScript (details/summary). *@
+    @{ var chosenTags = Model.TagGroups.SelectMany(g => g.Tags).Where(t => Model.IsTicked(t.Id)).Select(t => t.Name).ToList(); }
     <fieldset class="field tag-picker" id="Input_Tags_picker">
         <legend>Tags</legend>
         <span asp-validation-for="Input.Tags" class="field-error"></span>
-        <input type="search" class="tag-filter" data-tag-filter hidden placeholder="Filter tags" aria-label="Filter tags" autocomplete="off">
-        @foreach (var group in Model.TagGroups)
-        {
-            var chosen = group.Tags.Where(t => Model.IsTicked(t.Id)).Select(t => t.Name).ToList();
-            <details open="@(chosen.Count > 0)">
-                <summary>@group.Label @if (chosen.Count > 0) { <span class="chosen">(@string.Join(", ", chosen))</span> }</summary>
-                <div class="tag-options">
-                    @foreach (var t in group.Tags)
+        <details class="multiselect" data-multiselect>
+            <summary>
+                <span class="multiselect-value" data-multiselect-value>
+                    @if (chosenTags.Count == 0)
                     {
-                        <label><input type="checkbox" name="Input.TagIds" value="@t.Id" checked="@Model.IsTicked(t.Id)"> @t.Name</label>
+                        <span class="placeholder">Choose tags</span>
                     }
-                </div>
-            </details>
-        }
+                    else
+                    {
+                        @foreach (var name in chosenTags) { <span class="chip">@name</span> }
+                    }
+                </span>
+            </summary>
+            <div class="multiselect-panel">
+                <input type="search" class="tag-filter" data-tag-filter hidden placeholder="Filter tags" aria-label="Filter tags" autocomplete="off">
+                @foreach (var group in Model.TagGroups)
+                {
+                    <div class="tag-group" data-tag-group>
+                        <p class="tag-group-label">@group.Label</p>
+                        <div class="tag-options">
+                            @foreach (var t in group.Tags)
+                            {
+                                <label><input type="checkbox" name="Input.TagIds" value="@t.Id" checked="@Model.IsTicked(t.Id)"> @t.Name</label>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </details>
         <div class="field">
             <label asp-for="Input.Tags">New tags <span class="hint">(comma-separated)</span></label>
             <input asp-for="Input.Tags" autocomplete="off">
@@ -197,9 +214,9 @@
         <partial name="@Model.ExtraPartial" model="Model" />
     }
 
-    <div class="actions">
-        <button type="submit" name="Action" value="publish" class="primary">Publish</button>
+    <div class="actions sticky-actions">
         <button type="submit" name="Action" value="draft">Save draft</button>
+        <button type="submit" name="Action" value="publish" class="primary">Publish</button>
     </div>
 </form>
 <script src="~/js/editor.js" asp-append-version="true" defer></script>

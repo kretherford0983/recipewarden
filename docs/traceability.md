@@ -29,6 +29,7 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | FR-ALG-01/02/03 | BR-52, BR-53 | `AllergenRules` (Core), RecipeAllergen, `RecipeAllergenIndex`; badges, "free of" filter | Core `FR_ALG_01_AllergenRulesTests`; Infra `FR_NUT_02_NutritionServiceTests`; Web `FR_NUT_01_NutritionPageTests`; E2E `M6_NutritionTests` | AC-56 |
 | FR-HOME-01/02 | — | Home page; Recommendation rules | Web.Tests Home | AC-60 |
 | FR-UI-01/02 | UX-03 | Theme script, UserPreference | E2E Theme | AC-61 |
+| UX-01, UX-02, UX-04, UX-13 | ADR 0047; owner feedback 2026-11-23 | `site.css` design system, `_Layout` shell and nav, `_SectionNav`/`SectionNav`, `_Icon`, `_RecipeCard`, `CardSummary`, `IngredientText`, `ScaleRules.QuickPresets`, tag dropdown; docs/ui-standards.md | Core `UX_13_CardSummaryTests`, `FR_REC_03_IngredientTextTests`, `FR_SCL_01_ScaleRulesTests`; Web `ADR_0016_TagPickerTests`, `FR_REC_02_RecipeEditorTests`; E2E `UX_ScreenshotTests`, `FR_SCL_01_ScaleToolbarTests`, `AC_96_AccessibilityTests` | AC-96 |
 | FR-AUTH-01/02/03 | SEC-01–14 | Policies; route access table (7.2) | Web.Tests AuthMatrix (every endpoint) | AC-70, AC-71, AC-72 |
 | FR-AUTH-04 | SEC-04 | Identity TOTP | Web.Tests TwoFactor | AC-73 |
 | FR-ADM-01 | SEC-72 | `AuditRules` (Core), `AuditInterceptor`, `AuditLog`, AuditEntry; `/admin/audit` | Core `FR_ADM_01_AuditRulesTests`; Infra `FR_ADM_01_AuditTests`; Web `FR_ADM_01_AuditPageTests`, `SEC_12_UsersPageTests` | AC-74 |
@@ -376,6 +377,17 @@ rules, stored for search, "free of").
   - No existing assertion changed; the access table and the form-token page list were extended.
   - A bare (unfenced) recipe-md block runs to the next block or the end of the reply, so chat text after the last
     bare block lands in its last section. Fenced blocks end at the fence. The review page shows what was read.
+
+- **UI alignment notes (2026-11-23, ADR 0047):**
+  - Assertions changed with the owner-requested behaviour, not weakened: the tag picker tests now look for the group
+    labels inside the dropdown and for the chosen tags as chips (they looked for `<summary>Meal …` and
+    `(Dinner)`); the scale toolbar browser test opens "More scaling options" before choosing units (units moved
+    there) and checks the panel stays open while metric is shown; the AI exchange browser test opens the Export menu
+    before "Export for AI".
+  - `IngredientLineParser.Parse` still keeps a line's raw text as written; it parses without a typed bullet, and saved
+    lists are cleaned line by line (`ParseList`). Lines saved before are cleaned when shown.
+  - New screenshot test found and fixed two pages wider than a phone: Manage → Tags and Admin → Settings.
+  - No new packages.
 
 - **M7 notes (2026-11-23, built unattended):**
   - Decisions are in ADR 0037 to 0041, all marked for owner review.

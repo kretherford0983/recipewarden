@@ -3,14 +3,29 @@
 @{
     ViewData["Title"] = "Manage";
 }
-<h1>Manage</h1>
-<ul class="manage-links">
-    <li><a class="button-link primary" href="/manage/recipes/new">New recipe</a></li>
-    <li><a class="button-link" href="/manage/import">Import</a></li>
-    <li><a href="/recipes?status=draft">Drafts</a> (@Model.DraftCount)</li>
-    <li><a href="/manage/collections">Collections</a></li>
-    <li><a href="/manage/tags">Tags</a></li>
-    <li><a href="/manage/kitchen">My Kitchen</a></li>
-    <li><a href="/manage/conversions">Conversions</a></li>
-    <li><a href="/manage/trash">Trash</a> (@Model.TrashCount)</li>
+<div class="page-head">
+    <div>
+        <h1>Manage</h1>
+        <p class="lead">Add and organise recipes, and set up your kitchen.</p>
+    </div>
+</div>
+<ul class="tiles manage-links">
+    <li><a class="tile primary" href="/manage/recipes/new"><span class="tile-icon"><partial name="_Icon" model="@("plus")" /></span>
+        <span><span class="tile-title">New recipe</span><span class="tile-text">Type in a recipe from scratch.</span></span></a></li>
+    <li><a class="tile" href="/manage/import"><span class="tile-icon"><partial name="_Icon" model="@("import")" /></span>
+        <span><span class="tile-title">Import</span><span class="tile-text">From a web address, pasted text or files.</span></span></a></li>
+    <li><a class="tile" href="/recipes?status=draft"><span class="tile-icon"><partial name="_Icon" model="@("draft")" /></span>
+        <span><span class="tile-title">Drafts <span class="count">@Model.DraftCount</span></span><span class="tile-text">Recipes not published yet.</span></span></a></li>
+    <li><a class="tile" href="/manage/collections"><span class="tile-icon"><partial name="_Icon" model="@("collections")" /></span>
+        <span><span class="tile-title">Collections</span><span class="tile-text">Group recipes for a meal plan or occasion.</span></span></a></li>
+    <li><a class="tile" href="/manage/tags"><span class="tile-icon"><partial name="_Icon" model="@("tag")" /></span>
+        <span><span class="tile-title">Tags</span><span class="tile-text">Rename, type and tidy tags.</span></span></a></li>
+    <li><a class="tile" href="/manage/kitchen"><span class="tile-icon"><partial name="_Icon" model="@("kitchen")" /></span>
+        <span><span class="tile-title">My Kitchen</span><span class="tile-text">Your spoons, scale, pans and containers.</span></span></a></li>
+    <li><a class="tile" href="/manage/conversions"><span class="tile-icon"><partial name="_Icon" model="@("scale")" /></span>
+        <span><span class="tile-title">Conversions</span><span class="tile-text">Densities, vague amounts and yields.</span></span></a></li>
+    <li><a class="tile" href="/manage/nutrition"><span class="tile-icon"><partial name="_Icon" model="@("nutrition")" /></span>
+        <span><span class="tile-title">Nutrition</span><span class="tile-text">Match ingredients to foods.</span></span></a></li>
+    <li><a class="tile" href="/manage/trash"><span class="tile-icon"><partial name="_Icon" model="@("trash")" /></span>
+        <span><span class="tile-title">Trash <span class="count">@Model.TrashCount</span></span><span class="tile-text">Deleted recipes you can restore.</span></span></a></li>
 </ul>
