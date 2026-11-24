@@ -157,7 +157,7 @@ run_health() { { /usr/local/bin/recipewarden health 2>&1 || true; } | grep -q "q
 check "CLI health: the database is sound" run_health
 # ADR 0051: the bundled Python worker runs offline as the service user (AC-107) from a read-only release (SEC-94).
 py_selftest() { /usr/local/bin/recipewarden python-selftest >/dev/null 2>&1; }
-py_readonly() { local d; d="$(readlink -f /opt/recipewarden/current)/python"; [[ -x $d/bin/python3 && -z $(find "$d" \( ! -user root -o -perm /022 \) -print -quit) ]]; }
+py_readonly() { local d; d="$(readlink -f /opt/recipewarden/current)/python"; [[ -x $d/bin/python3 && -z $(find "$d" ! -type l \( ! -user root -o -perm /022 \) -print -quit) ]]; } # links are always 777
 check "AC-107: python-selftest passes after install" py_selftest
 check "SEC-94: the Python runtime is root-owned and not writable by others" py_readonly
 
