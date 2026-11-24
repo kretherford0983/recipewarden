@@ -1,7 +1,6 @@
 # ADR 0050: Recipe JSON-LD
 
-- Status: **Proposed — owner review requested** (built overnight 2026-11-23 at the owner's request to "try the
-  markup changes"; merging the pull request is the approval).
+- Status: Accepted (owner, 2026-11-24: merged PR #23; HomeView confirmed working).
 - Requirements: UX-14; SEC-22, SEC-23; ADR 0048 amendment 1
 
 ## Context

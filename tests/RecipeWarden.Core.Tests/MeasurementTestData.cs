@@ -10,6 +10,9 @@ internal static class MeasurementTestData
     public const int ChickenBreast = 2;
     public const int Salt = 3;
     public const int Butter = 4;
+    public const int ChickenBroth = 5;
+    public const int Honey = 6;
+    public const int DicedTomatoes = 7;
 
     public static MeasurementCatalog Catalog { get; } = new(
         foods:
@@ -18,6 +21,9 @@ internal static class MeasurementTestData
             new FoodFacts(ChickenBreast, "chicken breast", null),
             new FoodFacts(Salt, "salt", 1.2173m),
             new FoodFacts(Butter, "butter", 0.9595m),
+            new FoodFacts(ChickenBroth, "chicken broth", 1.0525m, FoodForm.Liquid),
+            new FoodFacts(Honey, "honey", 1.4329m, FoodForm.Liquid),
+            new FoodFacts(DicedTomatoes, "diced tomatoes", 1.0144m),
         ],
         yields:
         [

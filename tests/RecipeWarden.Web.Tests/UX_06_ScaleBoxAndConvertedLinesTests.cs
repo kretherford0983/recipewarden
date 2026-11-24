@@ -60,13 +60,19 @@ public sealed class UX_06_ScaleBoxAndConvertedLinesTests(RecipeWardenFactory fac
     }
 
     [Fact]
+    [Trait("Req", "BR-115")]
     public async Task A_converted_line_says_what_was_written_in_words()
     {
         var url = await RecipeAsync("Converted Broth");
 
+        // BR-115, ADR 0049: ounces of broth are fluid ounces, never pounds or grams.
         var us = await GetAsync(url + "?units=us");
-        us.ShouldContain("1½ lb chicken broth");
+        us.ShouldContain("24 fl oz chicken broth");
+        us.ShouldNotContain("lb chicken broth");
         us.ShouldContain("<span class=\"written\">Written: 24 oz. chicken broth (low sodium)</span>");
+
+        var metric = await GetAsync(url + "?units=metric");
+        metric.ShouldContain("710 ml chicken broth");
 
         var asWritten = await GetAsync(url);
         asWritten.ShouldContain("24 oz chicken broth");
