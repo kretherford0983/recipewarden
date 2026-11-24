@@ -263,7 +263,7 @@ rules, stored for search, "free of").
 
 | ID | Status | Implementation | Tests |
 | --- | --- | --- | --- |
-| FR-BKP-01 / AC-80, BR-60 | Done | `BackupService` (online backup, integrity_check, tar.gz, manifest, SHA-256s, 0600) | Infra `FR_BKP_01_BackupServiceTests.Back_up_now_…`; Web `FR_BKP_01_BackupPageTests.Back_up_now_…`; Cli `FR_BKP_07_CliOperationsTests` |
+| FR-BKP-01 / AC-80, BR-60 | Done | `BackupService` (online backup, integrity_check, tar.gz, manifest, SHA-256s, 0600) | Infra `FR_BKP_01_BackupServiceTests.Back_up_now_…`, `FR_BKP_01_RestoreLockTests` (a restore waits for a brief lock instead of failing); Web `FR_BKP_01_BackupPageTests.Back_up_now_…`; Cli `FR_BKP_07_CliOperationsTests` |
 | FR-BKP-02, FR-BKP-14 / AC-89 | Done (Cronos, server local time) | `BackupScheduleRules` (Core), `BackupScheduleService`, `BackupSchedulerService` (every minute) | Core `FR_BKP_02_ScheduleRulesTests`; Infra `FR_BKP_02_ScheduleServiceTests.A_failed_run_is_retried_…` |
 | FR-BKP-03 / AC-81, BR-61 | Done | `RetentionRules` (Core), `BackupService.ApplyRetentionAsync` | Core `FR_BKP_03_RetentionRulesTests` (60 simulated days); Infra `Retention_deletes_only_the_schedules_own_archives…` |
 | FR-BKP-04 / AC-82, BR-62, BR-63, SEC-54 | Done | `RestoreService` (quarantine, checks, apply with rollback), `MaintenanceMiddleware`, two-step page | Infra `FR_BKP_01_BackupServiceTests` (restore, `..`, links, caps, checksum, unlisted, newer); Web `FR_BKP_01_BackupPageTests`; E2E W7 |

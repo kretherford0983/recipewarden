@@ -291,7 +291,14 @@ public sealed partial class RestoreService(
         }
     }
 
-    /// <summary>SQLite online backup from one file into another (the live database stays a valid WAL database).</summary>
+    /// <summary>How long a copy waits for another connection's lock on either file before it fails (30 s).</summary>
+    private const string CopyBusyTimeout = "PRAGMA busy_timeout = 30000";
+
+    /// <summary>
+    /// SQLite online backup from one file into another (the live database stays a valid WAL database). Both connections
+    /// get SQLite's own busy timeout: Microsoft.Data.Sqlite retries commands on a lock but not a backup, which otherwise
+    /// fails at once with "database is locked" if any other connection holds a lock for a moment (FR-BKP-01).
+    /// </summary>
     internal static void CopyDatabase(string from, string to)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(to)!);
@@ -299,7 +306,16 @@ public sealed partial class RestoreService(
         using var dest = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = to, Pooling = false }.ToString());
         source.Open();
         dest.Open();
+        BusyTimeout(source);
+        BusyTimeout(dest);
         source.BackupDatabase(dest);
+    }
+
+    private static void BusyTimeout(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = CopyBusyTimeout;
+        command.ExecuteNonQuery();
     }
 
     private static (string? Integrity, int Recipes, int Users) Inspect(string dbPath)

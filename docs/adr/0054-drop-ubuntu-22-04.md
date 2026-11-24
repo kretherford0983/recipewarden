@@ -16,3 +16,7 @@ Python adapters' libraries need (ADR 0051 bundles its own runtime, so that alone
 
 ## Consequences
 One CI job fewer. A 22.04 host keeps working but is no longer tested.
+
+The `protect-main` ruleset (on `main` and `develop`) listed `installer (ubuntu:22.04)` as a required check, which no
+longer reports, so merges waited on it. On 2026-11-24 the owner replaced it with `installer (ubuntu:26.04)`. When a CI
+job is renamed or removed, change the ruleset's required checks with it.
