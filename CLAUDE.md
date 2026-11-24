@@ -55,6 +55,8 @@ e.g. `feature/m1-recipes`. PR description lists IDs, ACs, and test evidence. Add
 - One project: `dotnet test --project tests/RecipeWarden.Web.Tests`
 - Browser tests (Playwright, W1/W2): `build/e2e.sh`; without Playwright's browser use `RW_E2E_BROWSER=/path/to/chrome build/e2e.sh`
 - Vulnerable packages: `build/check-vulnerable.sh`
+- Python worker (ADR 0051; needs uv): `build/python.sh dev` (environment, run by build/test.sh), `build/python.sh check`
+  (ruff, pytest, licences, pip-audit); `build/package.sh` bundles the runtime (offline: `RW_PYTHON_RUNTIME=<dir>`)
 - Installer tests (root, in a container; package from build/package.sh):
   `docker run --rm -v "$PWD:/src:ro" -v "$PWD/dist:/dist:ro" debian:12 bash -c "apt-get update -qq && apt-get install -y -qq curl >/dev/null && bash /src/tests/installer/test-install.sh /dist/recipewarden-<v>-linux-x64.tar.gz"`
   With systemd (CI runner or a VM): `sudo bash tests/installer/test-install-systemd.sh dist/recipewarden-<v>-linux-x64.tar.gz`

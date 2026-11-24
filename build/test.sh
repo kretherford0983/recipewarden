@@ -35,6 +35,9 @@ run_one() {
   echo "$rc $((SECONDS - start))" > "$logs/$project.status"
 }
 
+# The real-worker tests need the Python environment (ADR 0051; they are never skipped, docs/testing.md).
+build/python.sh dev
+
 start=$SECONDS
 pids=()
 for entry in "${projects[@]}"; do

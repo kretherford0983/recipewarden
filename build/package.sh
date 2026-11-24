@@ -2,7 +2,8 @@
 # Builds the Linux server package (section 9.5, D-05: self-contained linux-x64).
 # Usage: build/package.sh <full version, e.g. 0.1.0 or 0.1.0-dev.12> [output dir, default dist]
 # Output:
-#   recipewarden-<version>-linux-x64.tar.gz   recipewarden-<version>/{web,cli,install.sh,recipewarden.service,build-info.json}
+#   recipewarden-<version>-linux-x64.tar.gz   recipewarden-<version>/{web,cli,python,install.sh,recipewarden.service,build-info.json}
+#   (python: the bundled CPython and worker from build/python.sh, ADR 0051; needs uv)
 #   install.sh  build-info.json  SHA256SUMS.txt
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -23,6 +24,7 @@ rm -rf "$out"; mkdir -p "$out"
 publish src/RecipeWarden.Web "$stage/web"
 publish src/RecipeWarden.Cli "$stage/cli"
 rm -f "$stage"/web/appsettings.Development.json
+build/python.sh package "$stage/python"
 
 cp deploy/install.sh deploy/recipewarden.service "$stage/"
 printf '{"version":"%s","branch":"%s","commit":"%s","run":"%s","built_at":"%s"}\n' \

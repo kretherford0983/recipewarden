@@ -1,0 +1,4 @@
+# SEC-95: every Python package installs from a hashed wheel, except these pure-Python packages that publish no
+# wheel. They are built from the source archive whose SHA-256 is in uv.lock. Keep this list short.
+# jstyleson 0.0.2 (MIT, one file), needed by extruct <- recipe-scrapers.
+jstyleson
