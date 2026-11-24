@@ -664,6 +664,7 @@ a.tile:hover { color: var(--text); border-color: var(--border-strong); box-shado
 .ingredients ul { list-style: none; padding: 0; margin: 0; }
 .ingredients li { padding: .4rem 0; border-bottom: 1px solid var(--border); }
 .ingredients li:last-child { border-bottom: 0; }
+.ingredients li > p.ingredient-line { margin: 0; }
 .ingredients li.converted { box-shadow: inset 3px 0 0 var(--accent); padding-left: .6rem; } /* UX-06: converted */
 .ingredients .written { display: block; font-size: .8rem; color: var(--muted); }
 .ingredients .secondary { color: var(--muted); }

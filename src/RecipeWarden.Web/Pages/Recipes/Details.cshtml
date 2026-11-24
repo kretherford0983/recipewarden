@@ -15,6 +15,9 @@
         ? (fy.IsEstimate ? "about " : "") + AmountText.Format(fy.Ml / UnitCatalog.FindByCode("floz")!.ToBase, UnitCatalog.FindByCode("floz")!)
         : "";
     ViewData["Title"] = r.Title;
+    // UX-14: the head says this page is an article, with a plain-text description (reader modes and link previews).
+    ViewData["OgType"] = "article";
+    ViewData["Description"] = RecipeWarden.Core.Recipes.CardSummary.From(r.Description);
 }
 @* UX-14, ADR 0048: the recipe is the article (schema.org Recipe); tools are asides, which reader modes leave out. *@
 <article class="recipe" aria-labelledby="recipe-title" itemscope itemtype="https://schema.org/Recipe">
@@ -355,13 +358,11 @@
                         @foreach (var line in g.Lines)
                         {
                             <li class="@(line.Changed ? "converted" : null)" title="@(line.Changed && line.Explanation is not null ? line.Explanation : null)">
-                                <span itemprop="recipeIngredient">@line.Text</span>
-                                @if (line.NeedsReview && Model.CanEdit)
+                                @* UX-14: the line is a paragraph, as on recipe sites Safari Reader accepts. *@
+                                <p class="ingredient-line"><span itemprop="recipeIngredient">@line.Text</span>@if (line.NeedsReview && Model.CanEdit)
                                 {
-                                    <span class="badge warn" title="The parser was unsure about this line; check it in the editor">check</span>
-                                }
-                                @if (line.Secondary is not null) { <span class="secondary">(@line.Secondary)</span> }
-                                @if (line.Hint is not null) { <span class="hint">@line.Hint</span> }
+                                    <text> </text><span class="badge warn" title="The parser was unsure about this line; check it in the editor">check</span>
+                                }@if (line.Secondary is not null) { <text> </text><span class="secondary">(@line.Secondary)</span> }@if (line.Hint is not null) { <span class="hint">@line.Hint</span> }</p>
                                 @if (line.YieldNote is not null) { <p class="smart-note">@line.YieldNote</p> }
                                 @* UX-06: what was written, in words (readable on a phone, unlike a tooltip). *@
                                 @if (line.Changed) { <span class="written">Written: @line.RawText</span> }
