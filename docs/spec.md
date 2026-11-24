@@ -1,6 +1,6 @@
-# RecipeWarden — Specification v0.18
+# RecipeWarden — Specification v0.25
 
-Version 0.18 · 2026-11-23
+Version 0.25 · 2026-11-24
 
 ## 1. Overview
 
@@ -274,6 +274,7 @@ These rules are enforced in the domain layer (not only the UI) and each has unit
 | BR-112 | A weight-based yield can fill a volume container only if a finished-product density is entered; otherwise the option explains what is missing instead of guessing. |
 | BR-113 | After the display planner rounds amounts (BR-21, BR-27), expected fill is recalculated; if rounding moves the yield more than 5% from the target, the result warns ("rounding eggs puts you about 7% over: may overflow"). |
 | BR-114 | Requesting more containers than are owned is allowed but noted ("you have 2; this needs 3"). Container scaling is a view like any scale (BR-20, FR-SCL-03) and can be printed, exported or added to a shopping list. |
+| BR-115 | A bare "oz" on a water-like liquid (Form = Liquid, density 0.85 to 1.15 g/ml: broth, milk, cream, wine, juice) counts as fluid ounces whenever the amount is converted, scaled or summed (BR-20, BR-22, BR-111). Thick liquids (honey, syrups), other forms, foods without a density and unmatched lines keep weight. At 1x as written the line is shown as typed, and BR-22's automatic weight is decided on the written unit (ADR 0049). |
 
 ### 4.4 Kitchen inventory and suggestions
 
@@ -1194,11 +1195,10 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
-- v0.24 (2026-11-23): Recipe JSON-LD (ADR 0050, proposed); SEC-23 allows that one data block.
-
-- v0.24 (2026-11-24): UX-14 amendment — JSON-LD follows Safari HomeView and Google Recipe guidance (ADR 0050 amendment 1).
+- v0.25 (2026-11-24): UX-14 amendment — JSON-LD follows Safari HomeView and Google Recipe guidance (ADR 0050 amendment 1). Changelog renumbered (two v0.24 lines; v0.22 was on an unmerged branch).
+- v0.24 (2026-11-23): Recipe JSON-LD (ADR 0050); SEC-23 allows that one data block.
 - v0.23 (2026-11-23): UX-14 amendment — ingredient lines are paragraphs; recipe pages declare `og:type=article` with a description (ADR 0048 amendment 1).
-
+- v0.22 (2026-11-23): BR-115 — a bare "oz" on a water-like liquid is fluid ounces when converted, scaled or summed (ADR 0049).
 - v0.21 (2026-11-23): UX-14 browser reader mode on the recipe page (ADR 0048).
 
 - v0.20 (2026-11-23): owner feedback on the dev build. UX-06: converted lines show the written text under the line instead of a dot and a tooltip. UX-13: the scale box's "More scaling options" is closed on every page load and its summary names the options in use.

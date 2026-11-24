@@ -1,6 +1,6 @@
 # RecipeWarden — requirements traceability
 
-Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.18. Keep in step with the spec and the test suite.
+Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.25. Keep in step with the spec and the test suite.
 
 Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and tagged with `[Trait("Req", "FR-SCL-01")]`, so CI can print coverage per requirement and fail if any Must requirement has no test.
 
@@ -18,6 +18,7 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | FR-EXP-01 | BR-10, BR-28 | Print layout and `print.css`; `/print` | E2E W6 one-page PDF; Web `FR_EXP_01_PrintCookExportPageTests` | AC-24 |
 | FR-EXP-02/03 | BR-10 | recipe-md v1 (9.7); `RecipeExporter`; `export.md`, `export.zip`, bulk zips | Core `FR_EXP_02_RecipeMarkdownWriteTests`; Infra `FR_EXP_02_RecipeExportTests`; Web `FR_EXP_01_PrintCookExportPageTests` | AC-25 |
 | FR-SCL-01/02/03 | BR-20, BR-29 | ScalingService | Core.Tests Scaling (property-based) | AC-30, AC-31 |
+| FR-SCL-01, FR-MEAS-01, FR-SCL-04 | BR-115 (ADR 0049) | OunceRules (Core), used by IngredientScaler and ContainerRules.Estimate | Core `BR_115_OuncesOnLiquidsTests`; Web `UX_06_ScaleBoxAndConvertedLinesTests` | — |
 | FR-MEAS-01/02 | BR-21–24, BR-28 | DisplayPlanner, Unit, Food.Density | Core.Tests DisplayPlanner | AC-32, AC-33 |
 | FR-MEAS-03 | BR-25 | Vague units | Core.Tests VagueQuantities | AC-34 |
 | FR-MEAS-04 | BR-26 | YieldConversion | Core.Tests YieldConversion | AC-35 |

@@ -42,7 +42,7 @@ public static class ContainerRules
 
     /// <summary>
     /// BR-111: an estimate from the ingredients that convert to a volume (volumes as they are; weights with a
-    /// density). Everything else is listed as excluded. At 1x.
+    /// density; ounces of a water-like liquid as fluid ounces, BR-115). Everything else is listed as excluded. At 1x.
     /// </summary>
     public static FinishedYield Estimate(IEnumerable<ScaleInput> lines, MeasurementCatalog catalog)
     {
@@ -53,8 +53,9 @@ public static class ContainerRules
         foreach (var line in lines)
         {
             var p = line.Ingredient;
-            var unit = catalog.Unit(p.UnitCode);
-            var density = catalog.Food(line.FoodId)?.DensityGPerMl;
+            var food = catalog.Food(line.FoodId);
+            var unit = catalog.Unit(p.UnitCode) is { } written ? OunceRules.Effective(written, food) : null; // BR-115
+            var density = food?.DensityGPerMl;
             if (p.Quantity is not { } q || p.NeedsReview)
             {
                 if (p.Quantity is not null || !string.IsNullOrEmpty(p.UnitCode))

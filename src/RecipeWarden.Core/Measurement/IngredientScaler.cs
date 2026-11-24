@@ -101,19 +101,20 @@ public static class IngredientScaler
         return Measured(input, unit, context);
     }
 
-    private static ScaledIngredient Measured(ScaleInput input, UnitDefinition unit, ScaleContext context)
+    private static ScaledIngredient Measured(ScaleInput input, UnitDefinition written, ScaleContext context)
     {
         var p = input.Ingredient;
         var food = context.Catalog.Food(input.FoodId);
+        var unit = OunceRules.Effective(written, food); // BR-115: ounces of broth are fluid ounces
         var density = food?.DensityGPerMl;
         var low = p.Quantity!.Value * unit.ToBase * context.Factor;
         var high = p.QuantityMax is { } max ? max * unit.ToBase * context.Factor : (decimal?)null;
         var note = p.Note;
 
-        if (input.Plus is { Quantity: { } plusQty } plus && context.Catalog.Unit(plus.UnitCode) is { Kind: var plusKind } plusUnit
-            && plusKind == unit.Kind && !plusUnit.IsVague)
+        if (input.Plus is { Quantity: { } plusQty } plus && context.Catalog.Unit(plus.UnitCode) is { } plusUnit
+            && OunceRules.Effective(plusUnit, food) is var plusEffective && plusEffective.Kind == unit.Kind && !plusUnit.IsVague)
         {
-            var extra = plusQty * plusUnit.ToBase * context.Factor;
+            var extra = plusQty * plusEffective.ToBase * context.Factor;
             low += extra;
             high += extra;
             note = null;
@@ -121,7 +122,7 @@ public static class IngredientScaler
 
         var yieldNote = YieldEstimate(input, unit, low, context);
         var exactMl = unit.Kind == UnitKind.Volume ? low : density is > 0m ? low / density.Value : (decimal?)null;
-        if (WeightFirst(unit, food, high, context) is { } weighed)
+        if (WeightFirst(written, food, high, context) is { } weighed)
         {
             var volume = AmountText(low, high, UnitKind.Volume, UnitSystem.US, unit, context, out _, out _);
             var grams = low * density!.Value;
