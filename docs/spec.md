@@ -498,6 +498,7 @@ The site should feel like a well-designed cookbook: calm, readable, fast, and us
 | UX-10 | Loading over 300 ms shows a skeleton or spinner; imports show step progress (fetching, parsing, review). |
 | UX-11 | Readers never see edit controls; signed-in editors see an "Edit" button on the recipe and a "Manage" menu. |
 | UX-12 | Print uses a dedicated stylesheet: black on white, no images except optional finish image thumbnail, ingredient checkboxes, page-break avoidance inside steps. |
+| UX-14 | The recipe page works with the browser's reader mode (Safari Reader, Chrome Reading mode, Firefox Reader View): one article marked as a schema.org Recipe, tools in asides, and the reader shows the description, ingredients (with groups), steps and notes without the page's controls (ADR 0048). |
 | UX-13 | One design system (ADR 0047, docs/ui-standards.md): shared colour tokens in both themes, one control height, labelled fields that line up, cards, pills, original line icons. A rule changes in the standards and the shared CSS, never on one page. Every main screen fits its window on a phone and a desktop in both themes. |
 
 ### 6.2 Key workflows
@@ -1192,6 +1193,8 @@ We are starting milestone M0 (Foundations) from docs/spec.md, section 9.10.
 Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. Show me the test list for these ACs before writing implementation code."
 
 ## Changelog
+
+- v0.21 (2026-11-23): UX-14 browser reader mode on the recipe page (ADR 0048).
 
 - v0.20 (2026-11-23): owner feedback on the dev build. UX-06: converted lines show the written text under the line instead of a dot and a tooltip. UX-13: the scale box's "More scaling options" is closed on every page load and its summary names the options in use.
 

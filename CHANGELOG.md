@@ -11,6 +11,9 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 - A converted ingredient line now says what was written under it ("Written: 24 oz. chicken broth") with an accent
   edge, instead of a dot that looked like a second bullet and a tooltip phones cannot show (UX-06).
 - The recipe editor explains ingredient groups with an example.
+- Browser reader mode (Safari Reader, Chrome Reading mode, Firefox Reader View) now works on a recipe and shows the
+  description, ingredients, steps and notes without the page's buttons (UX-14, ADR 0048). Recipes are also marked
+  as schema.org Recipes. Test-only addition: Mozilla Readability 0.6.0 (Apache-2.0).
 
 ### UI alignment with PennyWarden (ADR 0047)
 - New look: one design system (colour tokens in both themes, one control height, cards on a tinted background, filled

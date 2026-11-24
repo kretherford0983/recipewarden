@@ -578,7 +578,7 @@ a.tile:hover { color: var(--text); border-color: var(--border-strong); box-shado
 
 /* Recipe page (UX-04: 18 px reading type) */
 .recipe { font-size: 18px; line-height: 1.6; }
-.recipe .recipe-header { margin-bottom: 1rem; }
+.recipe .recipe-head { margin-bottom: 1rem; } /* not "header": reader modes drop classes containing it */
 .recipe-titlebar { display: flex; flex-wrap: wrap; gap: .75rem 1rem; align-items: flex-start; justify-content: space-between; }
 .recipe-titlebar h1 { font-size: 2.1rem; margin: 0 0 .6rem; flex: 1 1 20rem; }
 .recipe-titlebar .toolbar { font-size: 15px; }
@@ -677,6 +677,9 @@ a.tile:hover { color: var(--text); border-color: var(--border-strong); box-shado
 }
 :root[data-theme="light"] .steps ol > li::before { color: var(--accent); }
 .step-title { display: block; }
+.steps li > p { margin: 0; }
+aside.recipe-tools { display: block; }
+.recipe-titlebar aside.toolbar { display: flex; }
 .step-image { display: block; max-width: min(100%, 32rem); height: auto; margin: .6rem 0; border-radius: var(--radius); }
 .notes, .recipe .nutrition-panel { margin-top: 1.5rem; }
 .variant-of, .variants, .in-collections { font-size: 16px; color: var(--muted); }

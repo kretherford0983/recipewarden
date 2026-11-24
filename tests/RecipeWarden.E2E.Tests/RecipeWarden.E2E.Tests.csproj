@@ -16,5 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="a11y-check.js" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="vendor/readability/*.js" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

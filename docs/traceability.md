@@ -29,6 +29,7 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | FR-ALG-01/02/03 | BR-52, BR-53 | `AllergenRules` (Core), RecipeAllergen, `RecipeAllergenIndex`; badges, "free of" filter | Core `FR_ALG_01_AllergenRulesTests`; Infra `FR_NUT_02_NutritionServiceTests`; Web `FR_NUT_01_NutritionPageTests`; E2E `M6_NutritionTests` | AC-56 |
 | FR-HOME-01/02 | — | Home page; Recommendation rules | Web.Tests Home | AC-60 |
 | FR-UI-01/02 | UX-03 | Theme script, UserPreference | E2E Theme | AC-61 |
+| UX-14 | ADR 0048 | Recipe page `<article>` with schema.org Recipe microdata; tools in `<aside>`; `#recipe-body` holds description, lists and notes | Web `UX_14_RecipeMarkupTests`; E2E `UX_14_ReaderModeTests` (Mozilla Readability 0.6.0, test-only) | — |
 | UX-01, UX-02, UX-04, UX-06, UX-13 | ADR 0047; owner feedback 2026-11-23 | `site.css` design system, `_Layout` shell and nav, `_SectionNav`/`SectionNav`, `_Icon`, `_RecipeCard`, `CardSummary`, `IngredientText`, `ScaleRules.QuickPresets`, tag dropdown; docs/ui-standards.md | Core `UX_13_CardSummaryTests`, `FR_REC_03_IngredientTextTests`, `FR_SCL_01_ScaleRulesTests`; Web `ADR_0016_TagPickerTests`, `FR_REC_02_RecipeEditorTests`, `UX_06_ScaleBoxAndConvertedLinesTests`; E2E `UX_ScreenshotTests`, `FR_SCL_01_ScaleToolbarTests`, `AC_96_AccessibilityTests` | AC-96 |
 | FR-AUTH-01/02/03 | SEC-01–14 | Policies; route access table (7.2) | Web.Tests AuthMatrix (every endpoint) | AC-70, AC-71, AC-72 |
 | FR-AUTH-04 | SEC-04 | Identity TOTP | Web.Tests TwoFactor | AC-73 |
@@ -377,6 +378,13 @@ rules, stored for search, "free of").
   - No existing assertion changed; the access table and the form-token page list were extended.
   - A bare (unfenced) recipe-md block runs to the next block or the end of the reply, so chat text after the last
     bare block lands in its last section. Fenced blocks end at the fence. The review page shows what was read.
+
+- **Reader mode notes (2026-11-23, ADR 0048):**
+  - New test-only asset: Mozilla Readability 0.6.0 (Apache-2.0), vendored unmodified in
+    `tests/RecipeWarden.E2E.Tests/vendor/readability`; never shipped. The browser test runs with CSP bypassed only to
+    add that library to the page.
+  - Not checked here: Safari and Chrome reader modes (their rules are not published); to confirm on the owner's Mac
+    and phone.
 
 - **UI alignment notes (2026-11-23, ADR 0047):**
   - Assertions changed with the owner-requested behaviour, not weakened: the tag picker tests now look for the group
