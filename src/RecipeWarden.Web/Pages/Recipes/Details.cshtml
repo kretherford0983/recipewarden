@@ -175,7 +175,7 @@
                         </span>
                     </form>
                     <form method="get" action="/recipes/@r.Slug" class="scale-line" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
-                          hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true" hx-trigger="change, submit">
+                          hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true" data-submit-on-change>
                         @if (sc.Factor != 1m) { <input type="hidden" name="scale" value="@ScaleRules.ToQuery(sc.Factor)"> }
                         <label class="line-label" for="units">Units</label>
                         <span class="line-controls">

@@ -32,6 +32,15 @@
     });
   }
 
+  // The units list submits its form on change. One listener on the document (not on the list) still works for a
+  // toolbar htmx has just swapped in but not yet processed; htmx then turns the submit into an in-place update, or
+  // the browser loads the page normally. Either way the URL carries the choice (ADR 0014).
+  document.addEventListener("change", function (event) {
+    var form = event.target && event.target.form;
+    if (!form || !form.hasAttribute("data-submit-on-change")) { return; }
+    if (typeof form.requestSubmit === "function") { form.requestSubmit(); } else { form.submit(); }
+  });
+
   document.addEventListener("htmx:load", function (event) { init(event.detail.elt); });
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () { init(document); });

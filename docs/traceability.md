@@ -275,7 +275,7 @@ rules, stored for search, "free of").
 | FR-OPS-05 | Done | `/health/ready` (503 only when Critical); webhook (text/Discord/JSON) through `SafeFetcher.SendAsync` | Web `Low_space_gives_warning_with_banner_then_critical_with_503`, webhook tests |
 | FR-NUT-05 page | Done | `/admin/nutrition-data` (upload through `UploadValidator.SaveArchiveAsync`) | Web `Nutrition_data_page_…` |
 | FR-INST-03 (full pre-upgrade backup) | Done | `install.sh` runs `recipewarden backup --kind pre-upgrade` when the installed CLI has it | `test-install.sh` |
-| SEC-60 (installer firewall) | Done (also applied on upgrade since 2026-11-23; `--no-firewall` remembered) | ufw when active, else nftables with an `ExecStartPre=+` drop-in; `--no-firewall` | shellcheck; `test-install.sh` upgrade block; manual check on a LAN-bound host is pending |
+| SEC-60 (installer firewall) | Done (also applied on upgrade since 2026-11-23; `--no-firewall` remembered; loopback-origin traffic allowed so this host's own health checks pass) | ufw when active, else nftables with an `ExecStartPre=+` drop-in (`iif "lo" accept` before the drop); `--no-firewall` | shellcheck; `test-install.sh` upgrade block; `test-install-systemd.sh` LAN-bind block (reconfigure to the runner's LAN IP, rule present, own health check, upgrade, back to loopback) |
 
 ### M8 Hardening and v1.0.0 (built 2026-11-23 while the owner was away; PR into `develop` after M7 — owner review of ADRs 0042 to 0046 pending)
 

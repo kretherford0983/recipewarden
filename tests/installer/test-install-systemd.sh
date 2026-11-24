@@ -81,6 +81,30 @@ run 0 "network.json" "reconfigure moves the port" -- bash "$installer" --reconfi
 check "healthy on the new port" health 5090
 check "old port closed" bash -c '! curl -fsS -o /dev/null --max-time 2 http://127.0.0.1:5080/health'
 
+# ------------------------------------------------------------------ LAN bind behind the host firewall (SEC-60)
+# The installer and the CLI check health from this host against the bind address; the nftables rule must not drop
+# them (dev.17 did: an upgrade on a LAN-bound test host failed its health check and rolled back).
+lan_ip=$(ip -4 route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p')
+command -v nft >/dev/null || apt-get install -y -qq nftables >/dev/null 2>&1 || true
+lan_health() { [[ $(curl -fsS --max-time 2 "http://$lan_ip:5090/health" 2>/dev/null) == ok ]]; }
+if [[ -n $lan_ip ]] && command -v nft >/dev/null && ! { ufw status 2>/dev/null | grep -q "Status: active"; }; then
+  run 0 "network.json" "SEC-60: reconfigure to a LAN bind with a tunnel host" -- \
+    bash "$installer" --reconfigure --bind "$lan_ip" --trusted-proxy 192.0.2.10 --yes
+  # nft prints a one-address set without braces ("ip saddr != 192.0.2.10"), several with them.
+  check "SEC-60: the nftables rule limits the port to the tunnel host" \
+    bash -c "nft list table inet recipewarden | grep -Eq 'saddr != \\{? ?192\\.0\\.2\\.10 ?\\}? drop'"
+  check "SEC-60: connections from this host (lo) are accepted before the drop" \
+    bash -c "nft list table inet recipewarden | grep -q 'iif \"lo\" accept'"
+  check "SEC-60: this host still reaches its own bind address" lan_health
+  run 0 "upgrading the existing installation" "SEC-60: an upgrade on a LAN bind passes its health check" -- \
+    bash "$installer" --package "$package" --yes --unattended
+  check "SEC-60: healthy after the LAN-bind upgrade" lan_health
+  run 0 "network.json" "back to loopback" -- bash "$installer" --reconfigure --bind 127.0.0.1 --yes
+  check "SEC-60: a loopback bind removes the rule" bash -c '! nft list table inet recipewarden >/dev/null 2>&1'
+else
+  echo "skip SEC-60 LAN-bind tests: no LAN address or nft, or ufw is active"
+fi
+
 # ------------------------------------------------------------------ uninstall
 run 0 "Kept:" "uninstall keeps data" -- bash "$installer" --uninstall
 check "service removed" bash -c '! systemctl cat recipewarden >/dev/null 2>&1'

@@ -46,6 +46,21 @@ public sealed class FR_IMP_01_ImportPageTests(RecipeWardenFactory factory) : ICl
     ];
 
     [Fact]
+    [Trait("Req", "FR-REC-03")]
+    public async Task The_review_page_previews_ingredient_lines_like_the_editor()
+    {
+        // W2 step 3 on the review page: the live preview (htmx POST ?handler=Parse) shares the editor's partial,
+        // which lives under /Pages/Manage/Recipes; from /manage/import it was not found (500).
+        var (editor, review) = await ImportAsync("imp-preview@example.com", "http://kitchen.example/preview", "Preview Soup");
+        var response = await editor.PostFormAsync(review + "?handler=Parse", ("Input.Ingredients", "2 cups red lentils"));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.TextAsync());
+        WebUtility.HtmlDecode(await response.TextAsync()).ShouldContain("lentils");
+
+        var fromEditor = await editor.PostFormAsync("/manage/recipes/new?handler=Parse", ("Input.Ingredients", "2 cups red lentils"));
+        fromEditor.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
     [Trait("Req", "AC-10")]
     [Trait("Req", "AC-11")]
     [Trait("Req", "BR-10")]
