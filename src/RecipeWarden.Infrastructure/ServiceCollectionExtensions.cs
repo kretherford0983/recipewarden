@@ -118,6 +118,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<Core.Python.IFoodSuggestionSource, Python.PythonFoodSuggestionSource>();
         services.AddScoped<Core.Python.IIngredientSecondOpinion, Python.PythonIngredientSecondOpinion>();
         services.AddScoped<Core.Python.ISiteRecipeScraper, Python.PythonSiteRecipeScraper>();
+        services.AddScoped<Nutrition.FoodSuggestionService>();
         return services;
     }
 

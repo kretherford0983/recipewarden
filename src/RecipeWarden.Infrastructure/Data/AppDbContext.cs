@@ -49,6 +49,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
     public DbSet<StorageSnapshot> StorageSnapshots => Set<StorageSnapshot>();
     public DbSet<HealthCheckResult> HealthCheckResults => Set<HealthCheckResult>();
     public DbSet<AiCallLog> AiCallLogs => Set<AiCallLog>();
+    public DbSet<FoodSuggestion> FoodSuggestions => Set<FoodSuggestion>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -445,6 +446,20 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         });
 
         // M8: AI usage log (FR-IMP-10, ADR 0042)
+        builder.Entity<FoodSuggestion>(e =>
+        {
+            // FR-NUT-07: one row per name, engine and dataset (BR-116).
+            e.HasIndex(f => new { f.NormalizedName, f.EngineVersion, f.DatasetVersion }).IsUnique();
+            e.Property(f => f.NormalizedName).HasMaxLength(200);
+            e.Property(f => f.Description).HasMaxLength(300);
+            e.Property(f => f.DataType).HasMaxLength(40);
+            e.Property(f => f.EngineVersion).HasMaxLength(100);
+            e.Property(f => f.DatasetVersion).HasMaxLength(400);
+            e.Property(f => f.DismissedById).HasMaxLength(450);
+            Real(e.Property(f => f.Confidence));
+            e.HasOne<NutrientRef>().WithMany().HasForeignKey(f => f.NutrientRefId).OnDelete(DeleteBehavior.Cascade);
+        });
+
         builder.Entity<AiCallLog>(e =>
         {
             e.HasIndex(a => a.At);

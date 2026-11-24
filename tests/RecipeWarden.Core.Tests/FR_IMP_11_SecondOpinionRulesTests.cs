@@ -107,4 +107,41 @@ public sealed class FR_IMP_11_SecondOpinionRulesTests
             }
         }
     }
+
+    [Fact]
+    [Trait("Req", "AC-104")]
+    public void Only_disagreeing_lines_become_review_warnings_and_misaligned_answers_none()
+    {
+        var parses = new[] { Ours(1.5m, "cup", "milk") with { RawText = "1-1/2 cups milk" }, Ours(2m, null, "eggs") with { RawText = "2 eggs" } };
+        var readings = new IngredientReading?[] { Theirs(0.5m, "cup", "milk", max: 1m), Theirs(2m, null, "eggs") };
+
+        var warnings = ImportRules.SecondOpinionWarnings(parses, readings);
+
+        warnings.Count.ShouldBe(1);
+        warnings[0].IsSecondOpinion.ShouldBeTrue();
+        warnings[0].Line.ShouldBe("1-1/2 cups milk");
+        warnings[0].Message.ShouldBe("A second reading differs on the amount: ½–1 cup milk");
+        ImportRules.SecondOpinionWarnings(parses, [readings[0]]).ShouldBeEmpty();
+        new ImportWarning("x").IsSecondOpinion.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData("garlic cloves", "cloves", "garlic")]
+    [InlineData("celery stalks", "stalks", "celery")]
+    [InlineData("small head cauliflower", "head", "cauliflower")]
+    public void A_count_word_kept_in_the_name_is_not_a_difference(string ourName, string theirUnit, string theirName) =>
+        SecondOpinionRules.Compare(Ours(6m, null, ourName), Theirs(6m, theirUnit, theirName)).ShouldBeNull();
+
+    [Fact]
+    public void A_count_word_with_a_different_food_is_still_a_difference() =>
+        SecondOpinionRules.Compare(Ours(6m, null, "garlic cloves"), Theirs(6m, "cloves", "shallot"))!.Differences
+            .ShouldBe(ReadingDifference.Unit | ReadingDifference.Food);
+
+    [Fact]
+    public void Alternatives_written_with_or_match_the_list_of_names()
+    {
+        var alternatives = new IngredientReading(1m, null, "cup", ["butter", "margarine"], null, null, []);
+        SecondOpinionRules.Compare(Ours(1m, "cup", "butter or margarine"), alternatives).ShouldBeNull();
+        SecondOpinionRules.CoreName("Butter OR Margarine").ShouldBe("butter and margarine");
+    }
 }

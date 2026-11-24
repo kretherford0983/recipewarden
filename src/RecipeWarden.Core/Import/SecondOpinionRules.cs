@@ -68,14 +68,21 @@ public static class SecondOpinionRules
             differences |= ReadingDifference.Quantity;
         }
 
-        if (!SameUnit(ours.UnitCode, theirs.Unit))
+        if (CountWordInName(ours, theirs))
         {
-            differences |= ReadingDifference.Unit;
+            // "6 garlic cloves" vs "6 cloves garlic": the same thing written two ways, not a difference.
         }
-
-        if (theirs.Names.Count > 0 && !SameFood(ours.Name, theirs.Names))
+        else
         {
-            differences |= ReadingDifference.Food;
+            if (!SameUnit(ours.UnitCode, theirs.Unit))
+            {
+                differences |= ReadingDifference.Unit;
+            }
+
+            if (theirs.Names.Count > 0 && !SameFood(ours.Name, theirs.Names))
+            {
+                differences |= ReadingDifference.Food;
+            }
         }
 
         return differences == ReadingDifference.None ? null : new SecondOpinion(differences, Describe(theirs));
@@ -108,12 +115,35 @@ public static class SecondOpinionRules
             || (theirs.Count == 1 && string.Equals(core, CoreName(theirs[0]), StringComparison.Ordinal));
     }
 
-    /// <summary>The name without size, state and preparation words, singular: "large Eggs" → "egg".</summary>
+    /// <summary>
+    /// The name without size, state and preparation words, singular, with "or" read as "and" (the NLP parser lists
+    /// alternatives as separate names): "large Eggs" → "egg", "butter or margarine" → "butter and margarine".
+    /// </summary>
     public static string CoreName(string? name)
     {
         var words = FoodMatcher.Normalize(name).Split(' ', StringSplitOptions.RemoveEmptyEntries)
-            .Where(w => !FoodMatcher.IsModifier(w));
+            .Where(w => !FoodMatcher.IsModifier(w))
+            .Select(w => w == "or" ? "and" : w);
         return FoodMatcher.Singular(string.Join(' ', words));
+    }
+
+    /// <summary>
+    /// True when the .NET parser kept a count word in the name ("garlic cloves", no unit) and the NLP parser made it the
+    /// unit ("cloves" of "garlic"): the same words, so no unit or food difference.
+    /// </summary>
+    private static bool CountWordInName(ParsedIngredient ours, IngredientReading theirs)
+    {
+        if (ours.UnitCode is not null || string.IsNullOrWhiteSpace(theirs.Unit))
+        {
+            return false;
+        }
+
+        static HashSet<string> Words(string text) =>
+            [.. FoodMatcher.Normalize(text).Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Where(w => !FoodMatcher.IsModifier(w)).Select(FoodMatcher.Singular)];
+
+        var mine = Words(ours.Name);
+        return mine.Count > 0 && mine.SetEquals(Words(theirs.Unit + " " + string.Join(" ", theirs.Names)));
     }
 
     /// <summary>"½–1 cup milk": the other reading as plain text, capped.</summary>

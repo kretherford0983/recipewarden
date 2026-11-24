@@ -28,6 +28,9 @@ discussed and not pursued.
    read-only files.
 
 ## Consequences
+- `M8_SecurityPassTests.The_web_app_never_starts_a_process` (SEC-24) allows exactly one file to start a process,
+  `Infrastructure/Python/PythonWorker.cs`, and checks that it uses no shell, an argument list and a cleared
+  environment. SEC-24's rule itself (the app never invokes a shell) is unchanged. Owner review requested.
 - The package grows by an estimated 60 to 80 MB compressed (budget 90 MB, NFR-10). CI gains a `python` job, and
   `build-test` and `package` each gain a setup step.
 - Two toolchains to maintain. Dependabot and pip-audit cover the lock file.

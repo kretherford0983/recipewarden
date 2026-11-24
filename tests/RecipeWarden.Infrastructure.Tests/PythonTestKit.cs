@@ -60,6 +60,18 @@ internal static class PythonTestKit
     public static PythonFeatures Features(PythonOptions options, PythonWorkerHealth health, SettingsStore settings, ListLogger<PythonFeatures>? logger = null) =>
         new(options, health, settings, logger ?? new ListLogger<PythonFeatures>());
 
+    /// <summary>Waits (up to 5 s) for a killed process to stop: signals are delivered asynchronously (docs/testing.md).</summary>
+    public static async Task<bool> GoneAsync(int pid)
+    {
+        var until = DateTime.UtcNow.AddSeconds(5);
+        while (ProcessExists(pid) && DateTime.UtcNow < until)
+        {
+            await Task.Delay(20, TestContext.Current.CancellationToken);
+        }
+
+        return !ProcessExists(pid);
+    }
+
     /// <summary>True while the process runs. A zombie (killed, not yet reaped by its new parent) has stopped running.</summary>
     public static bool ProcessExists(int pid)
     {

@@ -55,7 +55,7 @@ public sealed record ImportSaveResult(SaveOutcome? Outcome, bool NeedsDuplicateC
 /// recipe pipeline, keeps a web recipe's credit (BR-10), and copies the image only when ticked (BR-12, AC-11).
 /// </summary>
 public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptions options, SafeFetcher fetcher, RecipeService recipes,
-    ImageStore images, Ai.AiParserService ai, TimeProvider clock)
+    ImageStore images, Ai.AiParserService ai, Core.Python.IIngredientSecondOpinion secondOpinion, TimeProvider clock)
 {
     public static readonly TimeSpan KeepFor = TimeSpan.FromDays(30);
 
@@ -287,11 +287,34 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
             ImageUrl = before.ImageUrl ?? parsed.Recipe.ImageUrl,
         };
         job.ParsedJson = JsonSerializer.Serialize(recipe, Json);
-        job.WarningsJson = JsonSerializer.Serialize(ImportReader.Warnings(recipe), Json);
+        job.WarningsJson = JsonSerializer.Serialize(await WarningsAsync(recipe, cancellationToken).ConfigureAwait(false), Json);
         job.ParsedByAi = true;
         job.UpdatedAt = clock.GetUtcNow();
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return null;
+    }
+
+    /// <summary>
+    /// FR-IMP-06 warnings, plus FR-IMP-11's second opinion: one worker call per imported recipe. When the worker is off,
+    /// missing or fails, the review has the v1 warnings only (BR-119); the imported text is never changed.
+    /// </summary>
+    private async Task<IReadOnlyList<ImportWarning>> WarningsAsync(ImportedRecipe recipe, CancellationToken ct)
+    {
+        var warnings = ImportReader.Warnings(recipe).ToList();
+        var parses = ImportReader.IngredientParses(recipe.Ingredients);
+        if (parses.Count == 0)
+        {
+            return warnings;
+        }
+
+        var lines = parses.Select(p => p.RawText.Length <= ImportReader.MaxSecondOpinionLineLength ? p.RawText : string.Empty).ToList();
+        var outcome = await secondOpinion.ReadAsync(lines, ct).ConfigureAwait(false);
+        if (outcome.Ok)
+        {
+            warnings.AddRange(ImportRules.SecondOpinionWarnings(parses, outcome.Value!));
+        }
+
+        return warnings;
     }
 
     private static string HostName(Uri page) =>
@@ -478,7 +501,7 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
                     Status = ImportStatus.Review,
                     RawPath = batchId + "/" + rawName,
                     ParsedJson = JsonSerializer.Serialize(recipe, Json),
-                    WarningsJson = JsonSerializer.Serialize(ImportReader.Warnings(recipe), Json),
+                    WarningsJson = JsonSerializer.Serialize(await WarningsAsync(recipe, ct).ConfigureAwait(false), Json),
                     ImageUrl = recipe.ImageUrl,
                     CopyImage = copyImage && recipe.ImageUrl is not null,
                     DuplicateOfRecipeId = duplicate?.RecipeId,

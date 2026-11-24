@@ -10,11 +10,22 @@ using RecipeWarden.Web.Security;
 namespace RecipeWarden.Web.Pages.Manage;
 
 /// <summary>
-/// FR-NUT-03, FR-NUT-04, FR-NUT-05 (view), BR-54, AC-57, ADR 0034: the unmatched-ingredient report, mapping an
-/// ingredient to a USDA or custom food by search, and custom foods from a package label. Editor only.
+/// FR-NUT-03, FR-NUT-04, FR-NUT-05 (view), FR-NUT-07, BR-54, BR-116, AC-57, AC-101 to AC-103, ADR 0034, ADR 0051: the
+/// unmatched-ingredient report with local suggestions, mapping an ingredient to a USDA or custom food by search, and
+/// custom foods from a package label. Editor only.
 /// </summary>
-public sealed class NutritionModel(NutritionService nutrition, Infrastructure.Ai.AiParserService ai) : PageModel
+public sealed class NutritionModel(NutritionService nutrition, Infrastructure.Ai.AiParserService ai, FoodSuggestionService suggestions,
+    Infrastructure.Python.PythonFeatures python) : PageModel
 {
+    public const string SuggestionsUnavailable =
+        "Suggestions are not available right now, so nothing was suggested. You can still map each ingredient by searching below.";
+
+    /// <summary>FR-NUT-07: the matcher's suggestion per report row (normalized name), for an Editor to confirm.</summary>
+    public IReadOnlyDictionary<string, SuggestedMatch> Suggested { get; private set; } = new Dictionary<string, SuggestedMatch>();
+
+    /// <summary>False when an Admin or the server owner turned Python features off (FR-OPS-06).</summary>
+    public bool SuggestionsOn { get; private set; }
+
     /// <summary>FR-NUT-06: the AI's pick among the local candidates, for the Editor to confirm.</summary>
     public NutrientChoice? Suggestion { get; private set; }
 
@@ -42,7 +53,42 @@ public sealed class NutritionModel(NutritionService nutrition, Infrastructure.Ai
     public async Task OnGetAsync(string? done)
     {
         await LoadAsync();
-        Message = done switch { "mapped" => "Mapped. Every recipe using it now counts it.", "label" => "Food added. Map an ingredient to it below.", _ => null };
+        Message = done switch
+        {
+            "mapped" => "Mapped. Every recipe using it now counts it.",
+            "label" => "Food added. Map an ingredient to it below.",
+            "dismissed" => "Suggestion dismissed. It will not be suggested again.",
+            _ => null,
+        };
+    }
+
+    /// <summary>
+    /// FR-NUT-07: asks the bundled matcher about the unmatched names that have no suggestion yet. Nothing is mapped;
+    /// when the worker is unavailable the page says so and works as before (AC-103, BR-119).
+    /// </summary>
+    public async Task<IActionResult> OnPostSuggestMatchesAsync()
+    {
+        var report = await nutrition.UnmatchedAsync(HttpContext.RequestAborted);
+        var run = await suggestions.SuggestAsync(report.Select(r => r.Name), HttpContext.RequestAborted);
+        await LoadAsync();
+        if (run.Failure != Core.Python.WorkerFailure.None)
+        {
+            Error = SuggestionsUnavailable;
+        }
+        else
+        {
+            Message = run.Asked == 0
+                ? "Every ingredient on the list has already been looked at."
+                : $"Looked at {run.Asked} ingredient{(run.Asked == 1 ? "" : "s")}: {run.Found} suggested match{(run.Found == 1 ? "" : "es")} to check.";
+        }
+
+        return Page();
+    }
+
+    public async Task<IActionResult> OnPostDismissAsync(string? name)
+    {
+        await suggestions.DismissAsync(name, Permissions.UserId(User), HttpContext.RequestAborted);
+        return Redirect("/manage/nutrition?done=dismissed");
     }
 
     public async Task<IActionResult> OnPostMapAsync(int? foodId, string? name, int nutrientId)
@@ -117,6 +163,8 @@ public sealed class NutritionModel(NutritionService nutrition, Infrastructure.Ai
     {
         var ct = HttpContext.RequestAborted;
         Report = await nutrition.UnmatchedAsync(ct);
+        Suggested = await suggestions.ForAsync(Report.Select(r => r.Name), ct);
+        SuggestionsOn = (await python.StatusAsync(ct)).Status != Infrastructure.Python.PythonStatus.TurnedOff;
         Dataset = await nutrition.DatasetSummaryAsync(ct);
         AiEnabled = (await ai.GetSettingsAsync(ct)).Enabled;
         var search = Query ?? MapName;

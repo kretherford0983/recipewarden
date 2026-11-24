@@ -2,12 +2,21 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using RecipeWarden.Core.Measurement;
 using RecipeWarden.Core.Organization;
+using RecipeWarden.Core.Python;
 using RecipeWarden.Core.Recipes;
 
 namespace RecipeWarden.Core.Import;
 
-/// <summary>Something the reviewer should look at before saving (FR-IMP-06).</summary>
-public sealed record ImportWarning(string Message, string? Line = null);
+/// <summary>
+/// Something the reviewer should look at before saving (FR-IMP-06). <see cref="Kind"/> is
+/// <see cref="SecondOpinionKind"/> for a line the NLP parser read differently (FR-IMP-11); null otherwise.
+/// </summary>
+public sealed record ImportWarning(string Message, string? Line = null, string? Kind = null)
+{
+    public const string SecondOpinionKind = "second-opinion";
+
+    public bool IsSecondOpinion => Kind == SecondOpinionKind;
+}
 
 /// <summary>An existing recipe that looks like the one being imported (FR-IMP-07, AC-16).</summary>
 public sealed record DuplicateCandidate(int RecipeId, string Title, string? SourceUrl, IReadOnlyList<string> IngredientNames);
@@ -120,6 +129,31 @@ public static partial class ImportRules
             .Where(p => p.Confidence < ReviewConfidence)
             .Select(p => new ImportWarning(CheckLine, p.Line)));
         warnings.AddRange(recipe.Remarks.Select(r => new ImportWarning(r)));
+        return warnings;
+    }
+
+    /// <summary>
+    /// FR-IMP-11, BR-118, D4: a review warning for each line the second parser read differently. The line and the .NET
+    /// parse are unchanged; the warning only shows the other reading. <paramref name="readings"/> is in line order.
+    /// </summary>
+    public static IReadOnlyList<ImportWarning> SecondOpinionWarnings(IReadOnlyList<ParsedIngredient> parses, IReadOnlyList<IngredientReading?> readings)
+    {
+        ArgumentNullException.ThrowIfNull(parses);
+        ArgumentNullException.ThrowIfNull(readings);
+        if (parses.Count != readings.Count)
+        {
+            return [];
+        }
+
+        var warnings = new List<ImportWarning>();
+        for (var i = 0; i < parses.Count; i++)
+        {
+            if (SecondOpinionRules.Compare(parses[i], readings[i]) is { } opinion)
+            {
+                warnings.Add(new ImportWarning(opinion.Summary, parses[i].RawText, ImportWarning.SecondOpinionKind));
+            }
+        }
+
         return warnings;
     }
 

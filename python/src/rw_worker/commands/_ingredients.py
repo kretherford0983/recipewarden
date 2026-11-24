@@ -37,8 +37,18 @@ def foods(parsed: Any) -> list[dict[str, Any]]:
     return result
 
 
+def first_amount(parsed: Any) -> Any:
+    """The first amount. "1 cup plus 2 tablespoons" is a composite amount; its first part is what the .NET parser
+    reads as the amount (the rest goes in its note), so that part is compared (BR-118)."""
+    if not parsed.amount:
+        return None
+    amount = parsed.amount[0]
+    parts = getattr(amount, "amounts", None)
+    return parts[0] if parts else amount
+
+
 def line(parsed: Any) -> dict[str, Any]:
-    amount = parsed.amount[0] if parsed.amount else None
+    amount = first_amount(parsed)
     names = [str(n.text) for n in (parsed.name or [])]
     return {
         "quantity": decimal_text(getattr(amount, "quantity", None)) if amount else None,

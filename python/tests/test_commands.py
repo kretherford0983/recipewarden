@@ -101,3 +101,12 @@ def test_fractions_keep_six_places():
 
     assert _ingredients.decimal_text(Fraction(1, 3)) == "0.333333"
     assert _ingredients.decimal_text(Fraction(3, 2)) == "1.5"
+
+
+def test_a_composite_amount_reports_its_first_part(req):
+    _, body, _ = run_main(
+        ["parse-ingredients"], req({"lines": ["1 cup plus 2 tablespoons flour", "1 cup + 2 tbsp water"]})
+    )
+    flour, water = body["result"]["lines"]
+    assert (flour["quantity"], flour["unit"], flour["names"]) == ("1", "cup", ["flour"])
+    assert (water["quantity"], water["unit"]) == ("1", "cup")

@@ -10,6 +10,11 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 - The bundled nutrition data adds USDA Foundation Foods (2026-04) and FNDDS (2024-10) next to SR Legacy (ADR 0052):
   13,694 foods. Food search names each result's dataset, and the nutrition page lists every dataset in use. A full
   FNDDS download can be imported like the others.
+- Nutrition: "Suggest matches" on the unmatched-ingredient report looks each ingredient up in the bundled USDA data
+  on this server and shows a suggested food with how sure it is; "Use" maps it, "Dismiss" hides it (FR-NUT-07).
+- Import review: a line the second parser reads differently is marked "Second reading" with its reading; your text is
+  never changed (FR-IMP-11).
+- Without the Python worker (turned off, missing or failing) both work as before (BR-119).
 
 ### Ounces on liquids (BR-115, ADR 0049)
 - "24 oz chicken broth" now converts and scales as fluid ounces (24 fl oz, 710 ml), not 1½ lb or grams. This applies

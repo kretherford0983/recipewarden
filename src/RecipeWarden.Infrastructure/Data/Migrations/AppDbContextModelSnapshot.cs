@@ -598,6 +598,65 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.ToTable("FoodAliases");
                 });
 
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.FoodSuggestion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("Confidence")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DataType")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DatasetVersion")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DismissedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DismissedById")
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EngineVersion")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("FdcId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("NutrientRefId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NutrientRefId");
+
+                    b.HasIndex("NormalizedName", "EngineVersion", "DatasetVersion")
+                        .IsUnique();
+
+                    b.ToTable("FoodSuggestions");
+                });
+
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.HealthCheckResult", b =>
                 {
                     b.Property<int>("Id")
@@ -2434,6 +2493,14 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                         .HasForeignKey("FoodId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.FoodSuggestion", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.NutrientRef", null)
+                        .WithMany()
+                        .HasForeignKey("NutrientRefId")
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ImportJob", b =>

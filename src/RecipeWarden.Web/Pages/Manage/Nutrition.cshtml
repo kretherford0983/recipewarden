@@ -21,15 +21,42 @@
     else
     {
         <p class="hint">Most used first. Mapping one fixes it in every recipe.</p>
+        @if (Model.SuggestionsOn)
+        {
+            <form method="post" action="/manage/nutrition?handler=SuggestMatches" asp-antiforgery="true" class="inline-form">
+                <button type="submit">Suggest matches</button>
+                <span class="hint">Looks each ingredient up in the bundled USDA data on this server. Nothing changes until you choose “Use”.</span>
+            </form>
+        }
         <table class="list">
-            <thead><tr><th scope="col">Ingredient</th><th scope="col">Recipes</th><th scope="col">Why</th><th scope="col"></th></tr></thead>
+            <thead><tr><th scope="col">Ingredient</th><th scope="col">Recipes</th><th scope="col">Why</th><th scope="col">Suggested match</th><th scope="col"></th></tr></thead>
             <tbody>
                 @foreach (var row in Model.Report)
                 {
+                    var key = RecipeWarden.Core.Organization.NameRules.Normalize(row.Name);
                     <tr>
                         <td>@row.Name</td>
                         <td>@row.Recipes</td>
                         <td>@row.Reason</td>
+                        <td>
+                            @if (Model.Suggested.TryGetValue(key, out var match))
+                            {
+                                <span>@match.Description</span>
+                                <br><span class="hint">@(match.Dataset is null ? "" : match.Dataset + " · ")@((match.Confidence * 100m).ToString("0", System.Globalization.CultureInfo.InvariantCulture))% sure</span>
+                                <div class="inline-form">
+                                    <form method="post" action="/manage/nutrition?handler=Map" asp-antiforgery="true">
+                                        <input type="hidden" name="name" value="@row.Name">
+                                        @if (row.FoodId is { } uf) { <input type="hidden" name="foodId" value="@uf"> }
+                                        <input type="hidden" name="nutrientId" value="@match.NutrientRefId">
+                                        <button type="submit" class="small primary">Use</button>
+                                    </form>
+                                    <form method="post" action="/manage/nutrition?handler=Dismiss" asp-antiforgery="true">
+                                        <input type="hidden" name="name" value="@row.Name">
+                                        <button type="submit" class="small">Dismiss</button>
+                                    </form>
+                                </div>
+                            }
+                        </td>
                         <td><a href="/manage/nutrition?map=@Uri.EscapeDataString(row.Name)@(row.FoodId is { } f ? "&food=" + f : "")#map">Map</a></td>
                     </tr>
                 }

@@ -124,12 +124,22 @@ public sealed partial class M8_SecurityPassTests(RecipeWardenFactory factory) : 
     [Trait("Req", "SEC-24")]
     public void The_web_app_never_starts_a_process()
     {
+        // ADR 0051, SEC-91: the one exception is the Python worker runner, which starts a fixed program without a shell.
+        const string worker = "src/RecipeWarden.Infrastructure/Python/PythonWorker.cs";
         var hits = new[] { "src/RecipeWarden.Web", "src/RecipeWarden.Infrastructure", "src/RecipeWarden.Core", "src/RecipeWarden.Importers" }
             .SelectMany(d => Sources(d, "*.cs"))
             .Where(f => File.ReadAllText(f) is var t && (t.Contains("Process.Start", StringComparison.Ordinal) || t.Contains("ProcessStartInfo", StringComparison.Ordinal)))
-            .Select(f => Path.GetRelativePath(Root, f))
+            .Select(f => Path.GetRelativePath(Root, f).Replace('\\', '/'))
+            .Where(f => f != worker)
             .ToList();
         hits.ShouldBeEmpty(string.Join(", ", hits));
+        var runner = Read(worker);
+        runner.ShouldContain("UseShellExecute = false");
+        runner.ShouldContain("start.ArgumentList.Add(");
+        runner.ShouldContain("start.Environment.Clear();");
+        runner.ShouldNotContain("UseShellExecute = true");
+        runner.ShouldNotContain("/bin/sh");
+        runner.ShouldNotContain(".Arguments =");
 
         // The CLI starts only fixed programs, with arguments passed as a list (never through a shell).
         var cli = Sources("src/RecipeWarden.Cli", "*.cs").Select(File.ReadAllText).ToList();

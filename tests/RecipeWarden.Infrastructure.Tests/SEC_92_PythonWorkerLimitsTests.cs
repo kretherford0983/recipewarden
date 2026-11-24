@@ -30,8 +30,8 @@ public sealed class SEC_92_PythonWorkerLimitsTests
         var call = await worker.ParseAsync(["1 cup milk"], fdc: false, Ct);
 
         call.Failure.ShouldBe(WorkerFailure.Timeout);
-        PythonTestKit.ProcessExists(ReadPid(fake, "pid")).ShouldBeFalse();
-        PythonTestKit.ProcessExists(ReadPid(fake, "child")).ShouldBeFalse();
+        (await PythonTestKit.GoneAsync(ReadPid(fake, "pid"))).ShouldBeTrue();
+        (await PythonTestKit.GoneAsync(ReadPid(fake, "child"))).ShouldBeTrue();
     }
 
     [Theory]

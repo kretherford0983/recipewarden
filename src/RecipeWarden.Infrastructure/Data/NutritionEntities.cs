@@ -100,3 +100,24 @@ public sealed class RecipeAllergen
     public AllergenStatus Status { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }
+
+/// <summary>
+/// FR-NUT-07, BR-116, plan 4.3: the ingredient matcher's suggestion for an unmatched name, cached per engine and
+/// dataset so it is worked out again after an upgrade or a dataset refresh. A row without <see cref="NutrientRefId"/>
+/// remembers that there was no usable suggestion. Only ids that resolved locally are ever stored (SEC-93).
+/// </summary>
+public sealed class FoodSuggestion
+{
+    public int Id { get; set; }
+    public string NormalizedName { get; set; } = string.Empty;
+    public int? NutrientRefId { get; set; }
+    public int? FdcId { get; set; }
+    public string? Description { get; set; }
+    public string? DataType { get; set; }
+    public decimal? Confidence { get; set; }
+    public string EngineVersion { get; set; } = string.Empty;
+    public string DatasetVersion { get; set; } = string.Empty;
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? DismissedAt { get; set; }
+    public string? DismissedById { get; set; }
+}

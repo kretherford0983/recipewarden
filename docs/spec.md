@@ -260,7 +260,7 @@ These rules are enforced in the domain layer (not only the UI) and each has unit
 | BR-12 | Copying a source image requires the user to tick the opt-in on that import; the image's original URL is stored with it. |
 | BR-13 | Imported HTML is never stored or rendered as HTML: text is extracted and stored as plain text or restricted Markdown. |
 | BR-117 | (M10, FR-IMP-12) URL extraction order: JSON-LD → microdata; if that result is complete (title, ≥ 1 ingredient, ≥ 1 step) it wins; else, if the host has a site scraper and the scraper's result is complete, it wins; else the heading heuristic. `Import:SiteScrapers` turns the scraper step off; its default follows the `import-compare` data (ADR 0051, D6). |
-| BR-118 | (FR-IMP-11) Second-opinion comparison: quantities equal within 0.001 (ranges compare both ends), units equal after the unit alias table, food names equal after removing the FoodMatcher modifier words and plurals. Only quantity, unit or food differences are flagged; preparation and notes are not. |
+| BR-118 | (FR-IMP-11) Second-opinion comparison: quantities equal within 0.001 (ranges compare both ends), units equal after the unit alias table, food names equal after removing the FoodMatcher modifier words and plurals, with "or" read as "and" (alternatives). A count word the .NET parser keeps in the name ("6 garlic cloves") that the NLP parser reads as the unit ("6 cloves garlic") is the same reading. Only quantity, unit or food differences are flagged; preparation and notes are not. |
 | BR-119 | Python results are advisory: a failure, timeout or invalid response never blocks an import, a save or a page; the .NET result is used and the event is logged once per request (ADR 0051). |
 
 ### 4.3 Scaling and conversion
