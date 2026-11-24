@@ -335,6 +335,7 @@ rules, stored for search, "free of").
 - **Owner testing notes (2026-11-24):**
   - Changed assertions, with the behaviour: "You probably have" is now "Check before you buy" in the shopping page,
     text export and Core tests (FR-SHOP-03 changed, AC-51 revised).
+  - The W5 browser test clicks "Show me" as a button (it was a link) and expects the ticked line in the URL.
   - A step line starting "-" or "*" now needs a space after it to count as a bullet, so a lone `**Alone**` line keeps
     its text (it used to lose a "*").
   - The owner's three recipe files are committed as importer fixtures at the owner's request.
