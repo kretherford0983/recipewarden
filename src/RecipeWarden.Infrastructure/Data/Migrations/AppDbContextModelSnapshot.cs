@@ -1637,6 +1637,9 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.Property<bool>("IsRestock")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("IsStaple")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Kind")
                         .HasMaxLength(16)
                         .HasColumnType("TEXT");

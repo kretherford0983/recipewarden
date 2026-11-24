@@ -145,6 +145,7 @@ public sealed class ShoppingService(AppDbContext db, FoodCatalogService foods, T
         }
 
         var catalog = await foods.LoadCatalogAsync(cancellationToken).ConfigureAwait(false);
+        var staples = await StapleFoodIdsAsync(cancellationToken).ConfigureAwait(false);
         var context = new ScaleContext(scale, DisplayUnits.AsWritten, recipe.IsPrecision, catalog);
         var now = clock.GetUtcNow();
         var row = new ShoppingListRecipe { Title = recipe.Title, RecipeId = recipe.Id, Scale = scale, AddedAt = now };
@@ -171,6 +172,7 @@ public sealed class ShoppingService(AppDbContext db, FoodCatalogService foods, T
                 FoodId = ingredient.FoodId,
                 RawText = Cut(ingredient.RawText, ShoppingRules.MaxItemLength * 2),
                 Position = position++,
+                IsStaple = ingredient.FoodId is { } fid && staples.Contains(fid), // BR-48
             });
         }
 
@@ -233,6 +235,7 @@ public sealed class ShoppingService(AppDbContext db, FoodCatalogService foods, T
             FoodId = foodId,
             RawText = clean,
             Position = count,
+            IsStaple = foodId is { } fid && (await StapleFoodIdsAsync(cancellationToken).ConfigureAwait(false)).Contains(fid), // BR-48
         };
         db.ShoppingLines.Add(line);
         Touch(list, clock.GetUtcNow());
@@ -409,6 +412,9 @@ public sealed class ShoppingService(AppDbContext db, FoodCatalogService foods, T
         return new ShoppingEditResult(true, null, added);
     }
 
+    private async Task<HashSet<int>> StapleFoodIdsAsync(CancellationToken cancellationToken) =>
+        (await db.Foods.AsNoTracking().Where(f => f.IsPantryStaple).Select(f => f.Id).ToListAsync(cancellationToken).ConfigureAwait(false)).ToHashSet();
+
     /// <summary>BR-47: a restock item was ticked, so its staple was bought now.</summary>
     private async Task MarkRestockedAsync(string key, string name, DateTimeOffset now, CancellationToken cancellationToken)
     {
@@ -468,7 +474,7 @@ public sealed class ShoppingService(AppDbContext db, FoodCatalogService foods, T
         var answers = await db.ShoppingStapleChecks.AsNoTracking().Where(c => c.ShoppingListId == listId)
             .ToDictionaryAsync(c => c.ItemKey, c => c.Answer, StringComparer.Ordinal, cancellationToken).ConfigureAwait(false);
         var inputs = lines.Select(l => new ShoppingLineInput(l.Line.Id, l.Line.Name, l.Line.Kind, l.Line.Amount, l.Line.AmountMax,
-            l.Line.CountUnit, l.Line.FoodId, l.Line.RawText, l.Title, l.Line.ListRecipeId is null && !l.Line.IsRestock, l.Line.IsRestock, l.Line.Section));
+            l.Line.CountUnit, l.Line.FoodId, l.Line.RawText, l.Title, l.Line.ListRecipeId is null && !l.Line.IsRestock, l.Line.IsRestock, l.Line.Section, l.Line.IsStaple));
         return ShoppingRules.Merge(inputs, shoppingFoods, checks, system, answers: answers);
     }
 

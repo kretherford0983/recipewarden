@@ -115,4 +115,24 @@ public sealed class FR_SHOP_05_StapleServiceTests
         after.Single(x => x.Name == "butter").LastRestockedAt.ShouldBeNull();
         (await s.Shopping.AddRestockAsync(999_999, chosen, Ct)).Ok.ShouldBeFalse();
     }
+
+    [Fact]
+    [Trait("Req", "BR-48")]
+    public async Task Changing_the_staples_list_does_not_move_items_on_an_open_list()
+    {
+        await using var s = await RecipeTestScope.CreateAsync();
+        var bread = await s.AddAsync("Toast", "2 slices bread\n1 Tbsp butter");
+        var id = (await s.Shopping.CreateAsync("Open list", RecipeTestScope.UserId, Ct)).Id!.Value;
+        (await s.Shopping.AddRecipeAsync(id, bread.Slug!, 1m, Ct)).Ok.ShouldBeTrue();
+        var before = (await s.Shopping.GetAsync(id, UnitSystem.US, Ct))!.View;
+        before.ToBuy.ShouldContain(i => i.Name == "butter");
+
+        (await s.Staples.AddAsync("butter", "Fridge", null, null, Ct)).ShouldBeNull();
+        var after = (await s.Shopping.GetAsync(id, UnitSystem.US, Ct))!.View;
+        after.ToBuy.ShouldContain(i => i.Name == "butter"); // unchanged on the open list
+
+        var next = (await s.Shopping.CreateAsync("Next list", RecipeTestScope.UserId, Ct)).Id!.Value;
+        (await s.Shopping.AddRecipeAsync(next, bread.Slug!, 1m, Ct)).Ok.ShouldBeTrue();
+        (await s.Shopping.GetAsync(next, UnitSystem.US, Ct))!.View.Pantry.ShouldContain(i => i.Name == "butter");
+    }
 }

@@ -17,6 +17,16 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                 nullable: false,
                 defaultValue: false);
 
+            migrationBuilder.AddColumn<bool>(
+                name: "IsStaple",
+                table: "ShoppingLines",
+                type: "INTEGER",
+                nullable: false,
+                defaultValue: false);
+
+            // BR-48: lines already on open lists keep today's routing (staple foods wait under "Check before you buy").
+            migrationBuilder.Sql("UPDATE ShoppingLines SET IsStaple = 1 WHERE FoodId IN (SELECT Id FROM Foods WHERE IsPantryStaple = 1);");
+
             migrationBuilder.AddColumn<string>(
                 name: "Section",
                 table: "ShoppingLines",
@@ -94,6 +104,10 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
 
             migrationBuilder.DropColumn(
                 name: "IsRestock",
+                table: "ShoppingLines");
+
+            migrationBuilder.DropColumn(
+                name: "IsStaple",
                 table: "ShoppingLines");
 
             migrationBuilder.DropColumn(

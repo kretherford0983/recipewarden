@@ -44,6 +44,9 @@ public sealed class ShoppingLine
     public string RawText { get; set; } = string.Empty;
     public int Position { get; set; }
 
+    /// <summary>BR-48: whether the food was a staple when the line was added (open lists keep their routing).</summary>
+    public bool IsStaple { get; set; }
+
     /// <summary>BR-45: added by a staples check.</summary>
     public bool IsRestock { get; set; }
 

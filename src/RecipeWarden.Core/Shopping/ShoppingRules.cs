@@ -23,7 +23,8 @@ public sealed record ShoppingLineInput(
     string? RecipeTitle,
     bool IsManual = false,
     bool IsRestock = false,
-    string? Section = null);
+    string? Section = null,
+    bool? IsStaple = null);
 
 /// <summary>BR-44: the answer to "do you have it?" for a staple on one list.</summary>
 public enum StapleAnswer
@@ -209,7 +210,9 @@ public static class ShoppingRules
             var (amount, package) = Amounts(list, food, system, catalog);
             var restock = list.Any(l => l.IsRestock);
             StapleAnswer? answer = answers.TryGetValue(group.Key, out var a) ? a : null;
-            var staple = food?.IsPantryStaple == true && !restock && answer != StapleAnswer.Need;
+            // BR-48: a stored line says whether its food was a staple when it was added; otherwise the food decides.
+            var isStaple = list.Any(l => l.IsStaple ?? food?.IsPantryStaple == true);
+            var staple = isStaple && !restock && answer != StapleAnswer.Need;
             var section = list.Select(l => l.Section).FirstOrDefault(s => !string.IsNullOrWhiteSpace(s))
                           ?? (string.IsNullOrWhiteSpace(food?.StoreSection) ? OtherSection : food!.StoreSection!.Trim());
             var sources = list.Select(l => l.RecipeTitle).Where(t => !string.IsNullOrEmpty(t)).Select(t => t!).Distinct(StringComparer.Ordinal).ToList();

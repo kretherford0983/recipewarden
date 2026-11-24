@@ -10,7 +10,7 @@ using RecipeWarden.Infrastructure.Data;
 namespace RecipeWarden.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261124214327_StaplesAndRestock")]
+    [Migration("20261124215713_StaplesAndRestock")]
     partial class StaplesAndRestock
     {
         /// <inheritdoc />
@@ -1638,6 +1638,9 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsRestock")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsStaple")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Kind")
