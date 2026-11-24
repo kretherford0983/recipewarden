@@ -5,6 +5,10 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 
 ## 1.0.0 — unreleased
 
+### Fixes
+- Restore no longer fails with "database is locked" when another connection holds a lock on the database for a
+  moment; the copy waits up to 30 s for it (FR-BKP-01). This was also the intermittent CI failure in the backup tests.
+
 ### Ounces on liquids (BR-115, ADR 0049)
 - "24 oz chicken broth" now converts and scales as fluid ounces (24 fl oz, 710 ml), not 1½ lb or grams. This applies
   to broth, milk, cream, wine, juice and other water-like liquids; honey, syrups, solids and unmatched lines keep
