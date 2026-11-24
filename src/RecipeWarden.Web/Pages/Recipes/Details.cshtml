@@ -16,25 +16,27 @@
         : "";
     ViewData["Title"] = r.Title;
 }
-<article class="recipe" aria-labelledby="recipe-title">
+@* UX-14, ADR 0048: the recipe is the article (schema.org Recipe); tools are asides, which reader modes leave out. *@
+<article class="recipe" aria-labelledby="recipe-title" itemscope itemtype="https://schema.org/Recipe">
     <p class="breadcrumb"><a href="/recipes">Browse</a> ›</p>
     @if (r.Status == RecipeStatus.Draft)
     {
         <p class="notice" role="status">Draft — only editors can see this recipe until it is published.</p>
     }
-    <header class="recipe-header">
+    <header class="recipe-head">
         <div class="recipe-titlebar">
-            <h1 id="recipe-title">@r.Title</h1>
+            <h1 id="recipe-title">@r.Title</h1><meta itemprop="name" content="@r.Title">
             @if (Model.CanEdit)
             {
-                <p class="toolbar">
+                <aside class="toolbar recipe-tools" aria-label="Editor tools">
                     <a class="button-link" href="/manage/recipes/@r.Id/edit">Edit</a>
                     <a class="button-link" href="/manage/recipes/@r.Id/nutrition">Nutrition and allergens</a>
-                </p>
+                </aside>
             }
         </div>
         @if (r.Tags.Count > 0)
         {
+            <meta itemprop="keywords" content="@string.Join(", ", r.Tags.Select(t => t.Name))">
             <ul class="tags" aria-label="Tags">
                 @foreach (var t in r.Tags) { <li><a href="/tags/@t.Slug">@t.Name</a></li> }
             </ul>
@@ -55,52 +57,57 @@
     {
         <p class="notice" role="status">@RecipeWarden.Infrastructure.Import.ImportService.ImageNotCopied. You can add a photo on the edit page.</p>
     }
-    <div class="recipe-hero @(r.FinishImageId is not null ? "has-image" : null)">
-        @if (r.FinishImageId is not null)
-        {
-            <img class="finish-image" src="/media/@r.FinishImageId" alt="@r.Title">
-        }
-        <section class="recipe-meta" aria-label="About this recipe">
-            @if (r.Description is not null)
-            {
-                <div class="prose">@MarkdownRenderer.Render(r.Description)</div>
-            }
-            <dl class="facts stats">
-                <div class="stat"><dt><partial name="_Icon" model="@("servings")" />Servings</dt>
-                    <dd>@ServingsRules.Format(r.Servings, r.ServingsMax)@(r.ServingsEstimated ? " (estimated)" : "")</dd></div>
-                @if (r.PrepMinutes is not null) { <div class="stat"><dt><partial name="_Icon" model="@("clock")" />Prep</dt><dd>@TimeText.Format(r.PrepMinutes, r.PrepMinutesMax)</dd></div> }
-                @if (r.CookMinutes is not null) { <div class="stat"><dt><partial name="_Icon" model="@("cook")" />Cook</dt><dd>@TimeText.Format(r.CookMinutes, r.CookMinutesMax)</dd></div> }
-                @if (r.TotalMinutes is not null) { <div class="stat"><dt><partial name="_Icon" model="@("clock")" />Total</dt><dd>@TimeText.Format(r.TotalMinutes, r.TotalMinutesMax)</dd></div> }
-                @if (r.IsPrecision) { <div class="stat"><dt><partial name="_Icon" model="@("scale")" />Type</dt><dd>Baking / precision</dd></div> }
-            </dl>
-            @if (r.SourceName is not null || r.SourceUrl is not null)
-            {
-                @* BR-10: credit and link cannot be hidden. Source URLs are http(s) only (SourceRules). *@
-                <p class="source-credit">
-                    Source:
-                    @if (r.SourceUrl is not null)
-                    {
-                        <a href="@r.SourceUrl" rel="noopener noreferrer nofollow">@(r.SourceName ?? r.SourceUrl)</a>
-                    }
-                    else
-                    {
-                        <span>@r.SourceName</span>
-                    }
-                    @if (r.SourceAuthor is not null) { <span> by @r.SourceAuthor</span> }
-                </p>
-            }
-        </section>
-    </div>
 
     <div id="recipe-body" class="recipe-body">
         @{
             var viewQuery = Model.ViewQuery();
             var customFactor = sc.Factor != 1m && !ScaleRules.Presets.Contains(sc.Factor);
-            // UX-13: "More scaling options" stays open while one of its options is in use.
-            var moreOpen = customFactor || ScaleRules.OtherPresets.Contains(sc.Factor) || sc.Units != DisplayUnits.AsWritten
-                || Model.TargetServings is not null || Model.FitRequested || Model.HowManyToolId is not null
-                || Request.Query.ContainsKey("from") || Model.ScaleMessage is not null;
+            // UX-13 (owner feedback): "More scaling options" is always closed when the page loads; recipe.js keeps it
+            // open across in-place updates. The summary names the options from it that are in use.
+            var moreActive = new List<string>();
+            if (sc.Units != DisplayUnits.AsWritten) { moreActive.Add("Units: " + DisplayUnitsRules.Label(sc.Units)); }
+            if (Model.TargetServings is { } servingsTarget) { moreActive.Add("Serves " + DetailsModel.Number(servingsTarget)); }
+            else if (customFactor || ScaleRules.OtherPresets.Contains(sc.Factor)) { moreActive.Add(ScaleRules.Label(sc.Factor)); }
+            if (Model.FitRequested) { moreActive.Add("Fit to container"); }
         }
+        @* UX-14: description, tools, lists and notes share this block, so reader modes take them together. *@
+        <div class="recipe-hero @(r.FinishImageId is not null ? "has-image" : null)">
+            @if (r.FinishImageId is not null)
+            {
+                <img class="finish-image" src="/media/@r.FinishImageId" alt="@r.Title" itemprop="image">
+            }
+            <section class="recipe-meta" aria-label="About this recipe">
+                @if (r.Description is not null)
+                {
+                    <div class="prose" itemprop="description">@MarkdownRenderer.Render(r.Description)</div>
+                }
+                <dl class="facts stats">
+                    <div class="stat"><dt><partial name="_Icon" model="@("servings")" />Servings</dt>
+                        <dd>@ServingsRules.Format(r.Servings, r.ServingsMax)@(r.ServingsEstimated ? " (estimated)" : "")</dd><meta itemprop="recipeYield" content="@ServingsRules.Format(r.Servings, r.ServingsMax)"></div>
+                    @if (r.PrepMinutes is not null) { <div class="stat"><dt><partial name="_Icon" model="@("clock")" />Prep</dt><dd>@TimeText.Format(r.PrepMinutes, r.PrepMinutesMax)</dd><meta itemprop="prepTime" content="PT@(r.PrepMinutes)M"></div> }
+                    @if (r.CookMinutes is not null) { <div class="stat"><dt><partial name="_Icon" model="@("cook")" />Cook</dt><dd>@TimeText.Format(r.CookMinutes, r.CookMinutesMax)</dd><meta itemprop="cookTime" content="PT@(r.CookMinutes)M"></div> }
+                    @if (r.TotalMinutes is not null) { <div class="stat"><dt><partial name="_Icon" model="@("clock")" />Total</dt><dd>@TimeText.Format(r.TotalMinutes, r.TotalMinutesMax)</dd><meta itemprop="totalTime" content="PT@(r.TotalMinutes)M"></div> }
+                    @if (r.IsPrecision) { <div class="stat"><dt><partial name="_Icon" model="@("scale")" />Type</dt><dd>Baking / precision</dd></div> }
+                </dl>
+                @if (r.SourceName is not null || r.SourceUrl is not null)
+                {
+                    @* BR-10: credit and link cannot be hidden. Source URLs are http(s) only (SourceRules). *@
+                    <p class="source-credit">
+                        Source:
+                        @if (r.SourceUrl is not null)
+                        {
+                            <a href="@r.SourceUrl" rel="noopener noreferrer nofollow">@(r.SourceName ?? r.SourceUrl)</a>
+                        }
+                        else
+                        {
+                            <span>@r.SourceName</span>
+                        }
+                        @if (r.SourceAuthor is not null) { <span> by @r.SourceAuthor</span><meta itemprop="author" content="@r.SourceAuthor"> }
+                    </p>
+                }
+            </section>
+        </div>
+        <aside class="recipe-tools" aria-label="Recipe tools">
         <nav class="recipe-actions" aria-label="Print, cook and export">
             @* ADR 0031: each takes this view's scale, units and weights. *@
             <a class="button-link primary" href="/recipes/@r.Slug/cook@(viewQuery)">Cook mode</a>
@@ -140,8 +147,8 @@
                     Make this my default
                 </button>
             </div>
-            <details class="scale-more" open="@moreOpen">
-                <summary>More scaling options</summary>
+            <details class="scale-more">
+                <summary>More scaling options @if (moreActive.Count > 0) { <span class="more-active">@string.Join(" · ", moreActive)</span> }</summary>
                 <div class="scale-lines">
                     <form method="get" action="/recipes/@r.Slug" class="scale-line scale-presets" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
                           hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
@@ -256,6 +263,7 @@
                 </div>
             </details>
         </section>
+        </aside>
 
         <div class="scale-status" role="status" aria-live="polite">
             @if (Model.ScaleMessage is not null) { <p class="notice">@Model.ScaleMessage</p> }
@@ -287,6 +295,7 @@
             @if (Model.HowManyToolId is not null && Model.HowMany is null && Model.Containers?.Error is { } howError) { <p class="notice">@howError</p> }
         </div>
 
+        <aside class="recipe-tools" aria-label="Shopping list and suggestions">
         @if (Model.CanEdit)
         {
             @* FR-SHOP-01: adds the recipe at the scale shown. *@
@@ -325,6 +334,7 @@
         {
             <p class="notice">Showing weights for this view. @(Model.CanEdit ? "Save to recipe to keep them." : "")</p>
         }
+        </aside>
 
         @if (sc.Pan is { } pan && sc.PanOptions.Count > 0)
         {
@@ -344,8 +354,8 @@
                     <ul>
                         @foreach (var line in g.Lines)
                         {
-                            <li class="@(line.Changed ? "converted" : null)" title="@(line.Changed ? "Written: " + line.RawText + (line.Explanation is null ? "" : ". " + line.Explanation) : null)">
-                                @line.Text
+                            <li class="@(line.Changed ? "converted" : null)" title="@(line.Changed && line.Explanation is not null ? line.Explanation : null)">
+                                <span itemprop="recipeIngredient">@line.Text</span>
                                 @if (line.NeedsReview && Model.CanEdit)
                                 {
                                     <span class="badge warn" title="The parser was unsure about this line; check it in the editor">check</span>
@@ -353,6 +363,8 @@
                                 @if (line.Secondary is not null) { <span class="secondary">(@line.Secondary)</span> }
                                 @if (line.Hint is not null) { <span class="hint">@line.Hint</span> }
                                 @if (line.YieldNote is not null) { <p class="smart-note">@line.YieldNote</p> }
+                                @* UX-06: what was written, in words (readable on a phone, unlike a tooltip). *@
+                                @if (line.Changed) { <span class="written">Written: @line.RawText</span> }
                             </li>
                         }
                     </ul>
@@ -366,9 +378,9 @@
                     <ol>
                         @foreach (var step in s.Steps)
                         {
-                            <li>
+                            <li itemprop="recipeInstructions">
                                 @if (step.Title is not null) { <strong class="step-title">@step.Title</strong> }
-                                @step.Text
+                                <p>@step.Text</p>
                                 @if (step.ImageId is not null) { <img class="step-image" src="/media/@step.ImageId" alt="" loading="lazy"> }
                             </li>
                         }
@@ -376,15 +388,16 @@
                 }
             </section>
         </div>
+
+        @if (r.Notes is not null)
+        {
+            <section class="notes" aria-labelledby="notes-heading">
+                <h2 id="notes-heading">Notes</h2>
+                <div class="prose">@MarkdownRenderer.Render(r.Notes)</div>
+            </section>
+        }
     </div>
 
-    @if (r.Notes is not null)
-    {
-        <section class="notes" aria-labelledby="notes-heading">
-            <h2 id="notes-heading">Notes</h2>
-            <div class="prose">@MarkdownRenderer.Render(r.Notes)</div>
-        </section>
-    }
 
     @if (Model.Nutrition is { } nutrition)
     {
@@ -415,6 +428,7 @@
         </p>
     }
 
+    <aside class="recipe-tools" aria-label="Collections">
     @if (Model.CanEdit && Model.AvailableCollections.Count > 0)
     {
         <form class="inline-form" method="post" action="/manage/collections?handler=AddRecipe" asp-antiforgery="true">
@@ -427,5 +441,6 @@
             <button type="submit">Add</button>
         </form>
     }
+    </aside>
 </article>
 <script src="~/js/recipe.js" asp-append-version="true" defer></script>

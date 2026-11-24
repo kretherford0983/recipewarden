@@ -72,14 +72,23 @@ without `!important`.
 - **Scale box** (owner feedback, 2026-11-23): collapsed, it shows only 0.5x · 1x · 2x · 3x
   (`ScaleRules.QuickPresets`) and "Make this my default". "More scaling options" opens the rest, **one per line**:
   other sizes (1.5x), custom, servings, units, scale from what I have, fit to container, how many will this make. It
-  stays open while one of those options is in use.
+  is **closed on every page load** (`recipe.js` keeps it open across in-place updates), and its summary names the
+  options in use ("Units: US", "Serves 6").
 - Ingredients sit in a card (sticky beside the steps on a wide screen); steps have numbered circles. A typed or imported
-  bullet is never shown as a second bullet, and doubled brackets show once (`IngredientText`).
+  bullet is never shown as a second bullet, and doubled brackets show once (`IngredientText`). A converted line
+  (UX-06) has an accent edge and "Written: …" under it; never a dot, which reads as a bullet.
 
-## 8. Icons
+## 8. Reader mode (UX-14, ADR 0048)
+- The recipe page is one `<article itemscope itemtype="https://schema.org/Recipe">`. **Every tool on it goes inside
+  an `<aside>`** (reader modes drop asides); the recipe's own text stays outside asides.
+- Text a reader should show is in paragraphs (step text is a `<p>` in its list item).
+- Don't use class names reader modes treat as page chrome (`header`, `menu`, `sidebar`, `footer`, `comment`, …).
+- `UX_14_ReaderModeTests` checks the page with Mozilla Readability (Firefox Reader View).
+
+## 9. Icons
 `_Icon.cshtml`: original 24 px line icons (no icon library, no licence to track). They are decorative
 (`aria-hidden`); the link or button around them carries the name. Add a new icon to the switch there.
 
-## 9. Motion
+## 10. Motion
 Only small movements (a card lifting on hover, a chevron turning). No colour transitions (the theme switch must not
 animate through low-contrast colours), and none at all with `prefers-reduced-motion`.

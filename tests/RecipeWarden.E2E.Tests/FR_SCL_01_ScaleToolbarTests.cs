@@ -47,7 +47,12 @@ public sealed class FR_SCL_01_ScaleToolbarTests(BrowserHost host) : IClassFixtur
         await page.WaitForURLAsync("**scale=2&units=metric");
         await Assertions.Expect(page.Locator(".steps li").Nth(1)).ToContainTextAsync("190°C");
         await Assertions.Expect(page.Locator(".ingredients li").Nth(2)).ToContainTextAsync("710 ml milk");
-        await Assertions.Expect(page.Locator("#units")).ToBeVisibleAsync(); // stays open while metric is in use
+        await Assertions.Expect(page.Locator("#units")).ToBeVisibleAsync(); // stays open across the in-place update
+
+        // Owner feedback: closed on every page load; the summary says metric is in use.
+        await page.ReloadAsync();
+        await Assertions.Expect(page.Locator("#units")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator(".scale-more .more-active")).ToHaveTextAsync("Units: Metric");
 
         // Back to as written.
         await page.GetByRole(AriaRole.Link, new() { Name = "Show as written" }).ClickAsync();

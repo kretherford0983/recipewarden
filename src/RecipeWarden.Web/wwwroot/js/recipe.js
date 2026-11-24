@@ -24,7 +24,19 @@
     }).then(done, done); // the cookie still holds the choice
   }
 
+  // UX-13: the server always sends "More scaling options" closed; keep it open across htmx's in-place updates.
+  var keepMoreOpen = false;
+  document.addEventListener("htmx:beforeSwap", function () {
+    var more = document.querySelector("#recipe-body .scale-more");
+    keepMoreOpen = !!(more && more.open);
+  });
+
   function init(root) {
+    if (keepMoreOpen) {
+      var more = root.querySelector && root.querySelector(".scale-more");
+      if (more) { more.open = true; }
+      if (root.classList && root.classList.contains("scale-more")) { root.open = true; }
+    }
     root.querySelectorAll(".no-js-only").forEach(function (el) { el.hidden = true; });
     root.querySelectorAll("button.save-default").forEach(function (button) {
       button.hidden = false;
