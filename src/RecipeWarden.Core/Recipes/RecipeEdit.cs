@@ -39,6 +39,12 @@ public sealed record RecipeEdit
     /// <summary>ADR 0020: the pan, e.g. "9x13" or "9-inch round".</summary>
     public string? PanText { get; init; }
 
+    /// <summary>
+    /// BR-122: measure choices made in the editor, keyed by <see cref="Measurement.LineMeasureRules.Key"/> of the
+    /// line's text. Lines not listed keep their earlier choice while their text is unchanged.
+    /// </summary>
+    public IReadOnlyDictionary<string, Measurement.LineMeasure>? Measures { get; init; }
+
     /// <summary>"Publish" rather than "Save draft" was pressed; BR-01 still decides.</summary>
     public bool WantsPublish { get; init; }
 

@@ -117,6 +117,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
             e.Property(i => i.Note).HasMaxLength(RecipeEdit.MaxIngredientLineLength);
             e.Property(i => i.QuantityText).HasMaxLength(32);
             e.Property(i => i.State).HasMaxLength(16);
+            e.Property(i => i.Measure).HasConversion<string>().HasMaxLength(16).HasDefaultValue(LineMeasure.Auto).HasSentinel(LineMeasure.Auto);
             Real(e.Property(i => i.Quantity));
             Real(e.Property(i => i.QuantityMax));
             Real(e.Property(i => i.ParseConfidence));

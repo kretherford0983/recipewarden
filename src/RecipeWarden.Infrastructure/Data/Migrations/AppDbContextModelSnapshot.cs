@@ -1411,6 +1411,13 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.Property<bool>("IsOptional")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Measure")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Auto");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(500)

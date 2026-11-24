@@ -1,3 +1,4 @@
+using RecipeWarden.Core.Measurement;
 using RecipeWarden.Core.Organization;
 using RecipeWarden.Core.Recipes;
 
@@ -57,6 +58,12 @@ public sealed record IngredientLineView(string Text, string RawText, bool NeedsR
 {
     public ParsedIngredient? Parsed { get; init; }
     public int? FoodId { get; init; }
+
+    /// <summary>The stored line's id (0 for a preview).</summary>
+    public int Id { get; init; }
+
+    /// <summary>BR-122: the line's measure choice.</summary>
+    public LineMeasure Measure { get; init; }
 }
 
 /// <summary>A step with its optional heading (ADR 0015) and photo (ADR 0023).</summary>

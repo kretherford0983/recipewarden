@@ -96,6 +96,7 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
 
         // ADR 0023: step photos follow their step across the save.
         var oldPhotos = recipe.Steps.OrderBy(s => s.SortOrder).Select(s => (s.Text, s.ImageId)).ToList();
+        var previousMeasures = MeasuresOf(recipe); // BR-122: choices follow unchanged lines across the save
         db.IngredientGroups.RemoveRange(recipe.IngredientGroups);
         db.RecipeIngredients.RemoveRange(recipe.Ingredients);
         db.Steps.RemoveRange(recipe.Steps);
@@ -104,7 +105,7 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
         recipe.Ingredients.Clear();
         recipe.Steps.Clear();
         recipe.Tags.Clear();
-        await ApplyAsync(recipe, edit, parsed, userId, now, cancellationToken).ConfigureAwait(false);
+        await ApplyAsync(recipe, edit, parsed, userId, now, cancellationToken, previousMeasures).ConfigureAwait(false);
         var newSteps = recipe.Steps.OrderBy(s => s.SortOrder).ToList();
         var targets = StepPhotoRules.Follow(oldPhotos.Select(p => p.Text).ToList(), newSteps.Select(s => s.Text).ToList());
         for (var i = 0; i < oldPhotos.Count; i++)
@@ -335,6 +336,7 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
             YieldText = r.YieldText,
             FinishedDensityGPerMl = r.FinishedDensityGPerMl,
             PanText = r.PanShape is { } shape && r.PanWidth is { } w ? PanRules.Describe(new Pan(shape, w, r.PanLength ?? w)) : null,
+            Measures = MeasuresOf(r),
         };
     }
 
@@ -372,9 +374,16 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
         return errors.Count > 0 ? SaveOutcome.Invalid(errors) : null;
     }
 
+    /// <summary>BR-122: the non-Auto choices of a recipe's lines, keyed by their text.</summary>
+    internal static IReadOnlyDictionary<string, LineMeasure> MeasuresOf(Recipe recipe) =>
+        recipe.Ingredients.Where(i => i.Measure != LineMeasure.Auto)
+            .GroupBy(i => LineMeasureRules.Key(i.RawText), StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.First().Measure, StringComparer.Ordinal);
+
     private async Task ApplyAsync(Recipe recipe, RecipeEdit edit, ParsedEdit parsed, string userId, DateTimeOffset now,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, IReadOnlyDictionary<string, LineMeasure>? previousMeasures = null)
     {
+        previousMeasures ??= new Dictionary<string, LineMeasure>(StringComparer.Ordinal);
         var servings = ServingsRules.Resolve(edit.Servings);
         unitIds = await db.Units.AsNoTracking().ToDictionaryAsync(u => u.Code, u => u.Id, StringComparer.Ordinal, cancellationToken).ConfigureAwait(false);
         recipe.Title = (edit.Title ?? string.Empty).Trim();
@@ -430,6 +439,7 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
                 Note = p.Note,
                 ParseConfidence = p.Confidence,
                 FoodId = matcher.Match(p.Name),
+                Measure = LineMeasureRules.Carry(p.RawText, previousMeasures, edit.Measures), // BR-122
             });
         }
 
@@ -672,6 +682,8 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
         {
             Parsed = parsed,
             FoodId = i.FoodId,
+            Id = i.Id,
+            Measure = i.Measure,
         };
     }
 

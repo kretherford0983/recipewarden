@@ -9,7 +9,9 @@ namespace RecipeWarden.Core.Measurement;
 /// One ingredient to scale: the parsed line, the food it is linked to (ADR 0013) and, for lines such as
 /// "1 cup plus 2 tablespoons flour", the extra amount from the note so it scales with the rest.
 /// </summary>
-public sealed record ScaleInput(ParsedIngredient Ingredient, int? FoodId = null, ParsedIngredient? Plus = null);
+/// <see cref="Measure"/> is the line's choice (BR-122), or Weight for a reader's "Show me" on that line.
+public sealed record ScaleInput(ParsedIngredient Ingredient, int? FoodId = null, ParsedIngredient? Plus = null,
+    LineMeasure Measure = LineMeasure.Auto);
 
 /// <summary>
 /// How a recipe is being shown: factor (BR-20), units (ADR 0014) and whether it is baking/precision (FR-REC-06).
@@ -122,11 +124,12 @@ public static class IngredientScaler
 
         var yieldNote = YieldEstimate(input, unit, low, context);
         var exactMl = unit.Kind == UnitKind.Volume ? low : density is > 0m ? low / density.Value : (decimal?)null;
-        if (WeightFirst(written, food, high, context) is { } weighed)
+        if (WeightFirst(written, food, high, context, input.Measure) is { } weighed)
         {
             var volume = AmountText(low, high, UnitKind.Volume, UnitSystem.US, unit, context, out _, out _);
             var grams = low * density!.Value;
-            return new ScaledIngredient(Compose(weighed.Text(grams), p, note), volume, null, yieldNote.Note, yieldNote.Low, yieldNote.High)
+            var small = LineMeasureRules.SmallAmountHint(grams, weighed.StepGrams, volume); // BR-123
+            return new ScaledIngredient(Compose(weighed.Text(grams), p, note), volume, small, yieldNote.Note, yieldNote.Low, yieldNote.High)
             {
                 ExactMl = exactMl,
                 ShownMl = weighed.RoundedGrams(grams) / density.Value,
@@ -182,12 +185,17 @@ public static class IngredientScaler
     /// <summary>
     /// BR-22, ADR 0018: weight first when a scale is in My Kitchen (and accepted for this recipe, ADR 0017), a
     /// density is known, and the recipe is baking/precision or the food is dry. Grams when the scale shows g.
+    /// BR-122: a line's own choice overrides that: Weight weighs any food with a density, AsWritten never weighs.
     /// </summary>
-    private static WeightDisplay? WeightFirst(UnitDefinition unit, FoodFacts? food, decimal? high, ScaleContext context)
+    private static WeightDisplay? WeightFirst(UnitDefinition unit, FoodFacts? food, decimal? high, ScaleContext context, LineMeasure measure)
     {
-        if (!context.PreferWeight || context.Tools?.Scale is not { } scale || unit.Kind != UnitKind.Volume || high is not null
-            || food?.DensityGPerMl is not > 0m || context.Units is not (DisplayUnits.AsWritten or DisplayUnits.US)
-            || !(context.IsPrecision || food.Form == FoodForm.Dry))
+        if (measure == LineMeasure.AsWritten || context.Tools?.Scale is not { } scale || unit.Kind != UnitKind.Volume || high is not null
+            || food?.DensityGPerMl is not > 0m || context.Units is not (DisplayUnits.AsWritten or DisplayUnits.US))
+        {
+            return null;
+        }
+
+        if (measure == LineMeasure.Auto && (!context.PreferWeight || !(context.IsPrecision || food.Form == FoodForm.Dry)))
         {
             return null;
         }
@@ -199,6 +207,8 @@ public static class IngredientScaler
     {
         private readonly bool grams = scale.Supports("g") || !scale.Supports("oz");
         private readonly decimal stepGrams = KitchenTools.GramsPerStep(scale);
+
+        public decimal StepGrams => stepGrams;
 
         public decimal RoundedGrams(decimal g)
         {

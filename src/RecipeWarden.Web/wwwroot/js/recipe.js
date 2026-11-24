@@ -53,6 +53,19 @@
     if (typeof form.requestSubmit === "function") { form.requestSubmit(); } else { form.submit(); }
   });
 
+  // BR-122: an editor's "Show me" weighs only the ticked lines (the ticks belong to the Save form).
+  document.addEventListener("submit", function (event) {
+    var form = event.target;
+    if (!form || !form.hasAttribute || !form.hasAttribute("data-show-me")) { return; }
+    var field = form.querySelector("[data-show-lines]");
+    if (!field) { return; }
+    var picked = [];
+    document.querySelectorAll('[data-suggestion-line="' + form.getAttribute("data-show-me") + '"]').forEach(function (box) {
+      if (box.checked) { picked.push(box.value); }
+    });
+    field.value = picked.join(",");
+  });
+
   document.addEventListener("htmx:load", function (event) { init(event.detail.elt); });
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () { init(document); });

@@ -1,3 +1,4 @@
+using RecipeWarden.Core.Measurement;
 using System.ComponentModel.DataAnnotations;
 using RecipeWarden.Core.Recipes;
 
@@ -62,6 +63,12 @@ public sealed class RecipeInput
     /// <summary>ADR 0020: "9x13", "9-inch round".</summary>
     public string? Pan { get; set; }
 
+    /// <summary>BR-122: the saved lines' text, paired by position with <see cref="MeasureChoice"/>.</summary>
+    public string[] MeasureLine { get; set; } = [];
+
+    /// <summary>BR-122: Auto, Weight or AsWritten for each <see cref="MeasureLine"/>; anything else is ignored.</summary>
+    public string[] MeasureChoice { get; set; } = [];
+
     /// <summary>BR-06: the version the editor was opened at.</summary>
     public int Version { get; set; }
 
@@ -96,7 +103,28 @@ public sealed class RecipeInput
         var cook = Time(RecipeField.CookMinutes, CookTime, errors);
         var total = Time(RecipeField.TotalMinutes, TotalTime, errors);
 
-        return (Build(publish, servings, prep, cook, total) with { FinishedDensityGPerMl = density }, errors);
+        return (Build(publish, servings, prep, cook, total) with { FinishedDensityGPerMl = density, Measures = Measures() }, errors);
+    }
+
+    /// <summary>BR-122: the editor's per-line choices, or null when the form had none (then lines keep theirs).</summary>
+    private Dictionary<string, LineMeasure>? Measures()
+    {
+        if (MeasureLine.Length == 0)
+        {
+            return null;
+        }
+
+        var chosen = new Dictionary<string, LineMeasure>(StringComparer.Ordinal);
+        for (var i = 0; i < Math.Min(MeasureLine.Length, MeasureChoice.Length) && i < RecipeEdit.MaxIngredientLines; i++)
+        {
+            if (Enum.TryParse<LineMeasure>(MeasureChoice[i], ignoreCase: false, out var m) && Enum.IsDefined(m)
+                && !int.TryParse(MeasureChoice[i], out _))
+            {
+                chosen[LineMeasureRules.Key(MeasureLine[i])] = m;
+            }
+        }
+
+        return chosen;
     }
 
     private static TimeValue Time(RecipeField field, string? text, List<PublishProblem> errors)

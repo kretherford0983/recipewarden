@@ -32,8 +32,31 @@ public sealed class SuggestionsModel(RecipeService recipes, RecipeScaler scaler,
     public async Task<IActionResult> OnPostDismissAsync([FromRoute] int id, string? key) =>
         await SettleAsync(id, key, apply: false);
 
-    public async Task<IActionResult> OnPostApplyAsync([FromRoute] int id, string? key) =>
-        await SettleAsync(id, key, apply: true);
+    /// <summary>
+    /// BR-122: <paramref name="line"/> holds the ticked lines (indexes as on the recipe page) when
+    /// <paramref name="picked"/> is set; without it every offered line is weighed.
+    /// </summary>
+    public async Task<IActionResult> OnPostApplyAsync([FromRoute] int id, string? key, int[]? line, bool picked = false)
+    {
+        if (await LoadAsync(id) is not { } recipe)
+        {
+            return NotFound();
+        }
+
+        var ct = HttpContext.RequestAborted;
+        var offer = (await scaler.ScaleAsync(recipe, 1m, DisplayUnits.AsWritten, ct)).Suggestions.FirstOrDefault(s => s.Key == key);
+        if (offer is null)
+        {
+            return BadRequest();
+        }
+
+        var all = recipe.Ingredients.SelectMany(g => g.Lines).ToList();
+        var choices = LineMeasureRules.Apply(offer.Lines.Select(l => l.Index).ToList(), picked ? line ?? [] : null)
+            .Where(c => c.Key >= 0 && c.Key < all.Count && all[c.Key].Id > 0)
+            .ToDictionary(c => all[c.Key].Id, c => c.Value);
+        var ok = await suggestions.ApplyAsync(id, key!, choices, Permissions.UserId(User), ct);
+        return ok ? Redirect("/recipes/" + recipe.Slug) : BadRequest();
+    }
 
     private async Task<IActionResult> SettleAsync(int id, string? key, bool apply)
     {

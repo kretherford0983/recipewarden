@@ -1,3 +1,4 @@
+using RecipeWarden.Core.Measurement;
 using Microsoft.EntityFrameworkCore;
 using RecipeWarden.Core.Kitchen;
 using RecipeWarden.Infrastructure.Data;
@@ -19,6 +20,31 @@ public sealed class SuggestionService(AppDbContext db, KitchenService kitchen, T
 
     public Task<bool> ApplyAsync(int recipeId, string key, string userId, CancellationToken cancellationToken = default) =>
         SettleAsync(recipeId, key, SuggestionStatus.Applied, userId, cancellationToken);
+
+    /// <summary>
+    /// BR-122: applies a scale suggestion line by line. <paramref name="choices"/> maps ingredient line ids to Weight
+    /// (picked) or AsWritten (offered, not picked); then the suggestion is settled as applied.
+    /// </summary>
+    public async Task<bool> ApplyAsync(int recipeId, string key, IReadOnlyDictionary<int, LineMeasure> choices, string userId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(choices);
+        if (!key.StartsWith("weight:", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var ids = choices.Keys.ToList();
+        var lines = await db.RecipeIngredients.Where(i => i.RecipeId == recipeId && ids.Contains(i.Id)).ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        foreach (var line in lines)
+        {
+            line.Measure = choices[line.Id];
+        }
+
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return await SettleAsync(recipeId, key, SuggestionStatus.Applied, userId, cancellationToken).ConfigureAwait(false);
+    }
 
     private async Task<bool> SettleAsync(int recipeId, string key, SuggestionStatus status, string userId, CancellationToken cancellationToken)
     {
