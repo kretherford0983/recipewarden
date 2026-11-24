@@ -167,5 +167,6 @@ public sealed class EditModel(RecipeService recipes, TagService tags, Permission
         Status = current.Status;
         FinishImageId = current.FinishImageId;
         StepPhotos = current.StepPhotos;
+        SavedMeasures = current.Edit.Measures ?? new Dictionary<string, Core.Measurement.LineMeasure>();
     }
 }

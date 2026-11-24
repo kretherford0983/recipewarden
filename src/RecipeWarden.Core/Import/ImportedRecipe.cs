@@ -76,6 +76,9 @@ public sealed record ImportedRecipe
     /// <summary>recipe-md's "## Changes" section (BR-95); it is also added to <see cref="Notes"/>.</summary>
     public string? Changes { get; init; }
 
+    /// <summary>BR-125: other batch sizes of this recipe from the same file, folded into <see cref="Notes"/>.</summary>
+    public IReadOnlyList<FoldedBatch> FoldedBatches { get; init; } = [];
+
     /// <summary>Notes about the extraction itself, e.g. a yield that could not be used.</summary>
     public IReadOnlyList<string> Remarks { get; init; } = [];
 

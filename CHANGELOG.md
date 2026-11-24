@@ -5,6 +5,21 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 
 ## 1.0.0 — unreleased
 
+### Owner testing feedback (ADR 0055 to 0057)
+- My Kitchen: the form shows only the fields for the chosen type, the scale's step is called "Resolution (smallest
+  step)" with how to read it off the label ("1" means 1 g), and fields from another type are never saved (BR-120, BR-121).
+- Scale suggestions are line by line: untick what you would rather measure with spoons; Save to recipe keeps those as
+  written. Each ingredient also has "Auto / By weight / As written" in the editor, and small weights get a hint
+  (BR-122, BR-123).
+- Import: a file with one recipe at two batch sizes imports the base recipe once, with the other batch's differences in
+  its notes ("Import it as its own recipe" undoes it). Variations stay separate. Markdown dividers, bulleted servings
+  and times, bold step headings, italics and Nutrition tables are read properly; two versions of a sauce get a warning
+  (BR-124 to BR-127).
+- Shopping: staples a recipe needs wait under "Check before you buy" with Have it / Need it. New Staples page
+  (Manage → Staples) and a "Check staples" walk-through to restock by kitchen location; open lists are not changed when
+  the staples list changes (FR-SHOP-05, BR-43 to BR-48).
+- Fix: a recipe page no longer fails if reading the pan from the steps times out.
+
 ### M9 Python adapters (ADR 0051 to 0054)
 - Ubuntu 22.04 is no longer supported (ADR 0054): the installer warns on it and carries on; CI no longer tests it.
 - The bundled nutrition data adds USDA Foundation Foods (2026-04) and FNDDS (2024-10) next to SR Legacy (ADR 0052):

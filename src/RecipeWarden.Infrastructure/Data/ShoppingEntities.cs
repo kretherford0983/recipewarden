@@ -43,6 +43,41 @@ public sealed class ShoppingLine
     public int? FoodId { get; set; }
     public string RawText { get; set; } = string.Empty;
     public int Position { get; set; }
+
+    /// <summary>BR-48: whether the food was a staple when the line was added (open lists keep their routing).</summary>
+    public bool IsStaple { get; set; }
+
+    /// <summary>BR-45: added by a staples check.</summary>
+    public bool IsRestock { get; set; }
+
+    /// <summary>BR-45: a custom staple's store section (catalogue foods use the food's).</summary>
+    public string? Section { get; set; }
+}
+
+/// <summary>BR-44: the Have it / Need it answer for one staple on one list.</summary>
+public sealed class ShoppingStapleCheck
+{
+    public int ShoppingListId { get; set; }
+    public string ItemKey { get; set; } = string.Empty;
+    public RecipeWarden.Core.Shopping.StapleAnswer Answer { get; set; }
+    public DateTimeOffset At { get; set; }
+}
+
+/// <summary>
+/// FR-SHOP-05, ADR 0057: the household's staples. A catalogue food's staple flag stays on Food.IsPantryStaple; this row
+/// holds its details. A row without a food is a non-food staple (foil, dish soap).
+/// </summary>
+public sealed class Staple
+{
+    public int Id { get; set; }
+    public int? FoodId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string NormalizedName { get; set; } = string.Empty;
+    public string Location { get; set; } = RecipeWarden.Core.Shopping.StapleRules.DefaultLocation;
+    public string? Restock { get; set; }
+    public string? Section { get; set; }
+    public DateTimeOffset? LastRestockedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
 }
 
 /// <summary>ADR 0029: a ticked item, by merged item key.</summary>

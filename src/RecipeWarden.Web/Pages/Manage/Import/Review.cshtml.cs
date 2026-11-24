@@ -137,6 +137,12 @@ public sealed class ReviewModel(ImportService imports, TagService tags, Infrastr
             : Redirect($"/manage/recipes/{outcome.Id}/edit?saved=draft" + (image.Length > 0 ? "&" + image : string.Empty));
     }
 
+    /// <summary>BR-125: a folded batch size becomes its own draft.</summary>
+    public async Task<IActionResult> OnPostSplitAsync([FromRoute] int id, int index) =>
+        await imports.SplitFoldedAsync(id, index, HttpContext.RequestAborted) is { } newId
+            ? Redirect($"/manage/import/{newId}/review")
+            : NotFound();
+
     public async Task<IActionResult> OnPostDiscardAsync([FromRoute] int id) =>
         await imports.DiscardAsync(id, HttpContext.RequestAborted) ? Redirect("/manage/import") : NotFound();
 

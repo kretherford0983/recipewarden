@@ -38,6 +38,9 @@ public sealed record ScaledRecipe(decimal Factor, DisplayUnits Units, decimal Se
     /// <summary>True when weights come first because a reader chose "Show me" (not saved).</summary>
     public bool ShowingWeights { get; init; }
 
+    /// <summary>BR-122: the lines a reader picked for "Show me" (null when every offered line is shown).</summary>
+    public IReadOnlySet<int>? ShownWeightLines { get; init; }
+
     /// <summary>ADR 0020: the recipe's pan (or the one named in its steps) and alternatives at this scale.</summary>
     public Pan? Pan { get; init; }
     public bool PanFromSteps { get; init; }
@@ -62,10 +65,23 @@ public sealed class RecipeScaler(FoodCatalogService foods, KitchenService kitche
     /// The view at <paramref name="factor"/> in <paramref name="units"/>, made with My Kitchen's active tools
     /// (FR-TOOL-03). <paramref name="showWeights"/> is a reader's "Show me" (ADR 0017): weights for this view only.
     /// </summary>
+    public Task<ScaledRecipe> ScaleAsync(RecipeView recipe, decimal factor, DisplayUnits units, bool showWeights,
+        CancellationToken cancellationToken = default) =>
+        ScaleAsync(recipe, factor, units, showWeights, null, cancellationToken);
+
+    /// <summary>
+    /// As above; <paramref name="showLines"/> limits "Show me" to those ingredient lines (BR-122, indexes as in
+    /// <see cref="ScaledLine"/>). Null with <paramref name="showWeights"/> shows every line the suggestion offers.
+    /// </summary>
     public async Task<ScaledRecipe> ScaleAsync(RecipeView recipe, decimal factor, DisplayUnits units, bool showWeights,
-        CancellationToken cancellationToken = default)
+        IReadOnlySet<int>? showLines, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(recipe);
+        if (showLines is not null)
+        {
+            showWeights = false;
+        }
+
         var catalog = await foods.LoadCatalogAsync(cancellationToken).ConfigureAwait(false);
         var current = await kitchen.CurrentAsync(cancellationToken).ConfigureAwait(false);
         var seen = await kitchen.AtVersionAsync(recipe.InventoryVersionSeen, cancellationToken).ConfigureAwait(false);
@@ -75,17 +91,21 @@ public sealed class RecipeScaler(FoodCatalogService foods, KitchenService kitche
         var index = 0;
         var groups = new List<ScaledGroup>();
         var inputs = new List<ScaleInput>();
+        var inputLines = new List<int>();
         var raw = new List<ScaledIngredient>();
         foreach (var group in recipe.Ingredients)
         {
             var lines = new List<ScaledLine>();
             foreach (var line in group.Lines)
             {
-                var (shown, input, scaled) = ScaleLine(index++, line, context);
+                var lineIndex = index++;
+                var measure = showLines?.Contains(lineIndex) == true && current.Scale is not null ? LineMeasure.Weight : line.Measure;
+                var (shown, input, scaled) = ScaleLine(lineIndex, line, context, measure);
                 lines.Add(shown);
                 if (input is not null)
                 {
-                    inputs.Add(input);
+                    inputs.Add(input with { Measure = line.Measure }); // offers follow the stored choice, not this view's
+                    inputLines.Add(lineIndex);
                     raw.Add(scaled!);
                 }
             }
@@ -97,7 +117,8 @@ public sealed class RecipeScaler(FoodCatalogService foods, KitchenService kitche
         if (!preferWeight && current.Scale is not null)
         {
             var settled = await suggestions.SettledKeysAsync(recipe.Id, cancellationToken).ConfigureAwait(false);
-            offers = SuggestionEngine.Find(inputs, context, seen, current, settled);
+            offers = SuggestionEngine.Find(inputs, context, seen, current, settled)
+                .Select(o => o with { Lines = o.Lines.Select(l => l with { Index = inputLines[l.Index] }).ToList() }).ToList();
         }
 
         var pan = recipe.Pan;
@@ -122,7 +143,8 @@ public sealed class RecipeScaler(FoodCatalogService foods, KitchenService kitche
         {
             Suggestions = offers,
             AssumedToolsNote = current.IsAssumedStandard ? KitchenTools.AssumedNote : null,
-            ShowingWeights = showWeights && !accepted && current.Scale is not null,
+            ShowingWeights = (showWeights || showLines is { Count: > 0 }) && !accepted && current.Scale is not null,
+            ShownWeightLines = showLines,
             Pan = pan,
             PanFromSteps = fromSteps,
             PanOptions = panOptions,
@@ -187,14 +209,15 @@ public sealed class RecipeScaler(FoodCatalogService foods, KitchenService kitche
         return IngredientFactor.Compute(parsedHave, recipeLine, catalog.Food(line.FoodId)?.DensityGPerMl, catalog);
     }
 
-    private static (ScaledLine Line, ScaleInput? Input, ScaledIngredient? Scaled) ScaleLine(int index, IngredientLineView line, ScaleContext context)
+    private static (ScaledLine Line, ScaleInput? Input, ScaledIngredient? Scaled) ScaleLine(int index, IngredientLineView line, ScaleContext context,
+        LineMeasure measure)
     {
         if (line.Parsed is not { } parsed)
         {
             return (new ScaledLine(index, line.Text, line.RawText, line.NeedsReview, false, null, null, null, null, null), null, null);
         }
 
-        var input = new ScaleInput(parsed, line.FoodId, PlusAmount(parsed.Note));
+        var input = new ScaleInput(parsed, line.FoodId, PlusAmount(parsed.Note), measure);
         var scaled = IngredientScaler.Scale(input, context);
         var shown = new ScaledLine(index, scaled.Text, line.RawText, line.NeedsReview, parsed.Quantity is > 0m && !line.NeedsReview,
             scaled.Secondary, scaled.Hint, scaled.YieldNote, scaled.PurchaseGrams, scaled.PurchaseGramsMax)

@@ -1,0 +1,94 @@
+@page "/manage/staples"
+@model RecipeWarden.Web.Pages.Manage.StaplesModel
+@using RecipeWarden.Core.Shopping
+@{
+    ViewData["Title"] = "Staples";
+}
+<h1>Staples</h1>
+<p class="hint">The things your household always keeps on hand. When a recipe on a shopping list needs one, the list asks
+    “Check before you buy” instead of adding it; “Check staples” on a list walks you round the kitchen to restock.
+    One list for everyone.</p>
+@if (Model.Message is not null) { <p class="notice" role="status">@Model.Message</p> }
+@if (Model.Error is not null) { <p class="notice error" role="alert">@Model.Error</p> }
+
+<section aria-labelledby="add-staple-heading">
+    <h2 id="add-staple-heading">Add a staple</h2>
+    <form method="post" action="/manage/staples?handler=Add" class="kitchen-form" asp-antiforgery="true">
+        <div class="field-row">
+            <div class="field">
+                <label for="staple-name">Name</label>
+                <input id="staple-name" name="name" required maxlength="@StapleRules.MaxNameLength" placeholder="eggs, aluminum foil">
+            </div>
+            <div class="field">
+                <label for="staple-location">Where it lives</label>
+                <select id="staple-location" name="location">
+                    @foreach (var l in StapleRules.Locations) { <option value="@l" selected="@(l == StapleRules.DefaultLocation)">@l</option> }
+                </select>
+            </div>
+            <div class="field">
+                <label for="staple-restock">Usual amount <span class="hint">(optional)</span></label>
+                <input id="staple-restock" name="restock" maxlength="@StapleRules.MaxRestockLength" placeholder="1 dozen, 5 lb">
+            </div>
+            <div class="field">
+                <label for="staple-section">Store section <span class="hint">(optional)</span></label>
+                <select id="staple-section" name="section">
+                    <option value="">From the food</option>
+                    @foreach (var s in ShoppingRules.SectionOrder) { <option value="@s">@s</option> }
+                </select>
+            </div>
+        </div>
+        <p class="hint">A name the ingredient catalogue knows (flour, butter) becomes that food's staple, so recipes that use it
+            are checked. Anything else (foil, dish soap) is kept as a household item.</p>
+        <button type="submit" class="primary">Add</button>
+    </form>
+</section>
+
+@if (Model.Groups.Count == 0)
+{
+    <p class="empty-state">No staples yet.</p>
+}
+@foreach (var group in Model.Groups)
+{
+    <section aria-label="@group.Key">
+        <h2>@group.Key</h2>
+        <table class="list kitchen">
+            <thead><tr><th scope="col">Staple</th><th scope="col">Usual amount</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+            <tbody>
+            @foreach (var s in group)
+            {
+                var rowId = s.Id > 0 ? "s" + s.Id : "f" + s.FoodId;
+                <tr>
+                    <th scope="row">@s.Name@if (s.FoodId is null) { <span class="hint"> (household item)</span> }</th>
+                    <td>@(s.Restock ?? "—")</td>
+                    <td>
+                        <details class="edit-tool">
+                            <summary>Edit…</summary>
+                            <form method="post" action="/manage/staples?handler=Update" class="inline-form" asp-antiforgery="true">
+                                <input type="hidden" name="id" value="@s.Id">
+                                <input type="hidden" name="foodId" value="@s.FoodId">
+                                <label for="loc-@rowId">Where it lives</label>
+                                <select id="loc-@rowId" name="location">
+                                    @foreach (var l in StapleRules.Locations) { <option value="@l" selected="@(l == s.Location)">@l</option> }
+                                </select>
+                                <label for="restock-@rowId">Usual amount</label>
+                                <input id="restock-@rowId" name="restock" value="@s.Restock" maxlength="@StapleRules.MaxRestockLength" size="10">
+                                <label for="section-@rowId">Store section</label>
+                                <select id="section-@rowId" name="section">
+                                    <option value="">From the food</option>
+                                    @foreach (var sec in ShoppingRules.SectionOrder) { <option value="@sec" selected="@(sec == s.Section)">@sec</option> }
+                                </select>
+                                <button type="submit">Save</button>
+                            </form>
+                        </details>
+                        <form method="post" action="/manage/staples?handler=Remove" class="inline-form" asp-antiforgery="true">
+                            <input type="hidden" name="id" value="@s.Id">
+                            <input type="hidden" name="foodId" value="@s.FoodId">
+                            <button type="submit" aria-label="Remove @s.Name">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </section>
+}

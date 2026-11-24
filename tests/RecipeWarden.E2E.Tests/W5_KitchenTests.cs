@@ -44,8 +44,9 @@ public sealed class W5_KitchenTests(BrowserHost host) : IClassFixture<BrowserHos
         await Assertions.Expect(banner).ToContainTextAsync("Show 1 ingredient by weight?");
         await Assertions.Expect(page.Locator(".ingredients li").First).ToContainTextAsync("2 cups all-purpose flour");
 
-        await banner.GetByRole(AriaRole.Link, new() { Name = "Show me" }).ClickAsync();
-        await page.WaitForURLAsync("**weights=show");
+        // BR-122: Show me is now a button that weighs the ticked lines (recipe.js puts them in the URL).
+        await banner.GetByRole(AriaRole.Button, new() { Name = "Show me" }).ClickAsync();
+        await page.WaitForURLAsync("**weights=0");
         await Assertions.Expect(page.Locator(".ingredients li").First).ToContainTextAsync("250 g all-purpose flour");
 
         await page.GotoAsync("/recipes/w5-sponge");

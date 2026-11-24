@@ -98,6 +98,9 @@ public sealed class RecipeIngredient
 
     /// <summary>The catalogue food this line is linked to (8.2, ADR 0013); null when nothing matched.</summary>
     public int? FoodId { get; set; }
+
+    /// <summary>BR-122: Auto, Weight or AsWritten (stored as text, 8.1).</summary>
+    public RecipeWarden.Core.Measurement.LineMeasure Measure { get; set; }
 }
 
 /// <summary>Section 8.2 Step.</summary>

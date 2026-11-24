@@ -30,6 +30,9 @@ public abstract class RecipeEditorPageModel(TagService tags) : PageModel
     /// <summary>ADR 0016: every tag, grouped by type for the picker.</summary>
     public IReadOnlyList<TagGroup> TagGroups { get; private set; } = [];
     public string? Message { get; protected set; }
+
+    /// <summary>BR-122: the saved recipe's per-line measure choices (null on the new-recipe page: nothing saved yet).</summary>
+    public IReadOnlyDictionary<string, RecipeWarden.Core.Measurement.LineMeasure>? SavedMeasures { get; protected set; }
     public bool IsAdmin { get; protected set; }
 
     /// <summary>ADR 0020: the pan field was prefilled from the steps.</summary>

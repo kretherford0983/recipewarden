@@ -108,6 +108,7 @@ public sealed class ShoppingService(AppDbContext db, FoodCatalogService foods, T
         var recipes = await db.ShoppingListRecipes.AsNoTracking().Where(r => r.ShoppingListId == id).OrderBy(r => r.Id)
             .Select(r => new ShoppingRecipeRow(r.Id, r.RecipeId, r.Title, r.Scale)).ToListAsync(cancellationToken).ConfigureAwait(false);
         var manual = await db.ShoppingLines.AsNoTracking().Where(l => l.ShoppingListId == id && l.ListRecipeId == null).OrderBy(l => l.Position)
+            // restock items are listed (and removable) with the manual ones
             .Select(l => new ShoppingManualRow(l.Id, l.RawText)).ToListAsync(cancellationToken).ConfigureAwait(false);
         return new ShoppingListPage(list.Id, list.Name, view, recipes, manual, list.FinishedAt + UndoWindow);
     }
@@ -144,6 +145,7 @@ public sealed class ShoppingService(AppDbContext db, FoodCatalogService foods, T
         }
 
         var catalog = await foods.LoadCatalogAsync(cancellationToken).ConfigureAwait(false);
+        var staples = await StapleFoodIdsAsync(cancellationToken).ConfigureAwait(false);
         var context = new ScaleContext(scale, DisplayUnits.AsWritten, recipe.IsPrecision, catalog);
         var now = clock.GetUtcNow();
         var row = new ShoppingListRecipe { Title = recipe.Title, RecipeId = recipe.Id, Scale = scale, AddedAt = now };
@@ -170,6 +172,7 @@ public sealed class ShoppingService(AppDbContext db, FoodCatalogService foods, T
                 FoodId = ingredient.FoodId,
                 RawText = Cut(ingredient.RawText, ShoppingRules.MaxItemLength * 2),
                 Position = position++,
+                IsStaple = ingredient.FoodId is { } fid && staples.Contains(fid), // BR-48
             });
         }
 
@@ -232,6 +235,7 @@ public sealed class ShoppingService(AppDbContext db, FoodCatalogService foods, T
             FoodId = foodId,
             RawText = clean,
             Position = count,
+            IsStaple = foodId is { } fid && (await StapleFoodIdsAsync(cancellationToken).ConfigureAwait(false)).Contains(fid), // BR-48
         };
         db.ShoppingLines.Add(line);
         Touch(list, clock.GetUtcNow());
@@ -293,8 +297,147 @@ public sealed class ShoppingService(AppDbContext db, FoodCatalogService foods, T
         var finished = view.ToBuy.Any() && view.ToBuy.All(i => keys.Contains(i.Key));
         list.FinishedAt = finished ? list.FinishedAt ?? now : null;
         list.UpdatedAt = now;
+        if (isChecked && item.IsRestock)
+        {
+            await MarkRestockedAsync(key, item.Name, now, cancellationToken).ConfigureAwait(false); // BR-47
+        }
+
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return new ShoppingCheckResult(true, finished);
+    }
+
+    /// <summary>
+    /// BR-44, ADR 0028: Have it / Need it for a staple a recipe on the list needs (anonymous, like a tick). A null
+    /// answer asks again. Only staples on this list can be answered.
+    /// </summary>
+    public async Task<bool> AnswerStapleAsync(int listId, string? key, StapleAnswer? answer, CancellationToken cancellationToken = default)
+    {
+        await PurgeFinishedAsync(cancellationToken).ConfigureAwait(false);
+        var list = await db.ShoppingLists.FirstOrDefaultAsync(l => l.Id == listId, cancellationToken).ConfigureAwait(false);
+        if (list is null || string.IsNullOrEmpty(key) || key.Length > ShoppingRules.MaxItemLength + 2)
+        {
+            return false;
+        }
+
+        var view = await ViewAsync(listId, UnitSystem.US, cancellationToken).ConfigureAwait(false);
+        if (!view.ToBuy.Concat(view.Pantry).Any(i => i.Key == key && (i.IsPantry || i.Answer is not null)))
+        {
+            return false;
+        }
+
+        var existing = await db.ShoppingStapleChecks.FirstOrDefaultAsync(c => c.ShoppingListId == listId && c.ItemKey == key, cancellationToken)
+            .ConfigureAwait(false);
+        var now = clock.GetUtcNow();
+        if (answer is null)
+        {
+            if (existing is not null)
+            {
+                db.ShoppingStapleChecks.Remove(existing);
+            }
+        }
+        else if (existing is null)
+        {
+            db.ShoppingStapleChecks.Add(new ShoppingStapleCheck { ShoppingListId = listId, ItemKey = key, Answer = answer.Value, At = now });
+        }
+        else
+        {
+            existing.Answer = answer.Value;
+            existing.At = now;
+        }
+
+        if (answer == StapleAnswer.Need)
+        {
+            list.FinishedAt = null; // something new to buy
+        }
+
+        list.UpdatedAt = now;
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return true;
+    }
+
+    /// <summary>
+    /// FR-SHOP-05, BR-45: adds the chosen staples as restock items, at their usual amount when set. A staple already
+    /// restocked on this list is not added twice; one a recipe needs merges with it (BR-40).
+    /// </summary>
+    public async Task<ShoppingEditResult> AddRestockAsync(int listId, IReadOnlyCollection<StapleInfo> staples, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(staples);
+        var list = await OpenListAsync(listId, cancellationToken).ConfigureAwait(false);
+        if (list is null)
+        {
+            return ShoppingEditResult.Fail(NotFound);
+        }
+
+        var lines = await db.ShoppingLines.Where(l => l.ShoppingListId == listId).Select(l => new { l.FoodId, l.Name, l.IsRestock })
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+        if (lines.Count + staples.Count > ShoppingRules.MaxLinesPerList)
+        {
+            return ShoppingEditResult.Fail(ListFull);
+        }
+
+        var restocked = lines.Where(l => l.IsRestock).Select(l => ShoppingRules.KeyFor(l.FoodId, l.Name)).ToHashSet(StringComparer.Ordinal);
+        var position = lines.Count;
+        var added = 0;
+        foreach (var staple in staples)
+        {
+            if (!restocked.Add(ShoppingRules.KeyFor(staple.FoodId, staple.Name)))
+            {
+                continue;
+            }
+
+            var text = string.IsNullOrWhiteSpace(staple.Restock) ? staple.Name : StapleRules.RestockAmount(staple.Restock) + " " + staple.Name;
+            var parsed = IngredientLineParser.Parse(text);
+            var (kind, amount, amountMax, countUnit) = string.IsNullOrWhiteSpace(staple.Restock)
+                ? (null, null, null, null)
+                : ShoppingRules.Amount(parsed, 1m);
+            db.ShoppingLines.Add(new ShoppingLine
+            {
+                ShoppingListId = listId,
+                Name = Cut(staple.Name, ShoppingRules.MaxItemLength),
+                Kind = kind,
+                Amount = amount,
+                AmountMax = amountMax,
+                CountUnit = countUnit,
+                FoodId = staple.FoodId,
+                RawText = Cut(text, ShoppingRules.MaxItemLength * 2),
+                Position = position++,
+                IsRestock = true,
+                Section = staple.FoodId is null ? staple.Section : null,
+            });
+            added++;
+        }
+
+        Touch(list, clock.GetUtcNow());
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return new ShoppingEditResult(true, null, added);
+    }
+
+    private async Task<HashSet<int>> StapleFoodIdsAsync(CancellationToken cancellationToken) =>
+        (await db.Foods.AsNoTracking().Where(f => f.IsPantryStaple).Select(f => f.Id).ToListAsync(cancellationToken).ConfigureAwait(false)).ToHashSet();
+
+    /// <summary>BR-47: a restock item was ticked, so its staple was bought now.</summary>
+    private async Task MarkRestockedAsync(string key, string name, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        Staple? row;
+        if (key.StartsWith("f:", StringComparison.Ordinal) && int.TryParse(key[2..], System.Globalization.CultureInfo.InvariantCulture, out var foodId))
+        {
+            row = await db.Staples.FirstOrDefaultAsync(s => s.FoodId == foodId, cancellationToken).ConfigureAwait(false);
+            if (row is null && await db.Foods.AnyAsync(f => f.Id == foodId && f.IsPantryStaple, cancellationToken).ConfigureAwait(false))
+            {
+                row = new Staple { FoodId = foodId, Name = name, NormalizedName = NameRules.Normalize(name), CreatedAt = now };
+                db.Staples.Add(row);
+            }
+        }
+        else
+        {
+            var normalized = key.StartsWith("n:", StringComparison.Ordinal) ? key[2..] : NameRules.Normalize(name);
+            row = await db.Staples.FirstOrDefaultAsync(s => s.FoodId == null && s.NormalizedName == normalized, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (row is not null)
+        {
+            row.LastRestockedAt = now;
+        }
     }
 
     public async Task<bool> DeleteAsync(int listId, CancellationToken cancellationToken = default) =>
@@ -328,9 +471,11 @@ public sealed class ShoppingService(AppDbContext db, FoodCatalogService foods, T
         var shoppingFoods = foodRows.ToDictionary(f => f.Food.Id, f => ToShoppingFood(f.Food, f.Unit));
         var checks = (await db.ShoppingChecks.AsNoTracking().Where(c => c.ShoppingListId == listId).Select(c => c.ItemKey)
             .ToListAsync(cancellationToken).ConfigureAwait(false)).ToHashSet(StringComparer.Ordinal);
+        var answers = await db.ShoppingStapleChecks.AsNoTracking().Where(c => c.ShoppingListId == listId)
+            .ToDictionaryAsync(c => c.ItemKey, c => c.Answer, StringComparer.Ordinal, cancellationToken).ConfigureAwait(false);
         var inputs = lines.Select(l => new ShoppingLineInput(l.Line.Id, l.Line.Name, l.Line.Kind, l.Line.Amount, l.Line.AmountMax,
-            l.Line.CountUnit, l.Line.FoodId, l.Line.RawText, l.Title, l.Line.ListRecipeId is null));
-        return ShoppingRules.Merge(inputs, shoppingFoods, checks, system);
+            l.Line.CountUnit, l.Line.FoodId, l.Line.RawText, l.Title, l.Line.ListRecipeId is null && !l.Line.IsRestock, l.Line.IsRestock, l.Line.Section, l.Line.IsStaple));
+        return ShoppingRules.Merge(inputs, shoppingFoods, checks, system, answers: answers);
     }
 
     internal static ShoppingFood ToShoppingFood(Food food, Unit? unit)

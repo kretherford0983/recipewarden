@@ -66,6 +66,67 @@ public static partial class NutritionText
         return v.Calories is null ? null : v;
     }
 
+    /// <summary>
+    /// BR-127 (FR-IMP-04): a Markdown or text "Nutrition" section, as table rows ("|**Calories:**|250 kcal|") or
+    /// "Label: value" lines, per serving. Null without calories. Unknown labels are ignored.
+    /// </summary>
+    public static NutrientValues? FromLabelLines(IEnumerable<string> lines)
+    {
+        ArgumentNullException.ThrowIfNull(lines);
+        var found = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var raw in lines)
+        {
+            var line = raw.Replace("**", string.Empty, StringComparison.Ordinal).Replace("__", string.Empty, StringComparison.Ordinal).Trim();
+            string label;
+            string value;
+            if (line.StartsWith('|'))
+            {
+                var cells = line.Trim('|').Split('|').Select(c => c.Trim()).ToList();
+                if (cells.Count < 2)
+                {
+                    continue;
+                }
+
+                (label, value) = (cells[0], cells[1]);
+            }
+            else
+            {
+                var colon = line.IndexOf(':', StringComparison.Ordinal);
+                if (colon <= 0)
+                {
+                    continue;
+                }
+
+                (label, value) = (line[..colon], line[(colon + 1)..]);
+            }
+
+            var key = LabelKey(label.TrimStart('-', '*', '•', ' ').TrimEnd(':', ' ').ToLowerInvariant());
+            if (key is not null && !found.ContainsKey(key))
+            {
+                found[key] = value.Trim();
+            }
+        }
+
+        string? V(string k) => found.TryGetValue(k, out var v) ? v : null;
+        var values = new NutrientValues(Parse(V("calories")), Parse(V("fat")), Parse(V("sat")), Parse(V("chol"), milligrams: true),
+            Parse(V("sodium"), milligrams: true), Parse(V("carbs")), Parse(V("fiber")), Parse(V("sugar")), Parse(V("protein")));
+        return values.Calories is null ? null : values;
+    }
+
+    private static string? LabelKey(string label) => label switch
+    {
+        "calories" or "energy" => "calories",
+        "fat" or "total fat" => "fat",
+        "saturated fat" or "sat fat" or "saturated" => "sat",
+        "cholesterol" => "chol",
+        "sodium" or "salt (sodium)" => "sodium",
+        "carbohydrates" or "carbohydrate" or "carbs" or "total carbohydrate" or "total carbohydrates" => "carbs",
+        "fiber" or "fibre" or "dietary fiber" or "dietary fibre" => "fiber",
+        "sugar" or "sugars" or "total sugars" => "sugar",
+        "protein" => "protein",
+        _ => null,
+    };
+
     /// <summary>recipe-md <c>per_serving</c> map → values (numbers only); null without calories.</summary>
     public static NutrientValues? FromRecipeMd(Func<string, string?> key)
     {

@@ -106,6 +106,7 @@ public static class RecipeWardenHost
             o.Conventions.AllowAnonymousToPage("/Shopping/Index"); // D-10: anyone views lists and ticks items (ADR 0028)
             o.Conventions.AllowAnonymousToPage("/Shopping/Details"); // editing handlers check the Editor role themselves
             o.Conventions.AuthorizePage("/Shopping/New", AppPolicies.CanEditRecipes);
+            o.Conventions.AuthorizePage("/Shopping/Staples", AppPolicies.CanEditRecipes); // FR-SHOP-05: adds items
             // SEC-63: search and browse are limited per IP.
             o.Conventions.AddPageApplicationModelConvention("/Search", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.SearchPolicy)));
             o.Conventions.AddPageApplicationModelConvention("/Recipes/Index", m => m.EndpointMetadata.Add(new EnableRateLimitingAttribute(RateLimits.SearchPolicy)));

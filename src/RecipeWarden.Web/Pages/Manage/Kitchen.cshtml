@@ -10,6 +10,7 @@
 <p class="hint">The spoons, cups and scale here decide how scaled amounts are shown. Containers and pans are offered when
     you fit a recipe to a container or scale a baked recipe. Appliances and thermometers are kept for your records.
     Inventory version @Model.Version.</p>
+<script src="~/js/kitchen.js" asp-append-version="true" defer></script>
 @if (Model.Message is not null) { <p class="notice" role="status">@Model.Message</p> }
 @if (Model.Errors.Count > 0)
 {
@@ -35,38 +36,45 @@
 
 <section aria-labelledby="add-heading">
     <h2 id="add-heading">Add a tool</h2>
-    <form method="post" action="/manage/kitchen?handler=Add" class="kitchen-form" asp-antiforgery="true">
+    @{ var addFields = KitchenRules.FieldsFor(Model.Input.Type); }
+    <form method="post" action="/manage/kitchen?handler=Add" class="kitchen-form" asp-antiforgery="true" data-kitchen-form>
         <div class="field-row">
             <div class="field">
                 <label for="add-type">Type</label>
-                <select id="add-type" name="Input.Type">
-                    @foreach (var t in Enum.GetValues<ToolType>()) { <option value="@t" selected="@(Model.Input.Type == t)">@KitchenModel.Label(t)</option> }
+                <select id="add-type" name="Input.Type" data-kitchen-type>
+                    @foreach (var t in Enum.GetValues<ToolType>())
+                    {
+                        var f = KitchenRules.FieldsFor(t);
+                        <option value="@t" selected="@(Model.Input.Type == t)" data-size="@f.Size" data-units="@f.ScaleUnits" data-fill="@f.Fill"
+                                data-size-label="@f.SizeLabel" data-size-hint="@f.SizeHint" data-size-placeholder="@f.SizePlaceholder">@KitchenModel.Label(t)</option>
+                    }
                 </select>
             </div>
             <div class="field">
                 <label for="add-name">Name</label>
                 <input id="add-name" name="Input.Name" value="@Model.Input.Name" maxlength="@KitchenRules.MaxNameLength" placeholder="optional for spoons and cups">
             </div>
-            <div class="field">
-                <label for="add-size">Size</label>
-                <input id="add-size" name="Input.Size" value="@Model.Input.Size" maxlength="40" placeholder="1/8 tsp, 16 fl oz, 1 g, 9x13">
+            <div class="field" data-kitchen-part="size" hidden="@(!addFields.Size)">
+                <label for="add-size" data-kitchen-size-label>@addFields.SizeLabel</label>
+                <input id="add-size" name="Input.Size" value="@Model.Input.Size" maxlength="40" placeholder="@addFields.SizePlaceholder" aria-describedby="add-size-hint">
             </div>
             <div class="field">
                 <label for="add-qty">How many</label>
                 <input id="add-qty" name="Input.Quantity" type="number" min="1" max="@KitchenRules.MaxQuantity" value="@Model.Input.Quantity">
             </div>
-            <div class="field">
+            <div class="field" data-kitchen-part="fill" hidden="@(!addFields.Fill)">
                 <label for="add-fill">Fill %</label>
-                <input id="add-fill" name="Input.FillPct" inputmode="decimal" size="4" value="@Model.Input.FillPct" placeholder="containers: 90">
+                <input id="add-fill" name="Input.FillPct" inputmode="decimal" size="4" value="@Model.Input.FillPct" placeholder="90">
             </div>
         </div>
-        <fieldset class="field">
-            <legend>A scale shows</legend>
+        <p id="add-size-hint" class="hint" data-kitchen-part="size" data-kitchen-size-hint hidden="@(!addFields.Size)">@addFields.SizeHint</p>
+        <fieldset class="field" data-kitchen-part="units" hidden="@(!addFields.ScaleUnits)">
+            <legend>The scale shows</legend>
             <label><input type="checkbox" name="Input.Shows" value="g" checked> g</label>
             <label><input type="checkbox" name="Input.Shows" value="oz" checked> oz</label>
+            <p class="hint">Most scales also show ml or fl oz. Those modes assume the food is water, so RecipeWarden uses its own
+                conversions instead; lb is shown from oz.</p>
         </fieldset>
-        <p class="hint">Size: a capacity for spoons, cups and containers (1/8 tsp, 2/3 cup, 16 fl oz, 1 quart); the step for a
-            scale (1 g, 0.05 oz); width x length for a pan (9x13, 8x8 square, 9-inch round, 9x5 loaf).</p>
         <button type="submit" class="primary">Add</button>
     </form>
 </section>
@@ -98,13 +106,20 @@
                                 <input type="hidden" name="Input.Type" value="@t.Type">
                                 <label for="name-@t.Id">Name</label>
                                 <input id="name-@t.Id" name="Input.Name" value="@t.Name" maxlength="@KitchenRules.MaxNameLength" required>
-                                <label for="size-@t.Id">Size</label>
-                                <input id="size-@t.Id" name="Input.Size" value="@KitchenRules.SizeText(t)" maxlength="40" size="10">
+                                @{ var ef = KitchenRules.FieldsFor(t.Type); }
+                                @if (ef.Size)
+                                {
+                                    <label for="size-@t.Id">@ef.SizeLabel</label>
+                                    <input id="size-@t.Id" name="Input.Size" value="@KitchenRules.SizeText(t)" maxlength="40" size="10" placeholder="@ef.SizePlaceholder">
+                                }
                                 <label for="qty-@t.Id">How many</label>
                                 <input id="qty-@t.Id" name="Input.Quantity" type="number" min="1" max="@KitchenRules.MaxQuantity" value="@t.QuantityOwned">
-                                <label for="fill-@t.Id">Fill %</label>
-                                <input id="fill-@t.Id" name="Input.FillPct" value="@KitchenModel.Fill(t.DefaultFillPct)" size="4">
-                                @if (t.Type == ToolType.Scale)
+                                @if (ef.Fill)
+                                {
+                                    <label for="fill-@t.Id">Fill %</label>
+                                    <input id="fill-@t.Id" name="Input.FillPct" value="@KitchenModel.Fill(t.DefaultFillPct)" size="4">
+                                }
+                                @if (ef.ScaleUnits)
                                 {
                                     <label><input type="checkbox" name="Input.Shows" value="g" checked="@t.Supports("g")"> g</label>
                                     <label><input type="checkbox" name="Input.Shows" value="oz" checked="@t.Supports("oz")"> oz</label>

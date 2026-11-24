@@ -1,5 +1,7 @@
 @model RecipeWarden.Web.Pages.Manage.Recipes.RecipeEditorPageModel
 @using RecipeWarden.Core.Recipes
+@using RecipeWarden.Core.Measurement
+@using RecipeWarden.Importers.Ingredients
 @* FR-REC-02, W2. UX-08: errors are summarized at the top and linked to their fields. *@
 @if (Model.Message is not null)
 {
@@ -143,6 +145,41 @@ For the filling:
                 and at most eight words; “For the …” lines of three to five words work without the colon.</p>
         </details>
         <div id="ingredient-preview" class="ingredient-preview" aria-live="polite"></div>
+        @if (Model.SavedMeasures is { } saved)
+        {
+            var measureLines = IngredientLineParser.ParseList(Model.Input.Ingredients).Where(l => !l.IsHeading)
+                .Select(l => l.Ingredient!.RawText).Distinct(StringComparer.Ordinal).ToList();
+            if (measureLines.Count > 0)
+            {
+                @* BR-122: per-line measure choice; Auto follows BR-22. *@
+                <details class="field-help measure-choices" open="@(saved.Count > 0)">
+                    <summary>Measure by weight or as written (when you have a scale)</summary>
+                    <p class="hint">Auto weighs dry foods and baking recipes once a scale is saved to the recipe. By weight
+                        weighs that line whenever a scale is in My Kitchen (for example pepper ground onto a zeroed plate);
+                        As written keeps spoons and cups. A choice stays with its line while the line's text is unchanged.</p>
+                    <table class="list">
+                        <thead><tr><th scope="col">Ingredient</th><th scope="col">Measure</th></tr></thead>
+                        <tbody>
+                        @for (var i = 0; i < measureLines.Count; i++)
+                        {
+                            var choice = saved.TryGetValue(LineMeasureRules.Key(measureLines[i]), out var m) ? m : LineMeasure.Auto;
+                            <tr>
+                                <th scope="row"><label for="measure-@i">@measureLines[i]</label></th>
+                                <td>
+                                    <input type="hidden" name="Input.MeasureLine" value="@measureLines[i]">
+                                    <select id="measure-@i" name="Input.MeasureChoice">
+                                        <option value="Auto" selected="@(choice == LineMeasure.Auto)">Auto</option>
+                                        <option value="Weight" selected="@(choice == LineMeasure.Weight)">By weight</option>
+                                        <option value="AsWritten" selected="@(choice == LineMeasure.AsWritten)">As written</option>
+                                    </select>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </details>
+            }
+        }
     </div>
 
     <div class="field">

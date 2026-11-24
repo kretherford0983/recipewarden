@@ -322,14 +322,35 @@
 
         @foreach (var offer in sc.Suggestions)
         {
-            @* FR-TOOL-04, ADR 0017: worked out on this view; nothing is saved by reading it. *@
+            @* FR-TOOL-04, ADR 0017: worked out on this view; nothing is saved by reading it. BR-122: line by line. *@
+            var formId = "suggestion-" + offer.Key.Replace(":", "-", StringComparison.Ordinal);
             <section class="suggestion-banner" role="region" aria-label="Suggestion">
-                <p>@offer.Message</p>
-                <ul>@foreach (var l in offer.Lines) { <li>@l.Before → @l.After</li> }</ul>
-                <a class="button-link" href="@Model.ShowMeLink()">Show me</a>
+                <p id="@formId-label">@offer.Message</p>
+                <p class="hint">Untick any you would rather measure with spoons and cups.</p>
+                <ul class="suggestion-lines" aria-labelledby="@formId-label">
+                    @foreach (var l in offer.Lines)
+                    {
+                        <li><label><input type="checkbox" name="@(Model.CanEdit ? "line" : "w")" value="@l.Index" checked
+                                          form="@(Model.CanEdit ? formId + "-save" : formId + "-show")" data-suggestion-line="@formId">
+                            @l.Before → @l.After</label></li>
+                    }
+                </ul>
+                <form id="@formId-show" method="get" action="@Model.ShowMePath" class="inline-form" data-show-me="@formId">
+                    @foreach (var q in Model.KeptQuery()) { <input type="hidden" name="@q.Key" value="@q.Value"> }
+                    @if (Model.CanEdit) { <input type="hidden" name="weights" value="show" data-show-lines> }
+                    <button type="submit">Show me</button>
+                </form>
                 @if (Model.CanEdit)
                 {
-                    @await Html.PartialAsync("/Pages/Manage/Recipes/_SuggestionActions.cshtml", (r.Id, offer.Key))
+                    <form id="@formId-save" method="post" action="/manage/recipes/@r.Id/suggestions?handler=Apply" class="inline-form" asp-antiforgery="true">
+                        <input type="hidden" name="key" value="@offer.Key">
+                        <input type="hidden" name="picked" value="true">
+                        <button type="submit" class="primary">Save to recipe</button>
+                    </form>
+                    <form method="post" action="/manage/recipes/@r.Id/suggestions?handler=Dismiss" class="inline-form" asp-antiforgery="true">
+                        <input type="hidden" name="key" value="@offer.Key">
+                        <button type="submit">Dismiss</button>
+                    </form>
                 }
             </section>
         }

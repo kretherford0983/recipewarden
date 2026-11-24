@@ -1,0 +1,53 @@
+@page "/shopping/{id:int}/staples"
+@model RecipeWarden.Web.Pages.Shopping.StaplesModel
+@using RecipeWarden.Core.Shopping
+@{
+    var list = Model.List!;
+    ViewData["Title"] = "Check staples";
+}
+<article class="staples-walk" aria-labelledby="walk-title">
+    <p class="breadcrumb"><a href="/shopping">Shopping lists</a> › <a href="/shopping/@list.Id">@list.Name</a> ›</p>
+    <h1 id="walk-title">Check staples</h1>
+    <p class="hint">Walk round the kitchen and tick anything you are out of or running low on. Ticked items go on “@list.Name”.</p>
+    @if (Model.FromRecipes.Count == 0 && Model.Others.Count == 0)
+    {
+        <p class="empty-state">No staples yet. <a href="/manage/staples">Add the things you always keep on hand</a>.</p>
+    }
+    else
+    {
+        <form method="post" asp-antiforgery="true">
+            @if (Model.FromRecipes.Count > 0)
+            {
+                <fieldset class="staples-group">
+                    <legend>Your recipes need these</legend>
+                    <p class="hint">Unticked ones are marked “You have it”.</p>
+                    <ul class="staples-list">
+                        @foreach (var item in Model.FromRecipes)
+                        {
+                            <li><label><input type="checkbox" name="need" value="@item.Key"> @item.Name@if (item.AmountText is not null) { <span class="hint"> (@item.AmountText for @string.Join(", ", item.Recipes))</span> }</label></li>
+                        }
+                    </ul>
+                </fieldset>
+            }
+            @if (Model.Others.Count > 0)
+            {
+                <h2>Anything else running low?</h2>
+                @foreach (var group in Model.Others)
+                {
+                    <fieldset class="staples-group">
+                        <legend>@group.Key</legend>
+                        <ul class="staples-list">
+                            @foreach (var s in group)
+                            {
+                                var bought = StapleRules.LastBought(s.LastRestockedAt, Model.Now);
+                                <li><label><input type="checkbox" name="restock" value="@StaplesModel.Key(s)"> @s.Name@if (s.Restock is not null) { <span class="hint"> (@s.Restock)</span> }@if (bought is not null) { <span class="hint"> · @bought</span> }</label></li>
+                            }
+                        </ul>
+                    </fieldset>
+                }
+            }
+            <button type="submit" class="primary">Add ticked items to the list</button>
+        </form>
+    }
+    <p><a href="/manage/staples">Change the staples list</a></p>
+</article>

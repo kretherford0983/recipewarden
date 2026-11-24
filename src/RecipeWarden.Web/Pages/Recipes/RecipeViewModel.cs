@@ -63,7 +63,15 @@ public abstract class RecipeViewModel(RecipeService recipes, Permissions permiss
     [FromQuery(Name = "weights")]
     public string? Weights { get; set; }
 
-    public bool ShowWeights => string.Equals(Weights, "show", StringComparison.Ordinal);
+    /// <summary>BR-122: "Show me" for ticked lines only (w=0&amp;w=3, or weights=0,3).</summary>
+    [FromQuery(Name = "w")]
+    public int[]? WeightLines { get; set; }
+
+    public bool ShowWeights => string.Equals(Weights, "show", StringComparison.Ordinal) && WeightLines is not { Length: > 0 };
+
+    /// <summary>The lines "Show me" weighs in this view; null for all offered lines or none.</summary>
+    public IReadOnlySet<int>? ShowLines =>
+        ShowWeights || (string.IsNullOrEmpty(Weights) && WeightLines is not { Length: > 0 }) ? null : LineMeasureRules.ParseShow(Weights, WeightLines);
 
     /// <summary>ADR 0025: after an import whose image could not be copied ("image=failed").</summary>
     [FromQuery(Name = "image")]
@@ -153,7 +161,7 @@ public abstract class RecipeViewModel(RecipeService recipes, Permissions permiss
             ScaleSource = "your default";
         }
 
-        Scaled = await scaler.ScaleAsync(Recipe, factor, display, ShowWeights, ct);
+        Scaled = await scaler.ScaleAsync(Recipe, factor, display, ShowWeights, ShowLines, ct);
         if (HowManyToolId is { } howManyTool && Containers?.Yield is { } yield && Choice(howManyTool, null) is { } bottle)
         {
             HowMany = ContainerRules.HowMany(yield.Ml * factor, bottle);
@@ -185,21 +193,29 @@ public abstract class RecipeViewModel(RecipeService recipes, Permissions permiss
     /// <summary>The current URL with <c>weights=show</c> added (ADR 0017 "Show me").</summary>
     public string ShowMeLink()
     {
-        var query = Request.Query.Where(q => q.Key != "weights").Select(q => q.Key + "=" + Uri.EscapeDataString(q.Value.ToString()));
+        var query = Request.Query.Where(q => q.Key is not ("weights" or "w")).Select(q => q.Key + "=" + Uri.EscapeDataString(q.Value.ToString()));
         return "/recipes/" + Recipe!.Slug + RouteSuffix + "?" + string.Join('&', query.Append("weights=show"));
     }
+
+    /// <summary>The page's path for the "Show me" form (its query comes from <see cref="KeptQuery"/>).</summary>
+    public string ShowMePath => "/recipes/" + Recipe!.Slug + RouteSuffix;
+
+    /// <summary>BR-122: the query values the "Show me" form carries over as hidden fields (all but the weight choice).</summary>
+    public IEnumerable<KeyValuePair<string, string>> KeptQuery() =>
+        Request.Query.Where(q => q.Key is not ("weights" or "w"))
+            .SelectMany(q => q.Value.Select(v => new KeyValuePair<string, string>(q.Key, v ?? string.Empty)));
 
     /// <summary>This view's query string (scale, units, weights, container fit) for print, cook and export links.</summary>
     public string ViewQuery()
     {
         var query = Request.Query.Where(q => ViewKeys.Contains(q.Key))
-            .Select(q => q.Key + "=" + Uri.EscapeDataString(q.Value.ToString())).ToList();
+            .SelectMany(q => q.Value.Select(v => q.Key + "=" + Uri.EscapeDataString(v ?? string.Empty))).ToList();
         return query.Count == 0 ? string.Empty : "?" + string.Join('&', query);
     }
 
     private static readonly HashSet<string> ViewKeys = new(StringComparer.OrdinalIgnoreCase)
     {
-        "scale", "servings", "units", "from", "have", "weights", "fit", "capacity", "count", "fill", "yield",
+        "scale", "servings", "units", "from", "have", "weights", "w", "fit", "capacity", "count", "fill", "yield",
     };
 
     /// <summary>A container from My Kitchen (by id) or a typed capacity, with count and fill % (BR-110).</summary>

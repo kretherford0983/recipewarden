@@ -42,7 +42,7 @@ public sealed class FR_SHOP_01_ShoppingPageTests(RecipeWardenFactory factory) : 
         html.ShouldContain("<span class=\"item-package\">(2½ sticks)</span>");
         html.ShouldContain("for Shop Cookies, Shop Brownies");
         html.ShouldContain("Dairy and Eggs");
-        html.ShouldContain("You probably have"); // sugar
+        html.ShouldContain("Check before you buy"); // sugar
         html.ShouldContain("Shop Cookies (2x)");
     }
 
@@ -59,7 +59,7 @@ public sealed class FR_SHOP_01_ShoppingPageTests(RecipeWardenFactory factory) : 
         var page = await phone.GetStringAsync(list, Ct);
         page.ShouldNotContain("handler=AddItem");      // no edit controls for readers
         page.ShouldNotContain("Delete this list");
-        var pantry = page.IndexOf("You probably have", StringComparison.Ordinal);
+        var pantry = page.IndexOf("Check before you buy", StringComparison.Ordinal);
         pantry.ShouldBeGreaterThan(page.IndexOf("lemon", StringComparison.Ordinal));
         page.IndexOf(">salt<", StringComparison.Ordinal).ShouldBeGreaterThan(pantry);
 

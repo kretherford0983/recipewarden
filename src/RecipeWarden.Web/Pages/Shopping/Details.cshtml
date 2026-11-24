@@ -31,6 +31,7 @@
     <p class="breadcrumb"><a href="/shopping">Shopping lists</a> ›</p>
     <h1 id="list-title">@list.Name</h1>
     <p class="toolbar">
+        @if (Model.CanEdit) { <a class="button-link" href="/shopping/@list.Id/staples">Check staples</a> }
         <a class="button-link" href="/shopping/@list.Id?handler=Print">Print</a>
         <a class="button-link" href="/shopping/@list.Id?handler=Text&amp;format=txt">Text</a>
         <a class="button-link" href="/shopping/@list.Id?handler=Text&amp;format=md">Markdown</a>
@@ -66,6 +67,14 @@
                             @if (item.AmountText is not null) { <span class="item-amount">@item.AmountText</span> }
                             @if (item.PackageText is not null) { <span class="item-package">(@item.PackageText)</span> }
                             @if (item.Recipes.Count > 0) { <span class="hint item-recipes">for @string.Join(", ", item.Recipes)</span> }
+                            @if (item.Answer == StapleAnswer.Need && !item.IsRestock)
+                            {
+                                <form class="inline-form" method="post" action="/shopping/@list.Id?handler=Staple" hx-post="/shopping/@list.Id?handler=Staple"
+                                      hx-target="#shopping-items" hx-select="#shopping-items" hx-swap="outerHTML" asp-antiforgery="true">
+                                    <input type="hidden" name="key" value="@item.Key">
+                                    <button type="submit" aria-label="Back to staples to check: @item.Name">Undo</button>
+                                </form>
+                            }
                         </li>
                     }
                 </ul>
@@ -73,25 +82,38 @@
         }
         @if (view.Pantry.Count > 0)
         {
-            <details class="pantry" open>
-                <summary>@ShoppingRules.PantryHeading (@view.Pantry.Count)</summary>
+            @* BR-43, BR-44: staples the recipes need; nothing is bought or dropped until someone answers. *@
+            <section class="pantry staples-check" aria-labelledby="pantry-heading">
+                <h2 id="pantry-heading">@ShoppingRules.PantryHeading@if (view.ToCheck > 0) { <span class="hint"> (@view.ToCheck @(view.ToCheck == 1 ? "staple" : "staples") to check)</span> }</h2>
                 <ul class="shopping-items">
                     @foreach (var item in view.Pantry)
                     {
-                        <li class="@(item.IsChecked ? "done" : null)">
-                            <form method="post" action="/shopping/@list.Id?handler=Check" hx-post="/shopping/@list.Id?handler=Check"
-                                  hx-target="#shopping-items" hx-select="#shopping-items" hx-swap="outerHTML" asp-antiforgery="true">
-                                <input type="hidden" name="key" value="@item.Key">
-                                <input type="hidden" name="done" value="@(item.IsChecked ? "false" : "true")">
-                                <button type="submit" class="check-button" aria-pressed="@(item.IsChecked ? "true" : "false")"
-                                        aria-label="@(item.IsChecked ? "Untick" : "Tick") @item.Name">@(item.IsChecked ? "☑" : "☐")</button>
-                            </form>
+                        <li class="@(item.Answer == StapleAnswer.Have ? "done" : null)">
                             <span class="item-name">@item.Name</span>
                             @if (item.AmountText is not null) { <span class="item-amount">@item.AmountText</span> }
+                            @if (item.Recipes.Count > 0) { <span class="hint item-recipes">for @string.Join(", ", item.Recipes)</span> }
+                            @if (item.Answer == StapleAnswer.Have)
+                            {
+                                <span class="hint">You have it.</span>
+                                <form class="inline-form" method="post" action="/shopping/@list.Id?handler=Staple" hx-post="/shopping/@list.Id?handler=Staple"
+                                      hx-target="#shopping-items" hx-select="#shopping-items" hx-swap="outerHTML" asp-antiforgery="true">
+                                    <input type="hidden" name="key" value="@item.Key">
+                                    <button type="submit" aria-label="Ask again about @item.Name">Undo</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form class="inline-form" method="post" action="/shopping/@list.Id?handler=Staple" hx-post="/shopping/@list.Id?handler=Staple"
+                                      hx-target="#shopping-items" hx-select="#shopping-items" hx-swap="outerHTML" asp-antiforgery="true">
+                                    <input type="hidden" name="key" value="@item.Key">
+                                    <button type="submit" name="answer" value="Have" aria-label="Have it: @item.Name">Have it</button>
+                                    <button type="submit" name="answer" value="Need" class="primary" aria-label="Need it: @item.Name">Need it</button>
+                                </form>
+                            }
                         </li>
                     }
                 </ul>
-            </details>
+            </section>
         }
     </div>
 

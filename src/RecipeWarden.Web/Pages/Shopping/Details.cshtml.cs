@@ -60,6 +60,13 @@ public sealed class DetailsModel(ShoppingService shopping, Permissions permissio
         return result.Ok ? Back(id) : NotFound();
     }
 
+    /// <summary>BR-44: Have it / Need it for a staple (anonymous like a tick); no answer asks again.</summary>
+    public async Task<IActionResult> OnPostStapleAsync(int id, string? key, StapleAnswer? answer)
+    {
+        var ok = await shopping.AnswerStapleAsync(id, key, answer, HttpContext.RequestAborted);
+        return ok ? Back(id) : NotFound();
+    }
+
     public async Task<IActionResult> OnPostAddItemAsync(int id, string? item)
     {
         if (await EditorOnlyAsync() is { } denied)

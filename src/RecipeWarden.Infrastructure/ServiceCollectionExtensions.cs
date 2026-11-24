@@ -73,6 +73,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ImageStore>();
         services.AddScoped<ImportService>();
         services.AddScoped<ShoppingService>();
+        services.AddScoped<StapleService>();
         services.AddScoped<ShoppingSeeder>();
         services.AddScoped<RecipeExporter>();
         services.AddScoped<AiExchange.AiExchangeService>();

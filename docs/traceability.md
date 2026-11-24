@@ -320,7 +320,29 @@ rules, stored for search, "free of").
 | AC-109 | Done | `ImportCompareRules`, `ImportCompareService`, CLI `import-compare` | Core, Infra and Cli `AC_109_*` |
 | NFR-10 | Package budget checked in smoke-test (68 MiB compressed in CI against 90 MiB); host timings to measure after install | `build/smoke-test.sh` | Infra `One_hundred_lines_…` (reports the time) |
 
+### Owner testing, 2026-11-24 (ADR 0055 to 0057; PR into `develop` — owner review of ADR 0055, 0056 D3, 0057 D6/D7)
+
+| ID | Status | Implementation | Tests |
+| --- | --- | --- | --- |
+| BR-120, BR-121 / AC-113, AC-114 | Done | `KitchenRules.FieldsFor`, `OnlyItsFields`, `ResolutionGrams`; `/manage/kitchen` + `kitchen.js` | Core `BR_120_KitchenFieldTests`; Web `BR_120_KitchenFormPageTests` |
+| FR-TOOL-05 / BR-122, BR-123 / AC-115, AC-116 | Done | `LineMeasure`, `LineMeasureRules`, `IngredientScaler.WeightFirst`; `RecipeIngredient.Measure` (migration `IngredientMeasure`); banner ticks, `SuggestionService.ApplyAsync(choices)`, editor "Measure" table | Core `BR_122_LineMeasureTests`; Web `BR_122_LineMeasurePageTests` |
+| FR-IMP-04 / BR-124 to BR-127 / AC-117 to AC-120 | Done | `BatchRules` (Core), `TextRecipeExtractor`, `StepTextRules` (bold line headings, indented bullets), `NutritionText.FromLabelLines`, `ImportService.SplitFoldedAsync`, review "Import it as its own recipe" | Core `BR_124_BatchRulesTests`; Importers `BR_124_MultiRecipeImportTests` (owner's three files in `Fixtures/Markdown`); Web `BR_125_FoldedBatchPageTests` |
+| FR-SHOP-03 (changed), FR-SHOP-05 / BR-43 to BR-48 / AC-51 (revised), AC-52 to AC-54, AC-125 | Done | `ShoppingRules.Merge` (answers, restock, IsStaple), `StapleRules`, `StapleService`, `ShoppingService.AnswerStapleAsync`/`AddRestockAsync`; `/manage/staples`, `/shopping/{id}/staples`, `?handler=Staple`; migration `StaplesAndRestock` | Core `FR_SHOP_05_StapleRulesTests`; Infra `FR_SHOP_05_StapleServiceTests`; Web `FR_SHOP_05_StaplePageTests`, `AC_70_AuthMatrixTests` |
+| FR-MEAS-07 | Fix | `PanRules.FromSteps` returns no pan on a regex timeout instead of failing the recipe page | — (seen as an intermittent 500 under a loaded test run) |
+
 ### Notes and open issues
+
+- **Owner testing notes (2026-11-24):**
+  - Changed assertions, with the behaviour: "You probably have" is now "Check before you buy" in the shopping page,
+    text export and Core tests (FR-SHOP-03 changed, AC-51 revised).
+  - The W5 browser test clicks "Show me" as a button (it was a link) and expects the ticked line in the URL.
+  - A step line starting "-" or "*" now needs a space after it to count as a bullet, so a lone `**Alone**` line keeps
+    its text (it used to lose a "*").
+  - The owner's three recipe files are committed as importer fixtures at the owner's request.
+  - Seen under a fully loaded test run and left as an open issue: `AllergenRules` (Core) catches a regex timeout and
+    then reports no allergens for that line. On a slow host that would silently drop an allergen badge. Needs its own
+    change (an allergen check should fail loud, not empty).
+  - No new packages.
 
 - **M9 notes (2026-11-24):**
   - Changed assertions, with the behaviour they describe: the nutrition seed tests count each dataset (ADR 0052 adds

@@ -75,6 +75,26 @@
     </section>
 }
 
+@if (review.Status == ImportStatus.Review && review.Recipe.FoldedBatches.Count > 0)
+{
+    @* BR-125: batch sizes of this recipe were added to its notes; each can still become its own recipe. *@
+    <section class="notice folded-batches" aria-labelledby="folded-heading">
+        <h2 id="folded-heading">Other batch sizes in this file</h2>
+        <ul>
+            @for (var i = 0; i < review.Recipe.FoldedBatches.Count; i++)
+            {
+                <li>
+                    @review.Recipe.FoldedBatches[i].Recipe.Title: added to the notes below.
+                    <form method="post" action="/manage/import/@review.JobId/review?handler=Split" asp-antiforgery="true" class="inline-form">
+                        <input type="hidden" name="index" value="@i">
+                        <button type="submit">Import it as its own recipe</button>
+                    </form>
+                </li>
+            }
+        </ul>
+    </section>
+}
+
 @if (review.Status == ImportStatus.Review)
 {
     @if (Model.AiEnabled)
