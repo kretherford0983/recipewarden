@@ -39,7 +39,7 @@ tag=""; channel=auto; package=""
 port=""; bind=""; trusted_proxy=""; allowed_ips=""
 data_dir=""; backup_dir=""; restore=""; restore_kit=""; restore_passphrase_file=""
 admin_email=""; admin_password_file=""
-yes=0; unattended=0; no_start=0; purge=0; framework_dependent=0; no_firewall=0; admin_created=0
+yes=0; unattended=0; no_start=0; purge=0; framework_dependent=0; no_firewall=0; admin_created=0; is_upgrade=0
 
 log()  { printf '%s\n' "$*"; }
 step() { printf '==> %s\n' "$*"; }
@@ -461,7 +461,8 @@ snapshot_data() {
   [[ -d $db ]] || return 0
   # FR-INST-03: a full backup (database, images, keys) with the installed version's CLI, while it still runs. Older
   # versions without "backup" skip this; the database copy below is always made and is what a rollback uses.
-  if "$OPT/current/cli/$APP" backup --help >/dev/null 2>&1; then
+  # An older CLI answers "backup --help" with its general help and exit code 0, so look for the command in the list.
+  if "$OPT/current/cli/$APP" --help 2>/dev/null | grep -qE '^[[:space:]]+backup([[:space:]]|$)'; then
     step "pre-upgrade backup"
     "$CMD" backup --kind pre-upgrade || warn "the pre-upgrade backup failed; continuing with the database copy only"
   fi
@@ -576,7 +577,13 @@ remove_firewall() {
 }
 
 apply_firewall() {
-  (( no_firewall == 0 )) || return 0
+  if (( no_firewall == 1 )); then
+    : > "$ETC/firewall.off" # remembered, so an upgrade does not add the rule back
+    return 0
+  fi
+  # On upgrade, keep an earlier --no-firewall choice; an install or --reconfigure without the flag turns it back on.
+  if (( is_upgrade == 1 )) && [[ -f $ETC/firewall.off ]]; then no_firewall=1; return 0; fi
+  rm -f "$ETC/firewall.off"
   remove_firewall
   [[ $bind != 127.* ]] || return 0
   local sources ip nft_bin IFS=,
@@ -639,8 +646,8 @@ Cloudflare Tunnel ingress rule for this host:
 DONE
   if [[ $bind != 127.* ]]; then
     cat <<NOTE
-Only the tunnel host ($trusted_proxy) and the addresses in Network:AllowedSourceIps may connect; the app refuses
-everyone else, and the host firewall limits port $port the same way when ufw or nftables is present.
+Only the tunnel host (${trusted_proxy:-see $ETC/network.json}) and the addresses in Network:AllowedSourceIps may
+connect; the app refuses everyone else$( (( no_firewall == 1 )) && echo " (host firewall rule turned off with --no-firewall)." || echo ", and the host firewall limits port $port the same way when ufw or nftables is present.")
 NOTE
   fi
 }
@@ -655,6 +662,9 @@ do_install() {
     data=$(sed -n 's/.*"Directory": *"\([^"]*\)".*/\1/p' "$ETC/appsettings.Production.json" | head -1)
     data=${data:-$DATA_DEFAULT}
     [[ -z $trusted_proxy && -z $allowed_ips ]] || warn "network options are ignored on upgrade; use --reconfigure"
+    # The firewall rule and the summary use this host's own lists (network.json is written one list per line).
+    trusted_proxy=$(list_from_network TrustedProxies | paste -sd, -)
+    allowed_ips=$(list_from_network AllowedSourceIps | { grep -vx "$bind" || true; } | paste -sd, -)
     [[ -z $restore ]] || die $EXIT_USAGE "RecipeWarden is already installed; restore with: sudo recipewarden restore <archive>"
     step "upgrading the existing installation"
   else
@@ -687,7 +697,7 @@ do_install() {
   ln -sfn "$release" "$OPT/current"
   write_command_wrapper
   install_unit
-  (( is_upgrade )) || apply_firewall
+  apply_firewall # SEC-60: also on upgrade, so hosts installed before the rule existed get it (idempotent)
   restore_backup
 
   if ! start_service; then

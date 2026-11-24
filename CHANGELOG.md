@@ -7,6 +7,10 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 
 ### M8 Hardening and v1.0
 - Version bumped to 1.0.0 (ADR 0046).
+- Installer upgrade fixes (found on the test host): an older release's CLI without `backup` is now detected (its
+  `backup --help` exits 0 with the general help), so the pre-upgrade step no longer prints an error; upgrades read
+  the tunnel proxy and allowed IPs from `network.json`, so the summary names the proxy and the SEC-60 firewall rule
+  is added for hosts installed before M7; an earlier `--no-firewall` is remembered.
 - ADRs 0042 to 0046 (decisions made while the owner was away, for review).
 - Optional AI parser, off by default (FR-IMP-09/10, ADR 0042): Claude API or an OpenAI-compatible endpoint (e.g. a
   local Ollama); used automatically for hard imports and on demand with "Re-parse with AI"; results always reviewed
