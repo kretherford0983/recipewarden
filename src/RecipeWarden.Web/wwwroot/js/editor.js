@@ -84,19 +84,44 @@
   });
 })();
 
-// ADR 0016: tag picker filter. Hides tags that do not match and opens groups with matches; the checkboxes
-// themselves work without this script.
+// ADR 0016, UX-13: tag picker as a dropdown multi-select. The filter hides tags that do not match; the chips in
+// the closed box follow the ticked checkboxes; Escape or a click outside closes it. The checkboxes themselves (and
+// opening and closing) work without this script.
 (function () {
   "use strict";
+
+  function chips(picker) {
+    var value = picker.querySelector("[data-multiselect-value]");
+    if (!value) { return; }
+    var names = [];
+    picker.querySelectorAll(".tag-options input[type=checkbox]:checked").forEach(function (box) {
+      names.push(box.parentElement.textContent.trim());
+    });
+    value.textContent = "";
+    if (names.length === 0) {
+      var empty = document.createElement("span");
+      empty.className = "placeholder";
+      empty.textContent = "Choose tags";
+      value.appendChild(empty);
+      return;
+    }
+    names.forEach(function (name) {
+      var chip = document.createElement("span");
+      chip.className = "chip";
+      chip.textContent = name; // text, never HTML (SEC-22)
+      value.appendChild(chip);
+    });
+  }
 
   function init() {
     var filter = document.querySelector("[data-tag-filter]");
     if (!filter) { return; }
     var picker = filter.closest(".tag-picker");
+    var menu = picker.querySelector("[data-multiselect]");
     filter.hidden = false;
     filter.addEventListener("input", function () {
       var term = filter.value.trim().toLowerCase();
-      picker.querySelectorAll("details").forEach(function (group) {
+      picker.querySelectorAll("[data-tag-group]").forEach(function (group) {
         var any = false;
         group.querySelectorAll(".tag-options label").forEach(function (label) {
           var match = term.length === 0 || label.textContent.toLowerCase().indexOf(term) >= 0;
@@ -104,9 +129,24 @@
           any = any || match;
         });
         group.hidden = !any;
-        if (term.length > 0 && any) { group.open = true; }
       });
     });
+    filter.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") { event.preventDefault(); } // never submit the recipe from the filter
+    });
+    picker.addEventListener("change", function () { chips(picker); });
+    if (menu) {
+      menu.addEventListener("toggle", function () { if (menu.open) { filter.focus(); } });
+      document.addEventListener("click", function (event) {
+        if (menu.open && !menu.contains(event.target)) { menu.open = false; }
+      });
+      menu.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && menu.open) {
+          menu.open = false;
+          menu.querySelector("summary").focus();
+        }
+      });
+    }
   }
 
   if (document.readyState === "loading") {

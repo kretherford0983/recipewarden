@@ -74,8 +74,8 @@ public sealed class FR_REC_02_RecipeEditorTests(RecipeWardenFactory factory) : I
         var form = await editor.GetStringAsync($"/manage/recipes/{id}/edit", Ct);
         form.ShouldContain("For the chili:");
         // ADR 0016: the saved tags show as ticked in the picker ("dinner" matched the built-in Dinner tag).
-        form.ShouldContain("<span class=\"chosen\">(Dinner)</span>");
-        form.ShouldContain("<span class=\"chosen\">(spicy)</span>");
+        form.ShouldContain("<span class=\"chip\">Dinner</span>");
+        form.ShouldContain("<span class=\"chip\">spicy</span>"); // UX-13: chips in the closed tag dropdown
 
         var response = await editor.PostFormAsync($"/manage/recipes/{id}/edit",
             ("Input.Title", "Weeknight Chili"), ("Input.Ingredients", "1 can beans\n1 lb beef"), ("Input.Steps", "Simmer.\nBrown."),

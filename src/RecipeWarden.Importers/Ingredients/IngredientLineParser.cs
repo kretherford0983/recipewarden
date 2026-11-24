@@ -110,7 +110,7 @@ public static partial class IngredientLineParser
 
         foreach (var rawLine in text.Split('\n'))
         {
-            var line = rawLine.Trim();
+            var line = IngredientText.Clean(rawLine.Trim());
             if (line.Length == 0)
             {
                 continue;
@@ -152,7 +152,7 @@ public static partial class IngredientLineParser
         }
 
         var notes = new List<string>();
-        var text = Tidy(raw.Length > MaxParseLength ? raw[..MaxParseLength] : raw);
+        var text = Tidy(IngredientText.Clean(raw.Length > MaxParseLength ? raw[..MaxParseLength] : raw)); // FR-REC-03: parse without a typed bullet; RawText stays as written
         var penalty = 0m;
 
         // Optional markers.

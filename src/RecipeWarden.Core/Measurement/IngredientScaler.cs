@@ -62,6 +62,17 @@ public static class IngredientScaler
 
     public static ScaledIngredient Scale(ScaleInput input, ScaleContext context)
     {
+        // FR-REC-03, UX-13: no second bullet or doubled brackets, also for lines saved before IngredientText.
+        var scaled = ScaleCore(input, context);
+        return scaled with
+        {
+            Text = IngredientText.Clean(scaled.Text),
+            Secondary = scaled.Secondary is null ? null : IngredientText.Clean(scaled.Secondary),
+        };
+    }
+
+    private static ScaledIngredient ScaleCore(ScaleInput input, ScaleContext context)
+    {
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(context);
         var p = input.Ingredient;

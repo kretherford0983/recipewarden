@@ -21,7 +21,6 @@ public enum RecipeVisibility
 /// </summary>
 public sealed class RecipeSearchService(AppDbContext db)
 {
-    private const int SummaryLength = 160;
 
     private sealed class FtsHit
     {
@@ -189,9 +188,7 @@ public sealed class RecipeSearchService(AppDbContext db)
         (int? Min, int? Max) prep, (int? Min, int? Max) cook, int? rating, RecipeStatus status, string? imageId = null)
     {
         var time = total.Min is not null ? total : TimeText.Sum(prep.Min, prep.Max, cook.Min, cook.Max);
-        var summary = description is null ? null
-            : description.Length <= SummaryLength ? description
-            : description[..SummaryLength].TrimEnd() + "…";
+        var summary = CardSummary.From(description); // UX-13: plain text, not Markdown
         return new RecipeCard(id, slug, title, summary, time.Min, time.Max, rating, status) { ImageId = imageId };
     }
 }

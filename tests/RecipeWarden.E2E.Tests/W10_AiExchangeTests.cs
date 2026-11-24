@@ -32,6 +32,7 @@ public sealed class W10_AiExchangeTests(BrowserHost host) : IClassFixture<Browse
 
         // 1. Export for AI with two goals.
         await page.GotoAsync("/recipes/w10-shells");
+        await page.Locator(".recipe-actions .menu > summary").ClickAsync(); // UX-13: exports are in the Export menu
         await page.GetByRole(AriaRole.Link, new() { Name = "Export for AI" }).ClickAsync();
         await page.GetByLabel("Reduce a flavour or ingredient", new() { Exact = true }).CheckAsync();
         await page.Locator("#t-ReduceFlavour").FillAsync("garlic");

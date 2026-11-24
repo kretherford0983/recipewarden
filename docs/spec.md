@@ -487,9 +487,9 @@ The site should feel like a well-designed cookbook: calm, readable, fast, and us
 | ID | Standard |
 | --- | --- |
 | UX-01 | Mobile-first responsive layout; single column under 768 px; recipe page uses two columns (ingredients / steps) at 1024 px and up. |
-| UX-02 | Touch targets at least 44 x 44 px; primary actions reachable with one thumb on phones. |
+| UX-02 | Touch targets at least 44 x 44 px on touch screens (`pointer: coarse`); 36 px controls with a mouse or trackpad (ADR 0047). Primary actions reachable with one thumb on phones (bottom tab bar). Cook mode and shopping check-off stay large on every device. |
 | UX-03 | Theme: light, dark, system. Applied before first paint (inline-free: a tiny external script reads the cookie) so there is no flash. Toggle in the header on every page. |
-| UX-04 | Type: system font stack, 18 px base body on recipe pages, 1.6 line height, max 70 characters per line for steps. |
+| UX-04 | Type: system font stack, 18 px base body on recipe pages and cook mode, 1.6 line height, max 70 characters per line for steps; other pages 15 px (ADR 0047). |
 | UX-05 | Fractions render as proper glyphs or super/sub fractions (½, 1¼); units abbreviated consistently (tsp, Tbsp, cup, oz, lb, g, ml). |
 | UX-06 | Scaled or converted amounts are visibly marked (accent dot) with a tooltip showing the original. |
 | UX-07 | Every destructive action has a confirm step or an undo toast; deletions go to trash. |
@@ -498,6 +498,7 @@ The site should feel like a well-designed cookbook: calm, readable, fast, and us
 | UX-10 | Loading over 300 ms shows a skeleton or spinner; imports show step progress (fetching, parsing, review). |
 | UX-11 | Readers never see edit controls; signed-in editors see an "Edit" button on the recipe and a "Manage" menu. |
 | UX-12 | Print uses a dedicated stylesheet: black on white, no images except optional finish image thumbnail, ingredient checkboxes, page-break avoidance inside steps. |
+| UX-13 | One design system (ADR 0047, docs/ui-standards.md): shared colour tokens in both themes, one control height, labelled fields that line up, cards, pills, original line icons. A rule changes in the standards and the shared CSS, never on one page. Every main screen fits its window on a phone and a desktop in both themes. |
 
 ### 6.2 Key workflows
 
@@ -571,8 +572,8 @@ Three zones: public reading pages, `/manage` for editors, `/admin` for admins. T
 
 ### 7.1 Global frame
 
-- **Header:** logo/name (home link), search box (always visible; icon-only on phones), theme toggle, "Shopping list" icon with item count, Sign in or user menu (Manage, Admin, Sign out).
-- **Primary nav:** Home · Browse · Collections · Shopping list · Manage (editors only).
+- **Header:** logo/name (home link), search box (always visible), theme toggle, Sign in or user menu (Manage, Admin, account, Sign out). The shopping list is in the primary nav.
+- **Primary nav (ADR 0047):** Home · Browse · Collections · Shopping list · Manage (editors only) · Admin (admins only), with icons. A side bar on desktop, an icon rail on tablets, a bottom tab bar on phones.
 - **Footer:** app version, "Nutrition and allergen data are estimates", link to About.
 
 ### 7.2 Routes
@@ -623,9 +624,9 @@ Three zones: public reading pages, `/manage` for editors, `/admin` for admins. T
 
 ### 7.3 Recipe page anatomy (desktop, top to bottom)
 
-1. Breadcrumb, title, rating, tags, allergen badges.
-2. Finish image (left) beside description, servings, times, source credit (right).
-3. Toolbar: scale presets, custom factor, target servings, fit to container, units (US/metric/weight), Cook mode, Print, Export, Add to shopping list, Edit (editors).
+1. Breadcrumb, title, rating, tags, allergen badges; Edit and Nutrition (editors) at the right.
+2. Finish image (left) beside description, servings and times as small stat tiles, source credit (right).
+3. Actions: Cook mode (primary), Print, exports, I made this (editors). Toolbar card: scale presets, custom factor, target servings, units (US/metric/weight), scale from what I have, fit to container. Add to shopping list.
 4. Suggestion banner (only when FR-TOOL-04 applies).
 5. Two columns: Ingredients (grouped, checkable, smart notes under lines) | Steps (numbered, step images inline, timers).
 6. Notes, Nutrition panel (per serving + source + completeness), source block with link.
@@ -1191,6 +1192,8 @@ We are starting milestone M0 (Foundations) from docs/spec.md, section 9.10.
 Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. Show me the test list for these ACs before writing implementation code."
 
 ## Changelog
+
+- v0.19 (2026-11-23): UI alignment with PennyWarden (ADR 0047). UX-02 control sizes by pointer type; UX-04 15 px app pages; new UX-13 design system and screen-fit check; 7.1 navigation with icons (side bar, rail, bottom tab bar); 7.3 recipe header and actions.
 
 - v0.18 (2026-11-23): M8 Hardening and v1.0.0, built unattended (ADR 0042 to 0046, for owner review). 7.2 adds `/account/login-2fa`. FR-HOME-02 rules: seasons by month with `Home:Hemisphere` (North by default), favorites are rated 5, "not cooked lately" is rated 4+ and 60 days; at most 4 per row and 8 in all (ADR 0044). AC-96 is checked with an in-page checker instead of axe-core, which is MPL-2.0 (ADR 0045). FR-EXP-08 stays deferred (ADR 0033, 0046).
 

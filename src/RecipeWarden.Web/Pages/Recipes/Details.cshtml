@@ -23,7 +23,16 @@
         <p class="notice" role="status">Draft — only editors can see this recipe until it is published.</p>
     }
     <header class="recipe-header">
-        <h1 id="recipe-title">@r.Title</h1>
+        <div class="recipe-titlebar">
+            <h1 id="recipe-title">@r.Title</h1>
+            @if (Model.CanEdit)
+            {
+                <p class="toolbar">
+                    <a class="button-link" href="/manage/recipes/@r.Id/edit">Edit</a>
+                    <a class="button-link" href="/manage/recipes/@r.Id/nutrition">Nutrition and allergens</a>
+                </p>
+            }
+        </div>
         @if (r.Tags.Count > 0)
         {
             <ul class="tags" aria-label="Tags">
@@ -40,169 +49,212 @@
                 }
             </ul>
         }
-        @if (Model.CanEdit)
-        {
-            <p class="toolbar">
-                <a class="button-link" href="/manage/recipes/@r.Id/edit">Edit</a>
-                <a class="button-link" href="/manage/recipes/@r.Id/nutrition">Nutrition and allergens</a>
-            </p>
-        }
     </header>
 
     @if (Model.ImageCopyFailed)
     {
         <p class="notice" role="status">@RecipeWarden.Infrastructure.Import.ImportService.ImageNotCopied. You can add a photo on the edit page.</p>
     }
-    @if (r.FinishImageId is not null)
-    {
-        <img class="finish-image" src="/media/@r.FinishImageId" alt="@r.Title">
-    }
-
-    <section class="recipe-meta" aria-label="About this recipe">
-        @if (r.Description is not null)
+    <div class="recipe-hero @(r.FinishImageId is not null ? "has-image" : null)">
+        @if (r.FinishImageId is not null)
         {
-            <div class="prose">@MarkdownRenderer.Render(r.Description)</div>
+            <img class="finish-image" src="/media/@r.FinishImageId" alt="@r.Title">
         }
-        <dl class="facts">
-            <dt>Servings</dt>
-            <dd>@ServingsRules.Format(r.Servings, r.ServingsMax)@(r.ServingsEstimated ? " (estimated)" : "")</dd>
-            @if (r.PrepMinutes is not null) { <dt>Prep</dt><dd>@TimeText.Format(r.PrepMinutes, r.PrepMinutesMax)</dd> }
-            @if (r.CookMinutes is not null) { <dt>Cook</dt><dd>@TimeText.Format(r.CookMinutes, r.CookMinutesMax)</dd> }
-            @if (r.TotalMinutes is not null) { <dt>Total</dt><dd>@TimeText.Format(r.TotalMinutes, r.TotalMinutesMax)</dd> }
-            @if (r.IsPrecision) { <dt>Type</dt><dd>Baking / precision</dd> }
-        </dl>
-        @if (r.SourceName is not null || r.SourceUrl is not null)
-        {
-            @* BR-10: credit and link cannot be hidden. Source URLs are http(s) only (SourceRules). *@
-            <p class="source-credit">
-                Source:
-                @if (r.SourceUrl is not null)
-                {
-                    <a href="@r.SourceUrl" rel="noopener noreferrer nofollow">@(r.SourceName ?? r.SourceUrl)</a>
-                }
-                else
-                {
-                    <span>@r.SourceName</span>
-                }
-                @if (r.SourceAuthor is not null) { <span> by @r.SourceAuthor</span> }
-            </p>
-        }
-    </section>
+        <section class="recipe-meta" aria-label="About this recipe">
+            @if (r.Description is not null)
+            {
+                <div class="prose">@MarkdownRenderer.Render(r.Description)</div>
+            }
+            <dl class="facts stats">
+                <div class="stat"><dt><partial name="_Icon" model="@("servings")" />Servings</dt>
+                    <dd>@ServingsRules.Format(r.Servings, r.ServingsMax)@(r.ServingsEstimated ? " (estimated)" : "")</dd></div>
+                @if (r.PrepMinutes is not null) { <div class="stat"><dt><partial name="_Icon" model="@("clock")" />Prep</dt><dd>@TimeText.Format(r.PrepMinutes, r.PrepMinutesMax)</dd></div> }
+                @if (r.CookMinutes is not null) { <div class="stat"><dt><partial name="_Icon" model="@("cook")" />Cook</dt><dd>@TimeText.Format(r.CookMinutes, r.CookMinutesMax)</dd></div> }
+                @if (r.TotalMinutes is not null) { <div class="stat"><dt><partial name="_Icon" model="@("clock")" />Total</dt><dd>@TimeText.Format(r.TotalMinutes, r.TotalMinutesMax)</dd></div> }
+                @if (r.IsPrecision) { <div class="stat"><dt><partial name="_Icon" model="@("scale")" />Type</dt><dd>Baking / precision</dd></div> }
+            </dl>
+            @if (r.SourceName is not null || r.SourceUrl is not null)
+            {
+                @* BR-10: credit and link cannot be hidden. Source URLs are http(s) only (SourceRules). *@
+                <p class="source-credit">
+                    Source:
+                    @if (r.SourceUrl is not null)
+                    {
+                        <a href="@r.SourceUrl" rel="noopener noreferrer nofollow">@(r.SourceName ?? r.SourceUrl)</a>
+                    }
+                    else
+                    {
+                        <span>@r.SourceName</span>
+                    }
+                    @if (r.SourceAuthor is not null) { <span> by @r.SourceAuthor</span> }
+                </p>
+            }
+        </section>
+    </div>
 
     <div id="recipe-body" class="recipe-body">
-        @* FR-SCL-01/02, FR-UI-02, 7.3 item 3, ADR 0014: plain GET forms; htmx swaps this block and updates the URL. *@
-        <section class="scale-toolbar" aria-label="Scale and units">
-            <form method="get" action="/recipes/@r.Slug" class="scale-presets" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
-                  hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
-                <input type="hidden" name="units" value="@DisplayUnitsRules.ToValue(sc.Units)">
-                <span class="toolbar-label" id="scale-label">Scale</span>
-                <span role="group" aria-labelledby="scale-label">
-                    @foreach (var p in ScaleRules.Presets)
-                    {
-                        <button type="submit" name="scale" value="@ScaleRules.ToQuery(p)" aria-pressed="@(sc.Factor == p ? "true" : "false")">@ScaleRules.Label(p)</button>
-                    }
-                </span>
-            </form>
-            <form method="get" action="/recipes/@r.Slug" class="inline-form" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
-                  hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
-                <input type="hidden" name="units" value="@DisplayUnitsRules.ToValue(sc.Units)">
-                <label for="custom-scale">Custom</label>
-                <input id="custom-scale" name="scale" inputmode="decimal" size="5" maxlength="@ScaleRules.MaxTextLength"
-                       placeholder="e.g. 2.5" value="@(sc.Factor != 1m && !ScaleRules.Presets.Contains(sc.Factor) ? DetailsModel.Number(sc.Factor) : null)">
-                <button type="submit">Scale</button>
-            </form>
-            <form method="get" action="/recipes/@r.Slug" class="inline-form" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
-                  hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
-                <input type="hidden" name="units" value="@DisplayUnitsRules.ToValue(sc.Units)">
-                <label for="target-servings">Servings</label>
-                <input id="target-servings" name="servings" inputmode="decimal" size="4" maxlength="@ScaleRules.MaxTextLength"
-                       value="@(Model.TargetServings is { } ts ? DetailsModel.Number(ts) : null)">
-                <button type="submit">Set</button>
-            </form>
-            <form method="get" action="/recipes/@r.Slug" class="inline-form" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
-                  hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true" data-submit-on-change>
-                @if (sc.Factor != 1m) { <input type="hidden" name="scale" value="@ScaleRules.ToQuery(sc.Factor)"> }
-                <label for="units">Units</label>
-                <select id="units" name="units">
-                    @foreach (var u in Enum.GetValues<DisplayUnits>())
-                    {
-                        <option value="@DisplayUnitsRules.ToValue(u)" selected="@(u == sc.Units)">@DisplayUnitsRules.Label(u)</option>
-                    }
-                </select>
-                <button type="submit" class="no-js-only">Show</button>
-            </form>
-            @if (scalable.Count > 0)
-            {
-                <details class="scale-from" open="@(Model.ScaleSource?.StartsWith("from", StringComparison.Ordinal) == true || Model.ScaleMessage is not null && Request.Query.ContainsKey("from"))">
-                    <summary>Scale from what I have</summary>
-                    <form method="get" action="/recipes/@r.Slug" class="inline-form" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
-                          hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
-                        <input type="hidden" name="units" value="@DisplayUnitsRules.ToValue(sc.Units)">
-                        <label for="have-amount">I have</label>
-                        <input id="have-amount" name="have" size="8" maxlength="@RecipeScaler.MaxHaveLength" placeholder="3 lb" required
-                               value="@Request.Query["have"]">
-                        <label for="have-line">of</label>
-                        <select id="have-line" name="from">
-                            @foreach (var l in scalable)
-                            {
-                                <option value="@l.Index" selected="@(Request.Query["from"] == l.Index.ToString(System.Globalization.CultureInfo.InvariantCulture))">@l.RawText</option>
-                            }
-                        </select>
-                        <button type="submit">Scale</button>
-                    </form>
-                </details>
-            }
-            <details class="fit-container" open="@Model.FitRequested">
-                <summary>Fit to container</summary>
-                @* FR-SCL-04/05, ADR 0019: a GET like any scale (BR-114); the yield typed here is not saved. *@
-                <form method="get" action="/recipes/@r.Slug" class="inline-form" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
-                      hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
-                    <input type="hidden" name="units" value="@DisplayUnitsRules.ToValue(sc.Units)">
-                    @if (containers.Count > 0)
-                    {
-                        <label for="fit-tool">Container</label>
-                        <select id="fit-tool" name="fit">
-                            <option value="">Type a capacity →</option>
-                            @foreach (var c in containers)
-                            {
-                                <option value="@c.Id" selected="@(Model.FitToolId == c.Id)">@c.Name</option>
-                            }
-                        </select>
-                    }
-                    <label for="fit-capacity">Capacity</label>
-                    <input id="fit-capacity" name="capacity" size="8" maxlength="40" placeholder="16 fl oz" value="@Model.FitCapacity">
-                    <label for="fit-count">How many</label>
-                    <input id="fit-count" name="count" type="number" min="1" max="20" value="@(Model.FitCount ?? 1)">
-                    <label for="fit-fill">Fill %</label>
-                    <input id="fit-fill" name="fill" size="4" inputmode="decimal" placeholder="90" value="@Model.FitFill">
-                    <label for="fit-yield">It makes</label>
-                    <input id="fit-yield" name="yield" size="8" maxlength="40" value="@Model.TypedYield"
-                           placeholder="@(yieldNow ?? "e.g. 12 fl oz")">
-                    <button type="submit">Fit</button>
-                </form>
-                @if (containers.Count > 0)
-                {
-                    <form method="get" action="/recipes/@r.Slug" class="inline-form" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
-                          hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
-                        @if (sc.Factor != 1m && !Model.FitRequested) { <input type="hidden" name="scale" value="@ScaleRules.ToQuery(sc.Factor)"> }
-                        <input type="hidden" name="units" value="@DisplayUnitsRules.ToValue(sc.Units)">
-                        <label for="howmany">How many</label>
-                        <select id="howmany" name="howmany">
-                            @foreach (var c in containers) { <option value="@c.Id" selected="@(Model.HowManyToolId == c.Id)">@c.Name</option> }
-                        </select>
-                        <span>will this make?</span>
-                        <button type="submit">Show</button>
-                    </form>
-                }
+        @{
+            var viewQuery = Model.ViewQuery();
+            var customFactor = sc.Factor != 1m && !ScaleRules.Presets.Contains(sc.Factor);
+            // UX-13: "More scaling options" stays open while one of its options is in use.
+            var moreOpen = customFactor || ScaleRules.OtherPresets.Contains(sc.Factor) || sc.Units != DisplayUnits.AsWritten
+                || Model.TargetServings is not null || Model.FitRequested || Model.HowManyToolId is not null
+                || Request.Query.ContainsKey("from") || Model.ScaleMessage is not null;
+        }
+        <nav class="recipe-actions" aria-label="Print, cook and export">
+            @* ADR 0031: each takes this view's scale, units and weights. *@
+            <a class="button-link primary" href="/recipes/@r.Slug/cook@(viewQuery)">Cook mode</a>
+            <a class="button-link" href="/recipes/@r.Slug/print@(viewQuery)">Print</a>
+            <details class="menu">
+                <summary>Export</summary>
+                <ul class="menu-items">
+                    <li><a href="/recipes/@r.Slug/export.md@(viewQuery)" download>Markdown</a></li>
+                    <li><a href="/recipes/@r.Slug/export.zip@(viewQuery)" download>Markdown + images</a></li>
+                    <li><a href="/recipes/@r.Slug/export-ai">Export for AI</a></li>
+                    @if (Model.CanEdit) { <li><a href="/manage/import/ai-response?parent=@r.Slug">Import AI response</a></li> }
+                </ul>
             </details>
             @if (Model.CanEdit)
             {
                 <a class="button-link" href="/manage/recipes/@r.Id/cooked">I made this</a>
             }
-            <button type="button" class="save-default" hidden data-units="@DisplayUnitsRules.ToValue(sc.Units)"
-                    data-scale="@ScaleRules.ToQuery(sc.Factor)" data-signed-in="@(User.Identity?.IsAuthenticated == true ? "true" : "false")">
-                Make this my default
-            </button>
+        </nav>
+
+        @* FR-SCL-01/02, FR-UI-02, 7.3 item 3, ADR 0014: plain GET forms; htmx swaps this block and updates the URL.
+           UX-13 (owner feedback): quick presets and "Make this my default" in the row; the rest one per line under "More". *@
+        <section class="scale-toolbar" aria-label="Scale and units">
+            <div class="scale-quick">
+                <form method="get" action="/recipes/@r.Slug" class="scale-presets" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
+                      hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
+                    <input type="hidden" name="units" value="@DisplayUnitsRules.ToValue(sc.Units)">
+                    <span class="toolbar-label" id="scale-label">Scale</span>
+                    <span role="group" aria-labelledby="scale-label">
+                        @foreach (var p in ScaleRules.QuickPresets)
+                        {
+                            <button type="submit" name="scale" value="@ScaleRules.ToQuery(p)" aria-pressed="@(sc.Factor == p ? "true" : "false")">@ScaleRules.Label(p)</button>
+                        }
+                    </span>
+                </form>
+                <button type="button" class="save-default small" hidden data-units="@DisplayUnitsRules.ToValue(sc.Units)"
+                        data-scale="@ScaleRules.ToQuery(sc.Factor)" data-signed-in="@(User.Identity?.IsAuthenticated == true ? "true" : "false")">
+                    Make this my default
+                </button>
+            </div>
+            <details class="scale-more" open="@moreOpen">
+                <summary>More scaling options</summary>
+                <div class="scale-lines">
+                    <form method="get" action="/recipes/@r.Slug" class="scale-line scale-presets" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
+                          hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
+                        <input type="hidden" name="units" value="@DisplayUnitsRules.ToValue(sc.Units)">
+                        <span class="line-label" id="other-scale-label">Other sizes</span>
+                        <span class="line-controls" role="group" aria-labelledby="other-scale-label">
+                            @foreach (var p in ScaleRules.OtherPresets)
+                            {
+                                <button type="submit" name="scale" value="@ScaleRules.ToQuery(p)" aria-pressed="@(sc.Factor == p ? "true" : "false")">@ScaleRules.Label(p)</button>
+                            }
+                        </span>
+                    </form>
+                    <form method="get" action="/recipes/@r.Slug" class="scale-line" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
+                          hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
+                        <input type="hidden" name="units" value="@DisplayUnitsRules.ToValue(sc.Units)">
+                        <label class="line-label" for="custom-scale">Custom</label>
+                        <span class="line-controls">
+                            <input id="custom-scale" name="scale" inputmode="decimal" size="5" maxlength="@ScaleRules.MaxTextLength"
+                                   placeholder="e.g. 2.5" value="@(customFactor ? DetailsModel.Number(sc.Factor) : null)">
+                            <button type="submit">Scale</button>
+                        </span>
+                    </form>
+                    <form method="get" action="/recipes/@r.Slug" class="scale-line" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
+                          hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
+                        <input type="hidden" name="units" value="@DisplayUnitsRules.ToValue(sc.Units)">
+                        <label class="line-label" for="target-servings">Servings</label>
+                        <span class="line-controls">
+                            <input id="target-servings" name="servings" inputmode="decimal" size="4" maxlength="@ScaleRules.MaxTextLength"
+                                   value="@(Model.TargetServings is { } ts ? DetailsModel.Number(ts) : null)">
+                            <button type="submit">Set</button>
+                        </span>
+                    </form>
+                    <form method="get" action="/recipes/@r.Slug" class="scale-line" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
+                          hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true" data-submit-on-change>
+                        @if (sc.Factor != 1m) { <input type="hidden" name="scale" value="@ScaleRules.ToQuery(sc.Factor)"> }
+                        <label class="line-label" for="units">Units</label>
+                        <span class="line-controls">
+                            <select id="units" name="units">
+                                @foreach (var u in Enum.GetValues<DisplayUnits>())
+                                {
+                                    <option value="@DisplayUnitsRules.ToValue(u)" selected="@(u == sc.Units)">@DisplayUnitsRules.Label(u)</option>
+                                }
+                            </select>
+                            <button type="submit" class="no-js-only">Show</button>
+                        </span>
+                    </form>
+                    @if (scalable.Count > 0)
+                    {
+                        <form method="get" action="/recipes/@r.Slug" class="scale-line" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
+                              hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
+                            <input type="hidden" name="units" value="@DisplayUnitsRules.ToValue(sc.Units)">
+                            <span class="line-label">Scale from what I have</span>
+                            <span class="line-controls">
+                                <label for="have-amount" class="visually-hidden">I have</label>
+                                <input id="have-amount" name="have" size="8" maxlength="@RecipeScaler.MaxHaveLength" placeholder="I have… 3 lb" required
+                                       value="@Request.Query["have"]">
+                                <label for="have-line">of</label>
+                                <select id="have-line" name="from">
+                                    @foreach (var l in scalable)
+                                    {
+                                        <option value="@l.Index" selected="@(Request.Query["from"] == l.Index.ToString(System.Globalization.CultureInfo.InvariantCulture))">@l.RawText</option>
+                                    }
+                                </select>
+                                <button type="submit">Scale</button>
+                            </span>
+                        </form>
+                    }
+                    @* FR-SCL-04/05, ADR 0019: a GET like any scale (BR-114); the yield typed here is not saved. *@
+                    <form method="get" action="/recipes/@r.Slug" class="scale-line fit-container" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
+                          hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
+                        <input type="hidden" name="units" value="@DisplayUnitsRules.ToValue(sc.Units)">
+                        <span class="line-label">Fit to container</span>
+                        <span class="line-controls">
+                            @if (containers.Count > 0)
+                            {
+                                <label for="fit-tool" class="visually-hidden">Container</label>
+                                <select id="fit-tool" name="fit">
+                                    <option value="">Type a capacity →</option>
+                                    @foreach (var c in containers)
+                                    {
+                                        <option value="@c.Id" selected="@(Model.FitToolId == c.Id)">@c.Name</option>
+                                    }
+                                </select>
+                            }
+                            <label for="fit-capacity">Capacity</label>
+                            <input id="fit-capacity" name="capacity" size="8" maxlength="40" placeholder="16 fl oz" value="@Model.FitCapacity">
+                            <label for="fit-count">How many</label>
+                            <input id="fit-count" name="count" type="number" min="1" max="20" value="@(Model.FitCount ?? 1)">
+                            <label for="fit-fill">Fill %</label>
+                            <input id="fit-fill" name="fill" size="4" inputmode="decimal" placeholder="90" value="@Model.FitFill">
+                            <label for="fit-yield">It makes</label>
+                            <input id="fit-yield" name="yield" size="8" maxlength="40" value="@Model.TypedYield"
+                                   placeholder="@(yieldNow ?? "e.g. 12 fl oz")">
+                            <button type="submit">Fit</button>
+                        </span>
+                    </form>
+                    @if (containers.Count > 0)
+                    {
+                        <form method="get" action="/recipes/@r.Slug" class="scale-line" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
+                              hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
+                            @if (sc.Factor != 1m && !Model.FitRequested) { <input type="hidden" name="scale" value="@ScaleRules.ToQuery(sc.Factor)"> }
+                            <input type="hidden" name="units" value="@DisplayUnitsRules.ToValue(sc.Units)">
+                            <label class="line-label" for="howmany">How many will this make?</label>
+                            <span class="line-controls">
+                                <select id="howmany" name="howmany">
+                                    @foreach (var c in containers) { <option value="@c.Id" selected="@(Model.HowManyToolId == c.Id)">@c.Name</option> }
+                                </select>
+                                <button type="submit">Show</button>
+                            </span>
+                        </form>
+                    }
+                </div>
+            </details>
         </section>
 
         <div class="scale-status" role="status" aria-live="polite">
@@ -235,16 +287,6 @@
             @if (Model.HowManyToolId is not null && Model.HowMany is null && Model.Containers?.Error is { } howError) { <p class="notice">@howError</p> }
         </div>
 
-        @{ var viewQuery = Model.ViewQuery(); }
-        <nav class="recipe-actions" aria-label="Print, cook and export">
-            @* ADR 0031: each takes this view's scale, units and weights. *@
-            <a class="button-link" href="/recipes/@r.Slug/cook@(viewQuery)">Cook mode</a>
-            <a class="button-link" href="/recipes/@r.Slug/print@(viewQuery)">Print</a>
-            <a class="button-link" href="/recipes/@r.Slug/export.md@(viewQuery)" download>Markdown</a>
-            <a class="button-link" href="/recipes/@r.Slug/export.zip@(viewQuery)" download>Markdown + images</a>
-            <a class="button-link" href="/recipes/@r.Slug/export-ai">Export for AI</a>
-            @if (Model.CanEdit) { <a class="button-link" href="/manage/import/ai-response?parent=@r.Slug">Import AI response</a> }
-        </nav>
         @if (Model.CanEdit)
         {
             @* FR-SHOP-01: adds the recipe at the scale shown. *@

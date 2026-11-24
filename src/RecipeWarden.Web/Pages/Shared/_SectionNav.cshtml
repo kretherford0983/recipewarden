@@ -1,0 +1,16 @@
+@model (string Label, IReadOnlyList<RecipeWarden.Web.Layout.SectionLink> Links, string Path)
+@using RecipeWarden.Web.Layout
+@* ADR 0047, UX-13: section tabs for Manage and Admin; scrolls sideways on a phone instead of wrapping. *@
+<nav class="section-nav" aria-label="@Model.Label">
+    <ul>
+        @foreach (var link in Model.Links)
+        {
+            <li>
+                <a href="@link.Href" aria-current="@(SectionNav.IsCurrent(link, Model.Links, Model.Path) ? "page" : null)">
+                    <partial name="_Icon" model="@link.Icon" />
+                    <span>@link.Label</span>
+                </a>
+            </li>
+        }
+    </ul>
+</nav>

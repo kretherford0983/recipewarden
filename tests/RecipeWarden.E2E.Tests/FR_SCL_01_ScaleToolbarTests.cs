@@ -11,6 +11,7 @@ namespace RecipeWarden.E2E.Tests;
 /// </summary>
 [Trait("Req", "FR-SCL-01")]
 [Trait("Req", "AC-30")]
+[Trait("Req", "UX-13")]
 public sealed class FR_SCL_01_ScaleToolbarTests(BrowserHost host) : IClassFixture<BrowserHost>
 {
     [Fact]
@@ -38,11 +39,15 @@ public sealed class FR_SCL_01_ScaleToolbarTests(BrowserHost host) : IClassFixtur
         await Assertions.Expect(page.Locator(".ingredients li").First).ToContainTextAsync("4 cups all-purpose flour");
         await Assertions.Expect(page.Locator(".scaled-note")).ToContainTextAsync("serves 8");
 
+        // UX-13: units are under "More scaling options"; the collapsed toolbar shows the quick presets only.
+        await Assertions.Expect(page.Locator("#units")).ToBeHiddenAsync();
+        await page.Locator(".scale-more > summary").ClickAsync();
         // The units list submits on change (recipe.js); the scale is kept.
         await page.Locator("#units").SelectOptionAsync("metric");
         await page.WaitForURLAsync("**scale=2&units=metric");
         await Assertions.Expect(page.Locator(".steps li").Nth(1)).ToContainTextAsync("190°C");
         await Assertions.Expect(page.Locator(".ingredients li").Nth(2)).ToContainTextAsync("710 ml milk");
+        await Assertions.Expect(page.Locator("#units")).ToBeVisibleAsync(); // stays open while metric is in use
 
         // Back to as written.
         await page.GetByRole(AriaRole.Link, new() { Name = "Show as written" }).ClickAsync();
