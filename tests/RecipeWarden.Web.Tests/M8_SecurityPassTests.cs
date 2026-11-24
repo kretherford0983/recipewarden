@@ -100,8 +100,14 @@ public sealed partial class M8_SecurityPassTests(RecipeWardenFactory factory) : 
     public void No_raw_sql_or_raw_html_anywhere_in_the_source()
     {
         var banned = new[] { "FromSqlRaw", "ExecuteSqlRaw", "SqlQueryRaw", "Html.Raw(", "new HtmlString(" };
-        // The one HtmlString: Markdig output (raw HTML off) after the sanitizer allow-list, as SEC-22 prescribes.
-        var allowed = new[] { "src/RecipeWarden.Web/Content/MarkdownRenderer.cs: return new HtmlString(Sanitizer.Sanitize(html));" };
+        // The HtmlStrings allowed, word for word: Markdig output (raw HTML off) after the sanitizer allow-list, as SEC-22
+        // prescribes; and the recipe's JSON-LD, serialized with JavaScriptEncoder.Default so it holds no < > & (ADR 0050,
+        // proved by UX_14_RecipeJsonLdTests.Recipe_text_cannot_break_out_of_the_data_block).
+        var allowed = new[]
+        {
+            "src/RecipeWarden.Web/Content/MarkdownRenderer.cs: return new HtmlString(Sanitizer.Sanitize(html));",
+            "src/RecipeWarden.Web/Content/RecipeJsonLd.cs: public static IHtmlContent Html(RecipeView recipe, string? imageUrl) => new HtmlString(Json(recipe, imageUrl));",
+        };
         var hits = Sources("src", "*.cs", "*.cshtml")
             .SelectMany(f => File.ReadLines(f).Select((line, i) => (f, i, line)))
             .Where(x => !x.line.TrimStart().StartsWith("//", StringComparison.Ordinal) && !x.line.TrimStart().StartsWith("///", StringComparison.Ordinal)

@@ -443,5 +443,8 @@
         </form>
     }
     </aside>
+    @* UX-14, ADR 0050: the recipe as schema.org JSON-LD data (never run; escaped by RecipeJsonLd). *@
+    @* "!" keeps the script tag helper out, so the type is written as is (it would encode the "+"). *@
+    <!script type="application/ld+json">@RecipeWarden.Web.Content.RecipeJsonLd.Html(r, r.FinishImageId is null ? null : $"{Request.Scheme}://{Request.Host}/media/{r.FinishImageId}")</!script>
 </article>
 <script src="~/js/recipe.js" asp-append-version="true" defer></script>
