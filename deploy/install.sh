@@ -601,11 +601,13 @@ apply_firewall() {
     step "firewall (nftables): port $port only from $sources"
     cat > "$ETC/firewall.nft" <<NFT
 # Written by install.sh (SEC-60): only the tunnel host and --allowed-ips reach RecipeWarden's port.
+# Connections from this host itself (the installer's and the CLI's health checks) arrive on lo and are let through.
 table inet $APP
 delete table inet $APP
 table inet $APP {
   chain input {
     type filter hook input priority -10; policy accept;
+    iif "lo" accept
     tcp dport $port ip saddr != { $sources } drop
     tcp dport $port meta nfproto ipv6 drop
   }

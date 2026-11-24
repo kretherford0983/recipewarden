@@ -45,7 +45,8 @@ public abstract class RecipeEditorPageModel(TagService tags) : PageModel
 
     /// <summary>W2 step 3: live parse of the ingredient lines, shown as chips (htmx partial; POST with antiforgery).</summary>
     public PartialViewResult OnPostParse() =>
-        Partial("_IngredientPreview", IngredientLineParser.ParseList(Input.Ingredients));
+        // By full path: the import review page (Pages/Manage/Import) shares this model and would not find it by name.
+        Partial("/Pages/Manage/Recipes/_IngredientPreview.cshtml", IngredientLineParser.ParseList(Input.Ingredients));
 
     private IReadOnlyList<TagSummary> allTags = [];
 

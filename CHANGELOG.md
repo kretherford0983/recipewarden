@@ -6,6 +6,12 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 ## 1.0.0 — unreleased
 
 ### M8 Hardening and v1.0
+- Fixed: the ingredient preview on the import review page failed (500) because it could not find the editor's
+  partial; the units list on a recipe now submits reliably right after scaling (it could be ignored until htmx had
+  processed the swapped-in toolbar, which also made a browser test flaky in CI).
+- Installer fix (found on the test host with dev.17): the SEC-60 nftables rule dropped this host's own connections
+  to its LAN bind address, so the installer's health check failed and every upgrade on a LAN-bound host rolled back.
+  The rule now accepts traffic arriving on `lo` before the drop; a systemd installer test covers a LAN-bound upgrade.
 - Version bumped to 1.0.0 (ADR 0046).
 - Installer upgrade fixes (found on the test host): an older release's CLI without `backup` is now detected (its
   `backup --help` exits 0 with the general help), so the pre-upgrade step no longer prints an error; upgrades read
