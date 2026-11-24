@@ -19,6 +19,8 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
   self-test" and an Admin switch to turn Python features off (FR-OPS-06). The self-test also runs at start-up.
 - `sudo recipewarden python-selftest` checks the bundled worker from the shell; the installer tests run it after
   install, upgrade and rollback (AC-107).
+- `sudo recipewarden import-compare` re-reads your saved URL imports (kept 30 days) with the built-in extractor and with
+  site-specific readers, and says whether M10 would help. It reads only (AC-109).
 
 ### Ounces on liquids (BR-115, ADR 0049)
 - "24 oz chicken broth" now converts and scales as fluid ounces (24 fl oz, 710 ml), not 1½ lb or grams. This applies

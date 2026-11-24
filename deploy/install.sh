@@ -411,6 +411,7 @@ write_command_wrapper() {
 #   sudo recipewarden backup          sudo recipewarden restore <archive> [--kit recovery-kit.txt]
 #   sudo recipewarden setup-token     (a new token for the /setup page, before the first Admin exists)
 #   sudo recipewarden python-selftest (check the bundled Python worker, ADR 0051)
+#   sudo recipewarden import-compare  (would site-specific readers have helped your URL imports? ADR 0051)
 export RECIPEWARDEN_CONFIG="${RECIPEWARDEN_CONFIG:-/etc/recipewarden/appsettings.Production.json}"
 cli=/opt/recipewarden/current/cli/recipewarden
 # apply-config writes systemd files, and restore stops and starts the service: they need root (restore runs its own
