@@ -54,6 +54,11 @@ public sealed record KitchenToolInfo(
         SupportedUnits?.Contains(unitCode, StringComparer.Ordinal) == true;
 }
 
+/// <summary>
+/// BR-120: the form fields that belong to a tool type. Only these are shown, and only these are read on save.
+/// </summary>
+public sealed record KitchenFields(bool Size, bool ScaleUnits, bool Fill, string SizeLabel, string SizeHint, string SizePlaceholder);
+
 /// <summary>A tool to add from /manage/kitchen in one click (ADR 0021).</summary>
 public sealed record KitchenPreset(string Key, string Label, IReadOnlyList<KitchenToolInfo> Tools);
 
@@ -63,6 +68,59 @@ public static class KitchenRules
     public const int MaxNameLength = 100;
     public const int MaxQuantity = 99;
     public const decimal MaxPanInches = 30m;
+
+    /// <summary>BR-121: a kitchen scale reads in steps of at most 50 g (about 1.76 oz).</summary>
+    public const decimal MaxResolutionGrams = 50m;
+
+    private const decimal GramsPerOunce = 28.349523125m;
+
+    /// <summary>BR-120: which fields a type uses, and how the size field is labelled for it.</summary>
+    public static KitchenFields FieldsFor(ToolType type) => type switch
+    {
+        ToolType.MeasuringSpoon => new(true, false, false, "Size", "The spoon's size, e.g. 1/8 tsp or 1/2 Tbsp.", "1/8 tsp"),
+        ToolType.MeasuringCup => new(true, false, false, "Size", "The cup's size, e.g. 2/3 cup.", "2/3 cup"),
+        ToolType.LiquidMeasure => new(true, false, false, "Capacity", "How much the jug holds, e.g. 2 cups or 1 quart.", "2 cups"),
+        ToolType.Container => new(true, false, true, "Capacity", "How much it holds, e.g. 16 fl oz or 1 quart.", "16 fl oz"),
+        ToolType.Scale => new(true, true, false, "Resolution (smallest step)",
+            "Printed on the scale as Max … x [step], e.g. \"Max 14000g x 1g\" means 1 g. Enter it in grams (1 g) or ounces (0.05 oz).", "1 g"),
+        ToolType.Pan => new(true, false, false, "Pan size", "Width x length in inches, e.g. 9x13, 8x8 square, 9-inch round, 9x5 loaf.", "9x13"),
+        _ => new(false, false, false, "Size", string.Empty, string.Empty),
+    };
+
+    /// <summary>
+    /// BR-120: a tool keeps only the fields its type uses. Anything else in the request (a fill % on a spoon, units on
+    /// a pan) is cleared, so a hand-built or stale form cannot store them.
+    /// </summary>
+    public static KitchenToolInfo OnlyItsFields(KitchenToolInfo tool)
+    {
+        ArgumentNullException.ThrowIfNull(tool);
+        var fields = FieldsFor(tool.Type);
+        var volume = tool.Type is ToolType.MeasuringSpoon or ToolType.MeasuringCup or ToolType.LiquidMeasure or ToolType.Container;
+        return tool with
+        {
+            CapacityAmount = volume ? tool.CapacityAmount : null,
+            CapacityUnit = volume ? tool.CapacityUnit : null,
+            Resolution = tool.Type == ToolType.Scale ? tool.Resolution : null,
+            ResolutionUnit = tool.Type == ToolType.Scale ? tool.ResolutionUnit : null,
+            SupportedUnits = fields.ScaleUnits ? tool.SupportedUnits : null,
+            DefaultFillPct = fields.Fill ? tool.DefaultFillPct : 100m,
+            PanShape = tool.Type == ToolType.Pan ? tool.PanShape : null,
+            PanWidth = tool.Type == ToolType.Pan ? tool.PanWidth : null,
+            PanLength = tool.Type == ToolType.Pan ? tool.PanLength : null,
+        };
+    }
+
+    /// <summary>A scale's step in grams (BR-121), or null.</summary>
+    public static decimal? ResolutionGrams(KitchenToolInfo tool)
+    {
+        ArgumentNullException.ThrowIfNull(tool);
+        return tool.Resolution is not { } r ? null : tool.ResolutionUnit switch
+        {
+            "g" => r,
+            "oz" => r * GramsPerOunce,
+            _ => null,
+        };
+    }
 
     /// <summary>BR-33: ¼, ½ and 1 tsp; 1 Tbsp; ¼, ⅓, ½ and 1 cup. Seeded once (ADR 0021) and assumed when none are active.</summary>
     public static IReadOnlyList<KitchenToolInfo> StandardSet { get; } =
@@ -141,6 +199,10 @@ public static class KitchenRules
                 {
                     errors.Add("Enter the scale's resolution in g or oz, e.g. 1 g");
                 }
+                else if (ResolutionGrams(tool) > MaxResolutionGrams)
+                {
+                    errors.Add("A kitchen scale's step is at most 50 g (about 1.75 oz); check the Max … x [step] label");
+                }
 
                 if (tool.SupportedUnits is not { Count: > 0 } units || units.Any(u => u is not ("g" or "oz")))
                 {
@@ -168,7 +230,8 @@ public static class KitchenRules
     public static (KitchenToolInfo Tool, IReadOnlyList<string> Errors) FromInput(ToolType type, string? name, string? size,
         IReadOnlyList<string>? shows, int quantity, decimal fillPct)
     {
-        var tool = new KitchenToolInfo(0, (name ?? string.Empty).Trim(), type, QuantityOwned: quantity, DefaultFillPct: fillPct);
+        var tool = new KitchenToolInfo(0, (name ?? string.Empty).Trim(), type, QuantityOwned: quantity,
+            DefaultFillPct: FieldsFor(type).Fill ? fillPct : 100m);
         var sizeErrors = new List<string>();
         switch (type)
         {
@@ -180,7 +243,14 @@ public static class KitchenRules
 
                 break;
             case ToolType.Scale:
-                if (AmountText.TryParse(Normalize(size), out var step) && step!.Unit.Code is "g" or "oz")
+                // BR-121: a bare number is grams, the unit on the label ("1" → 1 g).
+                var scaleSize = Normalize(size);
+                if (scaleSize is { Length: > 0 } && decimal.TryParse(scaleSize, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out _))
+                {
+                    scaleSize += " g";
+                }
+
+                if (AmountText.TryParse(scaleSize, out var step) && step!.Unit.Code is "g" or "oz")
                 {
                     tool = tool with { Resolution = step.Value, ResolutionUnit = step.Unit.Code, SupportedUnits = shows ?? [] };
                 }
@@ -204,6 +274,7 @@ public static class KitchenRules
             tool = tool with { Name = type is ToolType.MeasuringSpoon or ToolType.MeasuringCup ? described : described + " " + type.ToString().ToLowerInvariant() };
         }
 
+        tool = OnlyItsFields(tool);
         return (tool, Validate(tool).Concat(sizeErrors).ToList());
     }
 
