@@ -11,8 +11,8 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 - Recipe pages carry the recipe as schema.org JSON-LD data, as recipe sites do (ADR 0050, for owner review).
 - The JSON-LD now has what Safari's HomeView and Google ask for: servings ("4 servings"), the whole description, full
   image addresses (step photos too), named step sections, category and cuisine from tags, a page address, the date
-  last changed, and calories when the estimate is complete (ADR 0050 amendment 1).
-- In short windows such as HomeView, the header scrolls away and the phone tab bar shows icons only.
+  last changed, a total time (prep + cook when no total was typed), and calories when the estimate is complete
+  (ADR 0050 amendment 1).
 
 ### UI polish (owner feedback on the dev build)
 - The scale box's "More scaling options" is closed on every page load; its summary names the options in use

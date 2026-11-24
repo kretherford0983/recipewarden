@@ -110,6 +110,7 @@ public sealed partial class UX_14_RecipeJsonLdTests(RecipeWardenFactory factory)
     };
 
     [Fact]
+    [Trait("Req", "UX-14")]
     public void The_data_follows_apples_and_googles_recipe_guidance()
     {
         var data = JsonDocument.Parse(RecipeJsonLd.Json(Sample(), "https://kitchen.example", 412.6m)).RootElement;
@@ -152,7 +153,21 @@ public sealed partial class UX_14_RecipeJsonLdTests(RecipeWardenFactory factory)
         data.TryGetProperty("aggregateRating", out _).ShouldBeFalse(); // a household's own rating is not a review
     }
 
+    [Theory]
+    [Trait("Req", "UX-14")]
+    [InlineData(45, 20, 25, "PT45M")]   // a total someone typed wins
+    [InlineData(null, 20, 25, "PT45M")] // otherwise prep + cook, which HomeView shows on its first screen
+    [InlineData(null, 20, null, null)]  // prep alone is not a total
+    [InlineData(null, null, 25, null)]
+    public void Total_time_falls_back_to_prep_plus_cook(int? total, int? prep, int? cook, string? expected)
+    {
+        var recipe = Sample() with { TotalMinutes = total, PrepMinutes = prep, CookMinutes = cook };
+        var data = JsonDocument.Parse(RecipeJsonLd.Json(recipe, "https://kitchen.example", null)).RootElement;
+        (data.TryGetProperty("totalTime", out var value) ? value.GetString() : null).ShouldBe(expected);
+    }
+
     [Fact]
+    [Trait("Req", "UX-14")]
     public void Unknown_values_are_left_out()
     {
         var bare = Sample() with { Description = null, FinishImageId = null, SourceAuthor = null, Tags = [], PrepMinutes = null };

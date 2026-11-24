@@ -37,8 +37,9 @@ which reads the data the way Google's Recipe guidance describes it. The block no
   (Google: do not repeat categories as keywords).
 - `nutrition.calories` per serving only when the local estimate is complete; a partial one would understate it.
 - No `aggregateRating`: a household's own star rating is not a review, and Google treats self-rating as spam.
-- Short windows (`max-height: 480px`, HomeView is 448×364): the header no longer sticks and the phone tab bar keeps
-  its icons only (labels stay for screen readers), so the recipe gets the height. `homeview` is a screenshot device.
+- `totalTime` falls back to prep + cook when both are known (HomeView shows it on its first screen).
+- HomeView draws its own screens (cover photo with Ingredients and Start Cooking) from this data and none of the
+  page, so no layout change is made for it.
 `RecipeJsonLd.Html` now takes the site address and calories; the allowed line in the source scan changed with it.
 
 ## Consequences

@@ -104,32 +104,6 @@ public sealed class UX_14_ReaderModeTests(BrowserHost host) : IClassFixture<Brow
         problems.ShouldBeEmpty();
     }
 
-    [Fact]
-    [Trait("Req", "UX-14")]
-    public async Task In_the_homeview_window_the_page_chrome_leaves_room_for_the_recipe()
-    {
-        // Safari's HomeView window is 448×364. Nothing may stick to the top, and the tab bar must stay short.
-        var slug = await SeedAsync("Reader Homeview Stroganoff");
-        await host.CreateUserAsync("homeview@example.com", "Editor");
-        await using var context = await host.Browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = host.BaseUrl,
-            ViewportSize = new ViewportSize { Width = 448, Height = 364 },
-            ExtraHTTPHeaders = new Dictionary<string, string> { ["X-Forwarded-Proto"] = "https" },
-        });
-        var page = await context.NewPageAsync();
-        await BrowserHost.SignInAsync(page, "homeview@example.com"); // the tab bar is only shown when signed in
-        await page.GotoAsync($"/recipes/{slug}");
-
-        var headerPosition = await page.EvaluateAsync<string>("() => getComputedStyle(document.querySelector('.site-header')).position");
-        headerPosition.ShouldBe("static", "the header scrolls away instead of sticking");
-        var tabBar = await page.EvaluateAsync<double>("() => document.querySelector('.primary-nav').getBoundingClientRect().height");
-        tabBar.ShouldBeLessThanOrEqualTo(56, "the tab bar keeps to its icons");
-        var tabBarBottom = await page.EvaluateAsync<double>("() => document.querySelector('.primary-nav').getBoundingClientRect().bottom");
-        tabBarBottom.ShouldBe(364, 1, "the tab bar stays at the bottom of the window");
-        (await page.Locator(".primary-nav .nav-label").First.TextContentAsync()).ShouldNotBeNullOrWhiteSpace(); // still read out by screen readers
-    }
-
     private static string Excerpt(string text)
     {
         var flat = string.Join(' ', text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));

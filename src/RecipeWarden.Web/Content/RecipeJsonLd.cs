@@ -79,7 +79,7 @@ public static class RecipeJsonLd
             ["recipeYield"] = ServingsRules.Format(recipe.Servings, recipe.ServingsMax) + " servings",
             ["prepTime"] = Duration(recipe.PrepMinutes),
             ["cookTime"] = Duration(recipe.CookMinutes),
-            ["totalTime"] = Duration(recipe.TotalMinutes),
+            ["totalTime"] = Duration(recipe.TotalMinutes ?? recipe.PrepMinutes + recipe.CookMinutes), // both known, or none
             ["recipeCategory"] = category.Count > 0 ? string.Join(", ", category) : null,
             ["recipeCuisine"] = cuisine.Count > 0 ? string.Join(", ", cuisine) : null,
             ["keywords"] = keywords.Count > 0 ? string.Join(", ", keywords) : null,

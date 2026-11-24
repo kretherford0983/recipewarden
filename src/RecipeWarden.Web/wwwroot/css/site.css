@@ -840,22 +840,6 @@ table.audit code { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .8
 .auth-page button.primary { width: 100%; margin-top: .25rem; }
 
 /* ---------------------------------------------------------------- 7. print */
-/* UX-14: short windows such as Safari's HomeView (448×364). Nothing sticks to the top, and the phone tab bar keeps
-   its icons only, so the recipe gets most of the height. Labels stay for screen readers. */
-@media (max-height: 480px) {
-  .site-header { position: static; }
-  .recipe-columns .ingredients { position: static; }
-}
-@media (max-height: 480px) and (min-width: 761px) {
-  .primary-nav { top: 0; height: 100vh; }
-}
-@media (max-height: 480px) and (max-width: 760px) {
-  :root { --tabbar-h: 44px; }
-  .primary-nav { height: auto; padding-top: .15rem; padding-bottom: calc(.15rem + env(safe-area-inset-bottom)); }
-  .primary-nav a { min-height: 40px; padding: .2rem .1rem; }
-  .primary-nav .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-}
-
 @media print {
   .site-header, .primary-nav, .site-footer, .skip-link, .section-nav, .recipe-actions, .add-to-list, .scale-toolbar, .toolbar { display: none; }
   body { background: #fff; color: #000; }
