@@ -169,7 +169,10 @@ public sealed class FR_REC_02_RecipeEditorTests(RecipeWardenFactory factory) : I
         foreach (var path in new[] { "/manage/recipes/new", $"/manage/recipes/{id}/edit", "/recipes/" + slug, "/recipes", "/search?q=csp",
                      "/manage", "/manage/trash", "/manage/tags", "/manage/collections", "/collections" })
         {
-            var html = await editor.GetStringAsync(path, Ct);
+            // ADR 0050: a JSON-LD data block is not a script (never run). Only one whose contents hold no "<" at all is set
+            // aside; every other inline script still fails.
+            var html = System.Text.RegularExpressions.Regex.Replace(await editor.GetStringAsync(path, Ct),
+                @"<script type=""application/ld\+json"">[^<]*</script>", string.Empty);
             System.Text.RegularExpressions.Regex.IsMatch(html, @"<script(?![^>]*\bsrc=)[^>]*>").ShouldBeFalse(path);
             System.Text.RegularExpressions.Regex.IsMatch(html, @"\son[a-z]+\s*=", System.Text.RegularExpressions.RegexOptions.IgnoreCase).ShouldBeFalse(path);
             System.Text.RegularExpressions.Regex.IsMatch(html, @"\sstyle\s*=", System.Text.RegularExpressions.RegexOptions.IgnoreCase).ShouldBeFalse(path);

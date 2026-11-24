@@ -29,6 +29,15 @@ public sealed class UX_13_CardSummaryTests
     }
 
     [Fact]
+    [Trait("Req", "UX-14")]
+    public void Plain_text_keeps_the_whole_description()
+    {
+        var text = string.Join(' ', Enumerable.Repeat("**tomato**", 40));
+        CardSummary.PlainText(text).ShouldBe(string.Join(' ', Enumerable.Repeat("tomato", 40)));
+        CardSummary.PlainText("  ").ShouldBeNull();
+    }
+
+    [Fact]
     public void Long_text_is_cut_at_a_word_with_an_ellipsis()
     {
         var text = string.Join(' ', Enumerable.Repeat("tomato", 40));

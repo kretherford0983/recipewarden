@@ -412,7 +412,7 @@ The app is internet-reachable through the tunnel, so it is built as a public web
 | SEC-20 | All database access via EF Core LINQ or parameterized SQL. `FromSqlRaw`/`ExecuteSqlRaw` with string interpolation is banned (analyzer + test). |
 | SEC-21 | FTS5 search input is tokenized and quoted by the app; raw user input is never passed as an FTS query expression. |
 | SEC-22 | All output is Razor-encoded. User Markdown (notes, descriptions) renders with Markdig with raw HTML disabled, then passes through an HTML sanitizer allow-list. |
-| SEC-23 | Content-Security-Policy: `default-src 'self'; script-src 'self' 'nonce-…'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`. No inline event handlers. |
+| SEC-23 | Content-Security-Policy: `default-src 'self'; script-src 'self' 'nonce-…'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`. No inline event handlers. No inline script except the recipe page's JSON-LD data block (`application/ld+json`, never run, encoded so it holds no `< > &`; ADR 0050). |
 | SEC-24 | Shell commands (installer, backup) never interpolate user input; the app never invokes a shell. |
 
 ### 5.4 Cross-site request forgery
@@ -498,7 +498,7 @@ The site should feel like a well-designed cookbook: calm, readable, fast, and us
 | UX-10 | Loading over 300 ms shows a skeleton or spinner; imports show step progress (fetching, parsing, review). |
 | UX-11 | Readers never see edit controls; signed-in editors see an "Edit" button on the recipe and a "Manage" menu. |
 | UX-12 | Print uses a dedicated stylesheet: black on white, no images except optional finish image thumbnail, ingredient checkboxes, page-break avoidance inside steps. |
-| UX-14 | The recipe page works with the browser's reader mode (Safari Reader, Chrome Reading mode, Firefox Reader View): one article marked as a schema.org Recipe, each ingredient line and step a paragraph, `og:type=article` with a description in the head, tools in asides, and the reader shows the description, ingredients (with groups), steps and notes without the page's controls (ADR 0048). |
+| UX-14 | The recipe page works with the browser's reader mode (Safari Reader, Chrome Reading mode, Firefox Reader View): one article marked as a schema.org Recipe, each ingredient line and step a paragraph, `og:type=article` with a description in the head, schema.org Recipe JSON-LD for Safari HomeView and search engines (ADR 0050 and amendment 1: yield in servings, whole description, absolute image addresses, `HowToSection` for named step sections, category and cuisine from typed tags, total time from prep + cook when not given, calories only from a complete estimate, no rating), tools in asides, and the reader shows the description, ingredients (with groups), steps and notes without the page's controls (ADR 0048). |
 | UX-13 | One design system (ADR 0047, docs/ui-standards.md): shared colour tokens in both themes, one control height, labelled fields that line up, cards, pills, original line icons. A rule changes in the standards and the shared CSS, never on one page. Every main screen fits its window on a phone and a desktop in both themes. |
 
 ### 6.2 Key workflows
@@ -1194,6 +1194,9 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
+- v0.24 (2026-11-23): Recipe JSON-LD (ADR 0050, proposed); SEC-23 allows that one data block.
+
+- v0.24 (2026-11-24): UX-14 amendment — JSON-LD follows Safari HomeView and Google Recipe guidance (ADR 0050 amendment 1).
 - v0.23 (2026-11-23): UX-14 amendment — ingredient lines are paragraphs; recipe pages declare `og:type=article` with a description (ADR 0048 amendment 1).
 
 - v0.21 (2026-11-23): UX-14 browser reader mode on the recipe page (ADR 0048).

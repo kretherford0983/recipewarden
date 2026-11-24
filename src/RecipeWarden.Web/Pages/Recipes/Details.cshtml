@@ -443,5 +443,12 @@
         </form>
     }
     </aside>
+    @* UX-14, ADR 0050: the recipe as schema.org JSON-LD data (never run; escaped by RecipeJsonLd). *@
+    @* "!" keeps the script tag helper out, so the type is written as is (it would encode the "+"). *@
+    @{
+        // Calories only from a complete estimate (a partial one would understate them).
+        var jsonLdCalories = Model.Nutrition?.Panel is { IsPartial: false, PerServing.Calories: { } kcal } ? kcal : (decimal?)null;
+    }
+    <!script type="application/ld+json">@RecipeWarden.Web.Content.RecipeJsonLd.Html(r, $"{Request.Scheme}://{Request.Host}", jsonLdCalories)</!script>
 </article>
 <script src="~/js/recipe.js" asp-append-version="true" defer></script>

@@ -13,6 +13,20 @@ public static partial class CardSummary
 
     public static string? From(string? markdown)
     {
+        var text = PlainText(markdown);
+        if (text is null || text.Length <= MaxLength)
+        {
+            return text;
+        }
+
+        var cut = text[..MaxLength];
+        var space = cut.LastIndexOf(' ');
+        return (space > MaxLength / 2 ? cut[..space] : cut).TrimEnd(' ', ',', ';', ':', '.') + "…";
+    }
+
+    /// <summary>UX-14: the whole description as plain text (no length cut), e.g. for recipe structured data.</summary>
+    public static string? PlainText(string? markdown)
+    {
         if (string.IsNullOrWhiteSpace(markdown))
         {
             return null;
@@ -31,14 +45,7 @@ public static partial class CardSummary
             return null; // only marks, nothing to read
         }
 
-        if (text.Length <= MaxLength)
-        {
-            return text;
-        }
-
-        var cut = text[..MaxLength];
-        var space = cut.LastIndexOf(' ');
-        return (space > MaxLength / 2 ? cut[..space] : cut).TrimEnd(' ', ',', ';', ':', '.') + "…";
+        return text;
     }
 
     [GeneratedRegex(@"^(#{1,6}\s+|[-*+]\s+|\d+[.)]\s+|>\s?)")]

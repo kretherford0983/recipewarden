@@ -83,6 +83,27 @@ public sealed class UX_14_ReaderModeTests(BrowserHost host) : IClassFixture<Brow
         }
     }
 
+    [Fact]
+    [Trait("Req", "SEC-23")]
+    public async Task The_json_ld_data_block_raises_no_content_security_policy_report()
+    {
+        // ADR 0050: application/ld+json is data, never run, so the strict CSP (no inline script) has nothing to block.
+        var slug = await SeedAsync("Reader Csp Stroganoff");
+        await using var context = await host.NewContextAsync(); // CSP on, as in production
+        var page = await context.NewPageAsync();
+        var problems = new List<string>();
+        page.Console += (_, message) =>
+        {
+            if (message.Text.Contains("Content Security Policy", StringComparison.OrdinalIgnoreCase)) { problems.Add(message.Text); }
+        };
+        page.PageError += (_, error) => problems.Add(error);
+
+        await page.GotoAsync($"/recipes/{slug}");
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        (await page.Locator("script[type='application/ld+json']").CountAsync()).ShouldBe(1);
+        problems.ShouldBeEmpty();
+    }
+
     private static string Excerpt(string text)
     {
         var flat = string.Join(' ', text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
