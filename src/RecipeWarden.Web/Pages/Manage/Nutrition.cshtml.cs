@@ -22,7 +22,7 @@ public sealed class NutritionModel(NutritionService nutrition, Infrastructure.Ai
 
     public IReadOnlyList<UnmatchedRow> Report { get; private set; } = [];
     public IReadOnlyList<NutrientChoice> Choices { get; private set; } = [];
-    public NutrientDataset? Dataset { get; private set; }
+    public DatasetSummary? Dataset { get; private set; }
     public string? Error { get; private set; }
     public string? Message { get; private set; }
 
@@ -117,7 +117,7 @@ public sealed class NutritionModel(NutritionService nutrition, Infrastructure.Ai
     {
         var ct = HttpContext.RequestAborted;
         Report = await nutrition.UnmatchedAsync(ct);
-        Dataset = await nutrition.DatasetAsync(ct);
+        Dataset = await nutrition.DatasetSummaryAsync(ct);
         AiEnabled = (await ai.GetSettingsAsync(ct)).Enabled;
         var search = Query ?? MapName;
         if (!string.IsNullOrWhiteSpace(search))

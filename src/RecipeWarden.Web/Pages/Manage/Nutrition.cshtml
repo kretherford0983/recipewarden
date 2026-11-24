@@ -9,7 +9,7 @@
 @if (Model.Error is not null) { <p class="notice error" role="alert">@Model.Error</p> }
 @if (Model.Dataset is { } ds)
 {
-    <p class="hint">USDA FoodData Central (CC0): @ds.Version, @ds.Foods.ToString("N0", System.Globalization.CultureInfo.InvariantCulture) foods. Nothing is looked up online.</p>
+    <p class="hint">USDA FoodData Central (CC0): @ds.Text, @ds.Foods.ToString("N0", System.Globalization.CultureInfo.InvariantCulture) foods. Nothing is looked up online.</p>
 }
 
 <section aria-labelledby="unmatched-heading">
@@ -75,7 +75,7 @@
                 @foreach (var c in Model.Choices)
                 {
                     <tr id="label-@c.Id">
-                        <td>@c.Description @if (c.Source == "Custom") { <span class="badge">custom</span> } @if (c.Removed) { <span class="badge partial">not in current data</span> }<br><span class="hint">@c.Category</span></td>
+                        <td>@c.Description @if (c.Source == "Custom") { <span class="badge">custom</span> } @if (c.Removed) { <span class="badge partial">not in current data</span> }<br><span class="hint">@c.Category@(c.Dataset is { } set ? (c.Category is null ? "" : " · ") + set : "")</span></td>
                         <td>@NutritionRules.Format(c.Calories) kcal</td>
                         <td>
                             @if (Model.MapName is not null)

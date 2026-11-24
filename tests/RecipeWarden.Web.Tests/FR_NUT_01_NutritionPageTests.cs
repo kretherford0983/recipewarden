@@ -111,12 +111,13 @@ public sealed partial class FR_NUT_01_NutritionPageTests(RecipeWardenFactory fac
 
         var report = await editor.GetStringAsync("/manage/nutrition", Ct);
         report.ShouldContain("<td>gochujang</td>");
-        report.ShouldContain("USDA FoodData Central (CC0): SR Legacy 2018-04, 7,793 foods.");
+        report.ShouldContain("USDA FoodData Central (CC0): SR Legacy 2018-04; Foundation Foods 2026-04 and FNDDS 2024-10, 13,694 foods.");
         (await editor.GetStringAsync("/recipes/" + slugs[0], Ct)).ShouldContain("50% of ingredients matched");
 
         var search = await editor.GetStringAsync("/manage/nutrition?map=gochujang&q=chili+sauce", Ct);
         var nutrientId = Regex.Match(search, "name=\"nutrientId\" value=\"(\\d+)\"").Groups[1].Value;
         nutrientId.ShouldNotBeEmpty();
+        search.ShouldMatch("<span class=\"hint\">[^<]*(SR Legacy|Foundation|FNDDS)</span>"); // ADR 0052: the dataset is named
         var mapped = await editor.PostFormAsync("/manage/nutrition?handler=Map", ("name", "gochujang"), ("nutrientId", nutrientId));
         mapped.Headers.Location!.OriginalString.ShouldBe("/manage/nutrition?done=mapped");
         foreach (var slug in slugs)

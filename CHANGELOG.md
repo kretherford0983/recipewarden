@@ -7,6 +7,9 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 
 ### M9 Python adapters (ADR 0051 to 0054)
 - Ubuntu 22.04 is no longer supported (ADR 0054): the installer warns on it and carries on; CI no longer tests it.
+- The bundled nutrition data adds USDA Foundation Foods (2026-04) and FNDDS (2024-10) next to SR Legacy (ADR 0052):
+  13,694 foods. Food search names each result's dataset, and the nutrition page lists every dataset in use. A full
+  FNDDS download can be imported like the others.
 
 ### Ounces on liquids (BR-115, ADR 0049)
 - "24 oz chicken broth" now converts and scales as fluid ounces (24 fl oz, 710 ml), not 1½ lb or grams. This applies
