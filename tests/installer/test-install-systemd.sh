@@ -90,8 +90,11 @@ lan_health() { [[ $(curl -fsS --max-time 2 "http://$lan_ip:5090/health" 2>/dev/n
 if [[ -n $lan_ip ]] && command -v nft >/dev/null && ! { ufw status 2>/dev/null | grep -q "Status: active"; }; then
   run 0 "network.json" "SEC-60: reconfigure to a LAN bind with a tunnel host" -- \
     bash "$installer" --reconfigure --bind "$lan_ip" --trusted-proxy 192.0.2.10 --yes
+  # nft prints a one-address set without braces ("ip saddr != 192.0.2.10"), several with them.
   check "SEC-60: the nftables rule limits the port to the tunnel host" \
-    bash -c "nft list table inet recipewarden | grep -q 'saddr != { 192.0.2.10 }'"
+    bash -c "nft list table inet recipewarden | grep -Eq 'saddr != \\{? ?192\\.0\\.2\\.10 ?\\}? drop'"
+  check "SEC-60: connections from this host (lo) are accepted before the drop" \
+    bash -c "nft list table inet recipewarden | grep -q 'iif \"lo\" accept'"
   check "SEC-60: this host still reaches its own bind address" lan_health
   run 0 "upgrading the existing installation" "SEC-60: an upgrade on a LAN bind passes its health check" -- \
     bash "$installer" --package "$package" --yes --unattended
