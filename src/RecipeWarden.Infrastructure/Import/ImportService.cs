@@ -421,6 +421,48 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
         return new ImportSaveResult(outcome, false, imageWarning);
     }
 
+    /// <summary>
+    /// BR-125: "Import it as its own recipe" for a batch size folded into this import's notes. The batch becomes a new
+    /// draft in the same batch, and its note and warning leave this one. Null when there is nothing to split.
+    /// </summary>
+    public async Task<int?> SplitFoldedAsync(int jobId, int index, CancellationToken cancellationToken = default)
+    {
+        var job = await db.ImportJobs.SingleOrDefaultAsync(j => j.Id == jobId, cancellationToken).ConfigureAwait(false);
+        if (job is null || job.Status != ImportStatus.Review)
+        {
+            return null;
+        }
+
+        var recipe = Parsed(job);
+        if (index < 0 || index >= recipe.FoldedBatches.Count)
+        {
+            return null;
+        }
+
+        var batch = recipe.FoldedBatches[index].Recipe with { SourceType = recipe.SourceType };
+        var remaining = BatchRules.Unfold(recipe, index);
+        var now = clock.GetUtcNow();
+        job.ParsedJson = JsonSerializer.Serialize(remaining, Json);
+        job.WarningsJson = JsonSerializer.Serialize(await WarningsAsync(remaining, cancellationToken).ConfigureAwait(false), Json);
+        job.UpdatedAt = now;
+        var split = new ImportJob
+        {
+            BatchId = job.BatchId,
+            SourceKind = job.SourceKind,
+            SourceRef = job.SourceRef,
+            Status = ImportStatus.Review,
+            RawPath = job.RawPath,
+            ParsedJson = JsonSerializer.Serialize(batch, Json),
+            WarningsJson = JsonSerializer.Serialize(await WarningsAsync(batch, cancellationToken).ConfigureAwait(false), Json),
+            CreatedById = job.CreatedById,
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+        db.ImportJobs.Add(split);
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return split.Id;
+    }
+
     public async Task<bool> DiscardAsync(int jobId, CancellationToken cancellationToken = default)
     {
         var job = await db.ImportJobs.SingleOrDefaultAsync(j => j.Id == jobId, cancellationToken).ConfigureAwait(false);

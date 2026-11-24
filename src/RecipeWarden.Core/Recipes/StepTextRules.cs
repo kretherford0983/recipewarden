@@ -25,7 +25,7 @@ public static partial class StepTextRules
     public const int MaxTitleLength = 120;
     private const int MaxHeadingWords = 8;
 
-    [GeneratedRegex(@"^(?:step\s*\d+\s*[:.)-]?|\d+\s*[.)]|[-*•])\s*", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 200)]
+    [GeneratedRegex(@"^(?:step\s*\d+\s*[:.)-]?|\d+\s*[.)]|[-*•](?=\s))\s*", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 200)]
     private static partial Regex Numbering();
 
     [GeneratedRegex(@"^(?:step\s*\d+\s*[:.)-]?|\d+\s*[.)])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 200)]
@@ -42,6 +42,9 @@ public static partial class StepTextRules
         public string? Section { get; } = section;
         public string First { get; } = first;
         public List<string> More { get; } = [];
+
+        /// <summary>BR-127: a bold line on its own just before this numbered item ("**Char Corn**" then "1. Heat…").</summary>
+        public string? Heading { get; set; }
     }
 
     public static IReadOnlyList<StepText> Split(string? text)
@@ -58,8 +61,10 @@ public static partial class StepTextRules
         Draft? current = null;
         var afterBlank = false;
         var drafts = new List<Draft>();
-        foreach (var rawLine in lines)
+        string? heading = null;
+        for (var n = 0; n < lines.Length; n++)
         {
+            var rawLine = lines[n];
             var line = rawLine.Trim();
             if (line.Length == 0)
             {
@@ -68,6 +73,25 @@ public static partial class StepTextRules
             }
 
             var indented = rawLine.Length > 0 && char.IsWhiteSpace(rawLine[0]);
+
+            // BR-127: a wholly bold line directly before a numbered item is that item's heading.
+            if (numbered && !indented && (current is null || afterBlank) && WholeEmphasis().Match(line) is { Success: true } bold
+                && NextLine(lines, n) is { } next && NumberedItem().IsMatch(next))
+            {
+                heading = bold.Groups["t"].Value;
+                current = null;
+                afterBlank = false;
+                continue;
+            }
+
+            // BR-127: "    - As side dish: serve" under a numbered item stays in that step.
+            if (numbered && indented && current is not null && !NumberedItem().IsMatch(line) && Numbering().IsMatch(line))
+            {
+                current.More.Add(Numbering().Replace(line, string.Empty, 1).Trim());
+                afterBlank = false;
+                continue;
+            }
+
             if (!(numbered && indented && current is not null) && IsSectionHeading(line, out var name))
             {
                 section = name;
@@ -82,7 +106,8 @@ public static partial class StepTextRules
             }
             else
             {
-                current = new Draft(section, Numbering().Replace(line, string.Empty, 1).Trim());
+                current = new Draft(section, Numbering().Replace(line, string.Empty, 1).Trim()) { Heading = heading };
+                heading = null;
                 drafts.Add(current);
                 if (!numbered)
                 {
@@ -117,11 +142,29 @@ public static partial class StepTextRules
         return name.Length > 0;
     }
 
+    private static string? NextLine(string[] lines, int index)
+    {
+        for (var i = index + 1; i < lines.Length; i++)
+        {
+            if (lines[i].Trim().Length > 0)
+            {
+                return lines[i].Trim();
+            }
+        }
+
+        return null;
+    }
+
     private static StepText? Finish(Draft d)
     {
         string? title = null;
         var body = new List<string>();
-        if (WholeEmphasis().Match(d.First) is { Success: true } whole && d.More.Count > 0)
+        if (d.Heading is not null)
+        {
+            title = d.Heading.Trim().TrimEnd(':').Trim();
+            body.Add(d.First);
+        }
+        else if (WholeEmphasis().Match(d.First) is { Success: true } whole && d.More.Count > 0)
         {
             title = whole.Groups["t"].Value.Trim().TrimEnd(':').Trim();
         }
