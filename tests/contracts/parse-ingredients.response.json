@@ -1,0 +1,77 @@
+{
+ "v": 1,
+ "ok": true,
+ "engine": {
+  "worker": "1.0.0",
+  "python": "3.13.18",
+  "libs": {
+   "ingredient-parser-nlp": "2.10.0",
+   "recipe-scrapers": "15.14.0"
+  }
+ },
+ "result": {
+  "lines": [
+   {
+    "quantity": "0.5",
+    "quantity_max": "1",
+    "unit": "cup",
+    "names": [
+     "milk"
+    ],
+    "preparation": null,
+    "comment": null,
+    "name_confidence": 0.9999,
+    "amount_confidence": 1.0,
+    "fdc": [
+     {
+      "fdc_id": 2705384,
+      "data_type": "survey_fndds_food",
+      "description": "Milk, NFS",
+      "confidence": 1.0
+     }
+    ]
+   },
+   {
+    "quantity": "2",
+    "quantity_max": null,
+    "unit": null,
+    "names": [
+     "eggs"
+    ],
+    "preparation": null,
+    "comment": null,
+    "name_confidence": 0.9992,
+    "amount_confidence": 0.9999,
+    "fdc": [
+     {
+      "fdc_id": 748967,
+      "data_type": "foundation_food",
+      "description": "Eggs, Grade A, Large, egg whole",
+      "confidence": 1.0
+     }
+    ]
+   },
+   {
+    "quantity": null,
+    "quantity_max": null,
+    "unit": null,
+    "names": [
+     "salt"
+    ],
+    "preparation": null,
+    "comment": "to taste",
+    "name_confidence": 0.9998,
+    "amount_confidence": 0.0,
+    "fdc": [
+     {
+      "fdc_id": 746775,
+      "data_type": "foundation_food",
+      "description": "Salt, table, iodized",
+      "confidence": 1.0
+     }
+    ]
+   },
+   null
+  ]
+ }
+}

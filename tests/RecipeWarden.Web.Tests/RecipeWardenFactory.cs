@@ -44,6 +44,9 @@ public sealed partial class RecipeWardenFactory : WebApplicationFactory<Program>
         builder.UseSetting("Operations:Background", "false"); // M7: tests run the scheduler and health monitor by hand
         // SEC-63: test classes sign in many times from one test IP; SEC_63_SignInRateLimitTests checks the limit itself.
         builder.UseSetting("RateLimits:SignInsPerMinute", "100000");
+        // ADR 0051: no Python worker unless a test class asks for one (the real one, or a fake), so pages show the
+        // v1 behaviour (BR-119) and test hosts do not start worker processes.
+        builder.UseSetting("Python:Directory", "/nonexistent/rw-python-for-tests");
         foreach (var (key, value) in Settings)
         {
             builder.UseSetting(key, value);

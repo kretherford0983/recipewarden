@@ -11,3 +11,11 @@ coverage*/
 artifacts/
 .data/
 dist/
+
+# Python worker (ADR 0051)
+python/.venv/
+python/.nltk_data/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.coverage

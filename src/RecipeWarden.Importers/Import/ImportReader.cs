@@ -118,6 +118,15 @@ public static class ImportReader
         return ImportRules.Warnings(recipe, parses);
     }
 
+    /// <summary>
+    /// FR-IMP-11: the .NET parse of each ingredient line (headings left out), in order, at most 500, for the second
+    /// opinion. A line longer than the worker accepts is sent blank and so gets no second reading.
+    /// </summary>
+    public static IReadOnlyList<ParsedIngredient> IngredientParses(string? ingredients) =>
+        IngredientLineParser.ParseList(ingredients).Where(l => l.Ingredient is not null).Select(l => l.Ingredient!).Take(500).ToList();
+
+    public const int MaxSecondOpinionLineLength = 300;
+
     /// <summary>FR-IMP-09: whether the rules' result is weak enough to try the AI parser.</summary>
     public static bool NeedsAi(ImportedRecipe recipe)
     {

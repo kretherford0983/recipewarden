@@ -13,22 +13,37 @@ namespace RecipeWarden.Infrastructure.Nutrition;
 public sealed record NutrientImportResult(bool Ok, string? Error, string Version, int Foods, int Added, int Updated, int Removed);
 
 /// <summary>
-/// D-06, FR-NUT-05, AC-58, ADR 0034: reads a USDA FoodData Central CSV zip (SR Legacy or Foundation Foods; the full
-/// download or the trimmed seed) and upserts nutrient rows by FDC id. Foods missing from a newer file of the same kind
-/// are kept and flagged, so mappings survive. Reads a file only; never fetches anything.
+/// D-06, FR-NUT-05, AC-58, ADR 0034, ADR 0052: reads a USDA FoodData Central CSV zip (SR Legacy, Foundation Foods or
+/// FNDDS; the full download or the trimmed seed) and upserts nutrient rows by FDC id. Foods missing from a newer file of
+/// the same kind are kept and flagged, so mappings survive. Reads a file only; never fetches anything.
 /// </summary>
 public sealed class NutrientDatasetImporter(AppDbContext db, TimeProvider clock)
 {
     public const string SeedVersion = "SR Legacy 2018-04";
     public const string SeedRunName = "nutrients-sr-legacy-2018-04";
     public const string SeedResource = "RecipeWarden.Seed.fdc-sr-legacy-2018-04.zip";
+
+    /// <summary>ADR 0052: Foundation Foods and FNDDS, so the ingredient matcher's suggestions resolve locally (BR-116).</summary>
+    public const string SecondSeedVersion = "Foundation Foods 2026-04 and FNDDS 2024-10";
+    public const string SecondSeedRunName = "nutrients-foundation-2026-04-fndds-2024-10";
+    public const string SecondSeedResource = "RecipeWarden.Seed.fdc-foundation-2026-04-fndds-2024-10.zip";
+
+    /// <summary>The bundled datasets, applied in this order, each once.</summary>
+    public static IReadOnlyList<(string Run, string Resource, string Version)> Seeds { get; } =
+    [
+        (SeedRunName, SeedResource, SeedVersion),
+        (SecondSeedRunName, SecondSeedResource, SecondSeedVersion),
+    ];
     public const long MaxEntryBytes = 2L * 1024 * 1024 * 1024;
     public const int MaxEntries = 200;
 
     public const string NotFdc = "This is not a FoodData Central CSV zip (it needs food.csv, nutrient.csv and food_nutrient.csv).";
-    public const string NoFoods = "The file has no SR Legacy or Foundation Foods rows.";
+    public const string NoFoods = "The file has no SR Legacy, Foundation Foods or FNDDS rows.";
 
-    public static readonly IReadOnlySet<string> DataTypes = new HashSet<string>(StringComparer.Ordinal) { "sr_legacy_food", "foundation_food" };
+    public static readonly IReadOnlySet<string> DataTypes = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "sr_legacy_food", "foundation_food", "survey_fndds_food",
+    };
 
     private enum Panel { Calories, Fat, SatFat, Cholesterol, Sodium, Carbs, Fiber, Sugar, Protein }
 
@@ -52,25 +67,31 @@ public sealed class NutrientDatasetImporter(AppDbContext db, TimeProvider clock)
         public decimal? Density { get; set; }
     }
 
-    /// <summary>Seed run: applies the bundled SR Legacy zip once (ADR 0034).</summary>
+    /// <summary>Seed runs: applies each bundled zip once (ADR 0034, ADR 0052). True when any was applied.</summary>
     public async Task<bool> ApplySeedAsync(CancellationToken cancellationToken = default)
     {
-        if (await db.SeedRuns.AnyAsync(r => r.Name == SeedRunName, cancellationToken).ConfigureAwait(false))
+        var applied = false;
+        foreach (var (run, resource, version) in Seeds)
         {
-            return false;
+            if (await db.SeedRuns.AnyAsync(r => r.Name == run, cancellationToken).ConfigureAwait(false))
+            {
+                continue;
+            }
+
+            await using var stream = typeof(NutrientDatasetImporter).Assembly.GetManifestResourceStream(resource)
+                ?? throw new InvalidOperationException("The bundled nutrient dataset is missing: " + resource);
+            var result = await ImportAsync(stream, version, "seed", cancellationToken).ConfigureAwait(false);
+            if (!result.Ok)
+            {
+                throw new InvalidOperationException("The bundled nutrient dataset could not be read: " + result.Error);
+            }
+
+            db.SeedRuns.Add(new SeedRun { Name = run, AppliedAt = clock.GetUtcNow() });
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            applied = true;
         }
 
-        await using var stream = typeof(NutrientDatasetImporter).Assembly.GetManifestResourceStream(SeedResource)
-            ?? throw new InvalidOperationException("The bundled nutrient dataset is missing.");
-        var result = await ImportAsync(stream, SeedVersion, "seed", cancellationToken).ConfigureAwait(false);
-        if (!result.Ok)
-        {
-            throw new InvalidOperationException("The bundled nutrient dataset could not be read: " + result.Error);
-        }
-
-        db.SeedRuns.Add(new SeedRun { Name = SeedRunName, AppliedAt = clock.GetUtcNow() });
-        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        return true;
+        return applied;
     }
 
     public async Task<NutrientImportResult> ImportAsync(Stream zipStream, string version, string appliedBy, CancellationToken cancellationToken = default)
@@ -107,14 +128,15 @@ public sealed class NutrientDatasetImporter(AppDbContext db, TimeProvider clock)
                 return Fail(NotFdc);
             }
 
-            var categories = ReadCategories(Entry("food_category.csv"));
-            rows = ReadFoods(foodEntry, categories);
+            var categories = ReadCategories(Entry("food_category.csv"), "id", "description");
+            var surveyCategories = ReadCategories(Entry("wweia_food_category.csv"), "wweia_food_category", "wweia_food_category_description");
+            rows = ReadFoods(foodEntry, categories, surveyCategories);
             if (rows.Count == 0)
             {
                 return Fail(NoFoods);
             }
 
-            ReadNutrients(nutrientEntry, rows, cancellationToken);
+            ReadNutrients(nutrientEntry, ReadNutrientNumbers(Entry("nutrient.csv")), rows, cancellationToken);
             ReadPortions(Entry("food_portion.csv"), ReadUnits(Entry("measure_unit.csv")), rows, cancellationToken);
         }
         catch (Exception ex) when (ex is InvalidDataException or IOException or FormatException)
@@ -195,7 +217,7 @@ public sealed class NutrientDatasetImporter(AppDbContext db, TimeProvider clock)
 
     private static decimal? Value(Row row, Panel panel) => row.Values.TryGetValue(panel, out var v) ? v.Value : null;
 
-    private static Dictionary<string, string> ReadCategories(ZipArchiveEntry? entry)
+    private static Dictionary<string, string> ReadCategories(ZipArchiveEntry? entry, string idColumn, string descriptionColumn)
     {
         var result = new Dictionary<string, string>(StringComparer.Ordinal);
         if (entry is null)
@@ -212,7 +234,7 @@ public sealed class NutrientDatasetImporter(AppDbContext db, TimeProvider clock)
 
         while (csv.ReadRow() is { } row)
         {
-            if (FdcCsv.Get(row, csv, "id") is { } id && FdcCsv.Get(row, csv, "description") is { } d)
+            if (FdcCsv.Get(row, csv, idColumn) is { } id && FdcCsv.Get(row, csv, descriptionColumn) is { } d)
             {
                 result[id] = d;
             }
@@ -247,7 +269,39 @@ public sealed class NutrientDatasetImporter(AppDbContext db, TimeProvider clock)
         return result;
     }
 
-    private static Dictionary<int, Row> ReadFoods(ZipArchiveEntry entry, Dictionary<string, string> categories)
+    /// <summary>
+    /// FNDDS writes the nutrient number ("208") in food_nutrient.nutrient_id where SR Legacy and Foundation write the
+    /// id ("1008"); nutrient.csv maps one to the other (ADR 0052). Numbers have at most three digits, ids four or more.
+    /// </summary>
+    private static Dictionary<int, int> ReadNutrientNumbers(ZipArchiveEntry? entry)
+    {
+        var result = new Dictionary<int, int>();
+        if (entry is null)
+        {
+            return result;
+        }
+
+        using var reader = new StreamReader(entry.Open());
+        var csv = new FdcCsv(reader);
+        if (!csv.ReadHeader())
+        {
+            return result;
+        }
+
+        while (csv.ReadRow() is { } row)
+        {
+            if (int.TryParse(FdcCsv.Get(row, csv, "id"), NumberStyles.None, CultureInfo.InvariantCulture, out var id)
+                && decimal.TryParse(FdcCsv.Get(row, csv, "nutrient_nbr"), NumberStyles.Float, CultureInfo.InvariantCulture, out var number)
+                && number is > 0 and < 1000 && number == decimal.Truncate(number))
+            {
+                result[(int)number] = id;
+            }
+        }
+
+        return result;
+    }
+
+    private static Dictionary<int, Row> ReadFoods(ZipArchiveEntry entry, Dictionary<string, string> categories, Dictionary<string, string> surveyCategories)
     {
         var rows = new Dictionary<int, Row>();
         using var reader = new StreamReader(entry.Open());
@@ -271,14 +325,16 @@ public sealed class NutrientDatasetImporter(AppDbContext db, TimeProvider clock)
                 continue;
             }
 
-            var category = FdcCsv.Get(row, csv, "food_category_id") is { } cid && categories.TryGetValue(cid, out var name) ? name : null;
+            // FNDDS foods name a WWEIA category (ADR 0052); the others a food_category row.
+            var lookup = type == "survey_fndds_food" ? surveyCategories : categories;
+            var category = FdcCsv.Get(row, csv, "food_category_id") is { } cid && lookup.TryGetValue(cid, out var name) ? name : null;
             rows[id] = new Row { FdcId = id, DataType = type, Description = description, Category = category };
         }
 
         return rows;
     }
 
-    private static void ReadNutrients(ZipArchiveEntry entry, Dictionary<int, Row> rows, CancellationToken cancellationToken)
+    private static void ReadNutrients(ZipArchiveEntry entry, Dictionary<int, int> numbers, Dictionary<int, Row> rows, CancellationToken cancellationToken)
     {
         using var reader = new StreamReader(entry.Open());
         var csv = new FdcCsv(reader);
@@ -296,7 +352,7 @@ public sealed class NutrientDatasetImporter(AppDbContext db, TimeProvider clock)
             }
 
             if (!int.TryParse(FdcCsv.Get(row, csv, "nutrient_id"), NumberStyles.None, CultureInfo.InvariantCulture, out var nid)
-                || !Nutrients.TryGetValue(nid, out var panel)
+                || !Nutrients.TryGetValue(nid < 1000 && numbers.TryGetValue(nid, out var mapped) ? mapped : nid, out var panel)
                 || !int.TryParse(FdcCsv.Get(row, csv, "fdc_id"), NumberStyles.None, CultureInfo.InvariantCulture, out var fid)
                 || !rows.TryGetValue(fid, out var food)
                 || !decimal.TryParse(FdcCsv.Get(row, csv, "amount"), NumberStyles.Float, CultureInfo.InvariantCulture, out var amount)
@@ -341,12 +397,19 @@ public sealed class NutrientDatasetImporter(AppDbContext db, TimeProvider clock)
                 continue;
             }
 
-            var amount = decimal.TryParse(FdcCsv.Get(row, csv, "amount"), NumberStyles.Float, CultureInfo.InvariantCulture, out var a) && a > 0 ? a : 1m;
+            var hasAmount = decimal.TryParse(FdcCsv.Get(row, csv, "amount"), NumberStyles.Float, CultureInfo.InvariantCulture, out var a) && a > 0;
+            var amount = hasAmount ? a : 1m;
             var unit = FdcCsv.Get(row, csv, "measure_unit_id") is { } uid && units.TryGetValue(uid, out var u) ? u : null;
+            // FNDDS puts a numeric food code in modifier, the words in portion_description and the amount in front of
+            // them ("1/2 cup"), with no amount column (ADR 0052).
             var modifier = FdcCsv.Get(row, csv, "modifier");
-            if (string.IsNullOrWhiteSpace(modifier))
+            if (string.IsNullOrWhiteSpace(modifier) || modifier.All(char.IsAsciiDigit))
             {
                 modifier = FdcCsv.Get(row, csv, "portion_description");
+                if (!hasAmount && modifier is not null)
+                {
+                    (amount, modifier) = NutritionRules.SplitPortion(modifier);
+                }
             }
 
             food.Density ??= NutritionRules.DensityFromPortion(modifier, unit, amount, grams);

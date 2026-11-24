@@ -1,0 +1,17 @@
+# FR-IMP-11: corpus lines the NLP parser reads differently (BR-118). Generated; review changes.
+# 15 of 574 lines
+2 T brown sugar | Unit | 2 TS brown sugar
+1-1/2 cups rolled oats | Quantity | ½–1 cup rolled oats
+2-1/2 cups milk | Quantity | ½–2 cups milk
+2 pkgs active dry yeast | Unit, Food | 2 pkgs active dry yeast
+optional: 1/2 tsp almond extract | Quantity, Unit | almond extract
+pinch of cayenne | Quantity | 1 pinch cayenne
+1 smidgen cinnamon | Unit, Food | 1 smidgen cinnamon
+kosher salt and freshly ground pepper, to taste | Food | kosher salt and pepper
+salt and freshly ground black pepper | Food | salt and black pepper
+an egg | Quantity | egg
+a lemon | Quantity | lemon
+1/2 cup chicken or vegetable broth | Food | ½ cups chicken broth and vegetable broth
+2 tbsp fresh or 2 tsp dried thyme | Food | 2 tbsps fresh
+1 lb boneless chicken thighs or breasts | Food | 1 lb boneless chicken thighs and boneless chicken breasts
+1 tbl butter | Unit, Food | 1 tbl butter

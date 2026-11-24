@@ -1,6 +1,6 @@
 # RecipeWarden — requirements traceability
 
-Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.25. Keep in step with the spec and the test suite.
+Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.26. Keep in step with the spec and the test suite.
 
 Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and tagged with `[Trait("Req", "FR-SCL-01")]`, so CI can print coverage per requirement and fail if any Must requirement has no test.
 
@@ -46,6 +46,10 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | FR-IMP-09/10 | BR-13, BR-93; SEC-44–47 | IAiRecipeParser, AI settings, AiCallLog; /admin/ai | Importers.Tests AiParser (stubbed provider); Web.Tests AiSettings, AiSsrfException | AC-17, AC-18 |
 | FR-NUT-03 to 06 | BR-50, BR-54 | Unmatched report, mapping, NutrientRef (Custom), `NutrientDatasetImporter`, CLI `nutrition-import`; `/manage/nutrition` (`/admin/nutrition-data` in M7; FR-NUT-06 in M8) | Core `FR_NUT_01_NutritionRulesTests`; Infra `FR_NUT_02_NutritionServiceTests`; Cli `FR_NUT_05_NutritionImportCommandTests`; Web `FR_NUT_01_NutritionPageTests` | AC-57, AC-58 |
 | FR-BKP-08 to 15 | BR-60–62; SEC-70, SEC-74, SEC-75 | Backup:AllowedFolders, apply-config, systemd drop-in, `BackupFolders`, `BackupDestinationRules` (Core), marker check, `BackupCrypto`, `BackupKeyService` (9.6.1, ADR 0039) | Core `FR_BKP_10_DestinationRulesTests`; Cli `FR_BKP_09_ApplyConfigTests`; Infra `FR_BKP_01_BackupServiceTests`, `FR_BKP_02_ScheduleServiceTests`; Web `FR_BKP_01_BackupPageTests`; installer container tests | AC-86, AC-87, AC-88, AC-89 |
+| FR-NUT-07 | BR-116, BR-54; ADR 0051, 0052 | `FoodSuggestionRules` (Core), `IFoodSuggestionSource`, `PythonFoodSuggestionSource`, `FoodSuggestionService`, FoodSuggestion; `/manage/nutrition` | Core `FR_NUT_07_FoodSuggestionRulesTests`; Infra `FR_OPS_06_PythonWorkerTests`, `FR_NUT_02_NutritionServiceTests`; Web `FR_NUT_07_*`; pytest `test_commands.py` | AC-101, AC-102, AC-103 |
+| FR-IMP-11 | BR-118, BR-119; ADR 0051 | `SecondOpinionRules`, `ImportRules.SecondOpinionWarnings` (Core), `IIngredientSecondOpinion`, `ImportService.WarningsAsync`; review page | Core `FR_IMP_11_SecondOpinionRulesTests`; Infra `FR_IMP_11_CorpusDisagreementTests`; Web `FR_IMP_11_*` | AC-104 |
+| FR-IMP-12 (M10) | BR-117 | `ImportCompareRules.IsComplete` (Core) ready; the import order change is M10 | Core `AC_109_ImportCompareRulesTests` | AC-110, AC-111, AC-112 |
+| FR-OPS-06 | BR-119; SEC-90–95; NFR-10 | `PythonWorker`, `PythonWorkerHealth`, `PythonFeatures`, `PythonStartupCheck`; `/admin/health` Python section; CLI `python-selftest`, `import-compare` | Infra `SEC_92_PythonWorkerLimitsTests`, `SEC_93_WorkerContractTests`, `FR_OPS_06_PythonWorkerTests`, `AC_109_ImportCompareServiceTests`; Web `FR_OPS_06_PythonHealthPageTests`; Cli `FR_OPS_06_*`, `AC_109_*`; smoke-test; installer tests; pytest | AC-103, AC-105 to AC-109 |
 
 ## Status by milestone
 
@@ -297,7 +301,43 @@ rules, stored for search, "free of").
 | SEC-64 | Manual (Cloudflare dashboard) | `docs/install.md` | — |
 | FR-EXP-08 | Still deferred (ADR 0033, 0046) | — | — |
 
+### M9 Python foundation and ingredient intelligence (built 2026-11-24; PR into `develop` — owner review of the SEC-24 test exception and SEC-95's source-build exception)
+
+| ID | Status | Implementation | Tests |
+| --- | --- | --- | --- |
+| ADR 0051 / D1, D4, D5 | Done | `python/` (uv, Python 3.13.18, ingredient-parser-nlp 2.10.0, recipe-scrapers 15.14.0), `build/python.sh`, package `python/` | pytest (coverage gate 85%); smoke-test |
+| ADR 0052 / D2 | Done | seed `fdc-foundation-2026-04-fndds-2024-10.zip` (469 + 5,432 foods), FNDDS in `NutrientDatasetImporter` | Infra `Foundation_foods_and_fndds_ship_next_to_sr_legacy`, `A_newer_fndds_file_…`; Core `ADR_0052_PortionTextTests` |
+| ADR 0053 / D3, SEC-95 / AC-108 | Done | `python/licences-allowed.txt`, `python/sdist-allowed.txt`, `python/tools/check_supply_chain.py`, pip-audit in `build/python.sh check` | pytest `test_supply_chain.py`; CI `python worker` job |
+| ADR 0054 | Done | installer warns on Ubuntu 22.04; CI matrix without it | `tests/installer/test-install.sh` |
+| FR-NUT-07 / AC-101, AC-102 | Done | Suggest matches, Use, Dismiss on `/manage/nutrition` | Web `FR_NUT_07_SuggestionPageTests` (real worker), `FR_NUT_07_SuggestionFallbackTests` (fake) |
+| FR-IMP-11 / AC-104 | Done | "Second reading" review warnings | Web `FR_IMP_11_SecondOpinionPageTests` (real worker) |
+| FR-OPS-06 / AC-103 | Done | health section, Admin switch, start-up self-test; v1 behaviour without a worker | Web `FR_OPS_06_PythonHealthPageTests`, `FR_NUT_07_NoWorkerTests`, `FR_IMP_11_NoWorkerTests`; Infra `Turned_off_…` |
+| SEC-90 / AC-106 | Done | `rw_worker/guard.py` before any import; NLTK model bundled | pytest `test_guard.py`; Infra `The_self_test_passes_offline…`; smoke-test in a network namespace |
+| SEC-91, SEC-92 / AC-105 | Done | no shell, argument list, three variables, 6 MiB / 2 MiB / 20 s, two at once, tree killed | Infra `SEC_92_PythonWorkerLimitsTests` |
+| SEC-93 | Done | `WorkerContract` (strict JSON, value checks); FDC ids resolved locally; text only, Razor-encoded | Infra `SEC_93_WorkerContractTests` (`tests/contracts`) |
+| SEC-94 | Done | release is root-owned and read-only (installer); `-B` writes no bytecode | installer tests `py_readonly` |
+| AC-107 | Done | `python-selftest` after install, upgrade and rollback | `test-install.sh`, `test-install-systemd.sh` |
+| AC-109 | Done | `ImportCompareRules`, `ImportCompareService`, CLI `import-compare` | Core, Infra and Cli `AC_109_*` |
+| NFR-10 | Package budget checked in smoke-test (68 MiB compressed in CI against 90 MiB); host timings to measure after install | `build/smoke-test.sh` | Infra `One_hundred_lines_…` (reports the time) |
+
 ### Notes and open issues
+
+- **M9 notes (2026-11-24):**
+  - Changed assertions, with the behaviour they describe: the nutrition seed tests count each dataset (ADR 0052 adds
+    two), the SR Legacy AC-58 test now picks the SR Legacy chili sauce explicitly (FNDDS has one too), the page shows
+    every dataset in use, and the seed-run list includes the new run. `M8_SecurityPassTests.The_web_app_never_starts_a_process`
+    allows exactly `PythonWorker.cs`, which must use no shell, an argument list and a cleared environment (ADR 0051;
+    SEC-24's rule is unchanged). **Owner review requested.**
+  - SEC-95 says wheels only; jstyleson (MIT, via extruct ← recipe-scrapers) publishes no wheel, so
+    `python/sdist-allowed.txt` names it and it is built from its hashed source archive. **Owner review requested.**
+  - BR-118 also reads "or" as "and" and treats "6 garlic cloves" and "6 cloves garlic" alike, so the review does not
+    flag conventions (spec text updated). The corpus list (`tests/contracts/corpus-disagreements.txt`) has 15 lines.
+  - The build machine cannot download python-build-standalone; packaging is tested by CI. Locally,
+    `RW_PYTHON_RUNTIME=<dir> build/package.sh …` uses a runtime you already have.
+  - Found, not fixed (outside M9): `AllergenRules` uses a 250 ms regex timeout and treats a timeout as "nothing
+    detected"; under heavy CPU load a normal line can time out (seen in `FR_ALG_01_AllergenRulesTests`). A missed
+    allergen is silent, so this deserves its own fix.
+  - New packages: none in .NET. Python dependencies are listed in `python/uv.lock` with their licences checked in CI.
 
 - `/error` (SEC-73) and `/account/theme` (FR-UI-01) are not listed in section 7.2. They are in the
   auth-matrix table as Anonymous and Signed in respectively; add them to 7.2 at the next spec revision.
