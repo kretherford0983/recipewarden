@@ -15,6 +15,10 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 - Import review: a line the second parser reads differently is marked "Second reading" with its reading; your text is
   never changed (FR-IMP-11).
 - Without the Python worker (turned off, missing or failing) both work as before (BR-119).
+- Health page: a "Python worker" section shows its state, libraries and last self-test, with "Run the Python
+  self-test" and an Admin switch to turn Python features off (FR-OPS-06). The self-test also runs at start-up.
+- `sudo recipewarden python-selftest` checks the bundled worker from the shell; the installer tests run it after
+  install, upgrade and rollback (AC-107).
 
 ### Ounces on liquids (BR-115, ADR 0049)
 - "24 oz chicken broth" now converts and scales as fluid ounces (24 fl oz, 710 ml), not 1½ lb or grams. This applies

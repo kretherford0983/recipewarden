@@ -6,6 +6,7 @@ using RecipeWarden.Cli.Health;
 using RecipeWarden.Cli.Hosting;
 using RecipeWarden.Cli.Nutrition;
 using RecipeWarden.Cli.Operations;
+using RecipeWarden.Cli.Python;
 using RecipeWarden.Infrastructure.Data;
 
 var configOption = new Option<string?>("--config")
@@ -163,5 +164,14 @@ nutritionImport.SetAction(async (parse, ct) =>
     return await NutritionImportCommand.RunAsync(config, parse.GetValue(datasetFile)!, parse.GetValue(datasetVersion), Console.Out, Console.Error, ct);
 });
 root.Subcommands.Add(nutritionImport);
+
+// python-selftest (FR-OPS-06, AC-106, AC-107; ADR 0051)
+var pythonSelftest = new Command("python-selftest", "Check the bundled Python worker works offline (exit 0 passed, 1 failed)");
+pythonSelftest.SetAction(async (parse, ct) =>
+{
+    var config = CliConfig.Load(CliConfig.ResolvePath(parse.GetValue(configOption)));
+    return await PythonSelftestCommand.RunAsync(config, Console.Out, Console.Error, ct);
+});
+root.Subcommands.Add(pythonSelftest);
 
 return await root.Parse(args).InvokeAsync();

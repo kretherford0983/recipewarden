@@ -155,6 +155,11 @@ check "database belongs to the service user" test "$(stat -c %U /var/lib/recipew
 # The health command also judges this machine's disk (BR-81), so only the database line is asserted here.
 run_health() { { /usr/local/bin/recipewarden health 2>&1 || true; } | grep -q "quick_check: ok"; }
 check "CLI health: the database is sound" run_health
+# ADR 0051: the bundled Python worker runs offline as the service user (AC-107) from a read-only release (SEC-94).
+py_selftest() { /usr/local/bin/recipewarden python-selftest >/dev/null 2>&1; }
+py_readonly() { local d; d="$(readlink -f /opt/recipewarden/current)/python"; [[ -x $d/bin/python3 && -z $(find "$d" \( ! -user root -o -perm /022 \) -print -quit) ]]; }
+check "AC-107: python-selftest passes after install" py_selftest
+check "SEC-94: the Python runtime is root-owned and not writable by others" py_readonly
 
 # ------------------------------------------------------------------ upgrade
 echo '{ "Data": { "Directory": "/var/lib/recipewarden" }, "Backup": { "AllowedFolders": [ "/var/lib/recipewarden/backups" ] }, "Mine": 1 }' \
@@ -193,6 +198,8 @@ check "network settings kept" grep -q "http://192.168.1.15:$((port + 1))" /etc/r
 check "database snapshot taken before upgrade" compgen -G "/var/lib/recipewarden/backups/pre-upgrade-*/db/recipewarden.db"
 check "FR-INST-03: full pre-upgrade backup archive" compgen -G "/var/lib/recipewarden/backups/backup-*.tar.gz"
 check "data still healthy after upgrade" run_health
+check "AC-107: python-selftest passes after upgrade" py_selftest
+check "SEC-94: the upgraded Python runtime is read-only" py_readonly
 
 # ------------------------------------------------------------------ reconfigure
 run 0 "network.json" "reconfigure changes the port and keeps the proxy" -- \

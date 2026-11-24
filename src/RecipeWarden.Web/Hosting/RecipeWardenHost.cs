@@ -133,6 +133,7 @@ public static class RecipeWardenHost
         {
             services.AddHostedService<BackupSchedulerService>();
             services.AddHostedService<HealthMonitorService>();
+            services.AddHostedService<PythonStartupCheck>(); // FR-OPS-06, ADR 0051
         }
 
         var network = new NetworkOptions();

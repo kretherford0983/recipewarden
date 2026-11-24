@@ -35,6 +35,7 @@ check "/health answers ok on 127.0.0.1:5080" health 5080
 check "service runs as the recipewarden user" test "$(ps -o user= -p "$(systemctl show -p MainPID --value recipewarden)")" == recipewarden
 check "home page shows the installed version" bash -c "curl -fsS http://127.0.0.1:5080/ | grep -q 'RecipeWarden $version<'"
 check "CLI health: the database is sound" bash -c "recipewarden health | grep -q 'quick_check: ok'"
+check "AC-107: python-selftest passes after install (as the service user)" bash -c "recipewarden python-selftest >/dev/null"
 check "/health/ready answers" bash -c "curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:5080/health/ready | grep -qE '^(200|503)$'"
 run 1 "already exists" "the Admin account was created" -- bash -c "recipewarden admin create --email admin@example.com --password-stdin < $pw"
 check "no world-readable settings" test "$(stat -c %a /etc/recipewarden/appsettings.Production.json)" == 640
@@ -61,6 +62,7 @@ sleep 1
 run 0 "upgrading the existing installation" "upgrade in place" -- bash "$installer" --package "$package" --yes --unattended
 check "new release active" test "$(readlink -f /opt/recipewarden/current)" != "$first"
 check "healthy after upgrade" health 5080
+check "AC-107: python-selftest passes after upgrade" bash -c "recipewarden python-selftest >/dev/null"
 check "pre-upgrade snapshot exists" compgen -G "/var/lib/recipewarden/backups/pre-upgrade-*/db/recipewarden.db"
 check "FR-INST-03: backup archives are kept across the upgrade" compgen -G "/var/lib/recipewarden/backups/backup-*.tar.gz"
 
@@ -75,6 +77,7 @@ sleep 1
 run 4 "rolled back" "AC-92: a release that fails health is rolled back" -- bash "$installer" --package "$broken" --yes --unattended
 check "the previous release is active again" test "$(readlink -f /opt/recipewarden/current)" == "$good"
 check "and healthy" health 5080
+check "AC-107: python-selftest passes after rollback" bash -c "recipewarden python-selftest >/dev/null"
 
 # ------------------------------------------------------------------ reconfigure (FR-INST-02)
 run 0 "network.json" "reconfigure moves the port" -- bash "$installer" --reconfigure --port 5090 --yes

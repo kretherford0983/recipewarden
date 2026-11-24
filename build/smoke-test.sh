@@ -46,10 +46,9 @@ offline() {
   else echo "warning: no network namespace available here; running the Python self-test with network" >&2; "$@"
   fi
 }
-py_out=$(offline env -i LANG=C.UTF-8 NLTK_DATA="$app/python/nltk_data" PYTHONHASHSEED=0 \
-  "$app/python/bin/python3" -I -B -m rw_worker selftest </dev/null) || true
+py_out=$(offline env -i HOME="$work" PATH=/usr/bin:/bin "$app/cli/recipewarden" --config "$work/config.json" python-selftest 2>&1) || true
 echo "$py_out"
-grep -q '"passed":true' <<<"$py_out" || { echo "::error::the bundled Python worker failed its offline self-test"; exit 1; }
+grep -q "Self-test: passed" <<<"$py_out" || { echo "::error::the bundled Python worker failed its offline self-test (AC-106)"; exit 1; }
 py_bytes=$(tar -C "$app" -czf - python | wc -c)
 budget=$((90 * 1024 * 1024))
 echo "Python runtime: $((py_bytes / 1048576)) MiB compressed (NFR-10 budget 90 MiB)"
