@@ -8,6 +8,22 @@ Tests must stay fast as the suite grows. These rules are set from M0 so they nev
 - One project: `dotnet test --project tests/RecipeWarden.Web.Tests`.
 - One class or test: `dotnet test --project tests/RecipeWarden.Web.Tests -- --filter-class "*AC_70*"`.
 - Projects one after another (easier to read): `TEST_JOBS=1 build/test.sh`.
+- Python worker (ADR 0051, needs [uv](https://docs.astral.sh/uv/)): `build/python.sh check` (ruff, pytest with an 85%
+  coverage gate, licences and source builds, pip-audit). `build/test.sh` runs `build/python.sh dev` first, so the
+  .NET tests find `python/.venv` and the NLTK model in `python/.nltk_data`.
+
+## Python worker tests (M9, ADR 0051)
+- **Real-worker tests are never skipped.** A missing `python/.venv` fails them with "run build/python.sh dev"; CI
+  builds it in `build-test`. They are few (self-test, adapters, the corpus check, one web class per feature).
+- **Faults use fake workers.** `PythonTestKit.Fake` (Infrastructure) and `PythonWebTestKit.UseFakeWorker` (Web) write a
+  small isolated Python script that answers like the worker, or misbehaves on purpose (late, huge, malformed, silent).
+- **Web test hosts have no worker by default** (`Python:Directory` points nowhere), so pages show the v1 behaviour and
+  no process starts; a class opts in with `UseRealWorker` or `UseFakeWorker`.
+- **Contract fixtures** in `tests/contracts` are checked by both suites: pytest runs each request through the worker
+  and compares the answer's shape; xUnit accepts every golden answer and rejects every file in `invalid/`.
+- **Corpus disagreements** (`tests/contracts/corpus-disagreements.txt`) change only on review: run the class with
+  `RW_ACCEPT_SNAPSHOT=1` after checking the `.received` file (tools/compare-parsers/README.md).
+- pytest tests carry `@pytest.mark.req("AC-…")` like xUnit's `[Trait("Req", "AC-…")]`.
 
 ## How the suite runs in parallel
 1. **Projects at the same time.** `build/test.sh` starts every test project at once, collects each log, then prints

@@ -22,16 +22,68 @@ public sealed class FR_NUT_02_NutritionServiceTests
     public async Task The_bundled_sr_legacy_dataset_is_applied_once_with_densities_and_portions()
     {
         await using var s = await RecipeTestScope.CreateAsync();
-        (await s.Db.NutrientRefs.CountAsync(Ct)).ShouldBe(7793);
+        (await s.Db.NutrientRefs.CountAsync(n => n.DataType == "sr_legacy_food", Ct)).ShouldBe(7793);
         var egg = await s.Db.NutrientRefs.SingleAsync(n => n.FdcId == 171287, Ct);
         egg.Description.ShouldBe("Egg, whole, raw, fresh");
         egg.Calories.ShouldBe(143);
         egg.PortionsJson!.ShouldContain("\"large\":50");
         (await s.Db.NutrientRefs.SingleAsync(n => n.FdcId == 168894, Ct)).DensityGPerMl.ShouldBe(0.5283m); // 1 cup flour = 125 g
-        var dataset = (await s.Nutrition.DatasetAsync(Ct))!;
-        dataset.Version.ShouldBe(NutrientDatasetImporter.SeedVersion);
-        dataset.Foods.ShouldBe(7793);
+        var sr = await s.Db.NutrientDatasets.SingleAsync(d => d.Version == NutrientDatasetImporter.SeedVersion, Ct);
+        sr.Foods.ShouldBe(7793);
         (await s.NutrientImporter.ApplySeedAsync(Ct)).ShouldBeFalse();
+    }
+
+    [Fact]
+    [Trait("Req", "FR-NUT-07")]
+    [Trait("Req", "ADR-0052")]
+    public async Task Foundation_foods_and_fndds_ship_next_to_sr_legacy()
+    {
+        await using var s = await RecipeTestScope.CreateAsync();
+        (await s.Db.NutrientRefs.CountAsync(n => n.DataType == "foundation_food", Ct)).ShouldBe(469);
+        (await s.Db.NutrientRefs.CountAsync(n => n.DataType == "survey_fndds_food", Ct)).ShouldBe(5432);
+
+        // FNDDS: nutrients written by number, a WWEIA category, and "1 cup" portions that give a density.
+        var milk = await s.Db.NutrientRefs.SingleAsync(n => n.FdcId == 2705384, Ct);
+        milk.Description.ShouldBe("Milk, NFS");
+        milk.Category.ShouldNotBeNullOrEmpty();
+        milk.Calories.ShouldNotBeNull();
+        milk.Calories!.Value.ShouldBeInRange(40m, 80m);
+        milk.ProteinG.ShouldNotBeNull();
+        milk.DensityGPerMl!.Value.ShouldBeInRange(0.95m, 1.1m);
+        (await s.Db.NutrientRefs.SingleAsync(n => n.FdcId == 748967, Ct)).Description.ShouldBe("Eggs, Grade A, Large, egg whole");
+
+        var summary = (await s.Nutrition.DatasetSummaryAsync(Ct))!;
+        summary.Versions.ShouldBe([NutrientDatasetImporter.SeedVersion, NutrientDatasetImporter.SecondSeedVersion]);
+        summary.Foods.ShouldBe(7793 + 469 + 5432);
+        (await s.Db.SeedRuns.CountAsync(r => r.Name.StartsWith("nutrients-"), Ct)).ShouldBe(2);
+    }
+
+    [Fact]
+    [Trait("Req", "AC-58")]
+    [Trait("Req", "ADR-0052")]
+    public async Task A_newer_fndds_file_reads_nutrient_numbers_and_flags_only_fndds_foods()
+    {
+        await using var s = await RecipeTestScope.CreateAsync();
+        var zip = Zip(
+            ("survey/food.csv",
+                "\"fdc_id\",\"data_type\",\"description\",\"food_category_id\"\n\"2705384\",\"survey_fndds_food\",\"Milk, NFS\",\"1004\"\n"),
+            ("survey/nutrient.csv", "\"id\",\"name\",\"unit_name\",\"nutrient_nbr\"\n\"1008\",\"Energy\",\"KCAL\",\"208\"\n\"1003\",\"Protein\",\"G\",\"203\"\n"),
+            ("survey/food_nutrient.csv",
+                "\"id\",\"fdc_id\",\"nutrient_id\",\"amount\"\n\"1\",\"2705384\",\"208\",\"61\"\n\"2\",\"2705384\",\"203\",\"3.3\"\n\"3\",\"2705384\",\"301\",\"120\"\n"),
+            ("survey/food_portion.csv",
+                "\"id\",\"fdc_id\",\"seq_num\",\"amount\",\"measure_unit_id\",\"portion_description\",\"modifier\",\"gram_weight\"\n\"1\",\"2705384\",\"1\",\"\",\"9999\",\"1/2 cup\",\"10205\",\"122\"\n"),
+            ("survey/measure_unit.csv", "\"id\",\"name\"\n\"9999\",\"undetermined\"\n"),
+            ("survey/wweia_food_category.csv", "\"wweia_food_category\",\"wweia_food_category_description\"\n\"1004\",\"Milk, reduced fat\"\n"));
+        var result = await s.NutrientImporter.ImportAsync(new MemoryStream(zip), "FNDDS 2026-10", "admin", Ct);
+        result.Ok.ShouldBeTrue(result.Error);
+        result.Removed.ShouldBe(5431); // every other FNDDS food; SR Legacy and Foundation are other kinds
+
+        var milk = await s.Db.NutrientRefs.AsNoTracking().SingleAsync(n => n.FdcId == 2705384, Ct);
+        milk.Calories.ShouldBe(61);
+        milk.ProteinG.ShouldBe(3.3m);
+        milk.Category.ShouldBe("Milk, reduced fat");
+        milk.DensityGPerMl.ShouldBe(Math.Round(122m / (0.5m * 236.5882365m), 4));
+        (await s.Db.NutrientRefs.CountAsync(n => n.RemovedInVersion != null && n.DataType != "survey_fndds_food", Ct)).ShouldBe(0);
     }
 
     [Fact]
@@ -218,7 +270,9 @@ public sealed class FR_NUT_02_NutritionServiceTests
     {
         await using var s = await RecipeTestScope.CreateAsync();
         var r = await s.AddAsync("Egg Bake", "2 large eggs\n1 Tbsp gochujang");
-        var chili = (await s.Nutrition.SearchAsync("chili sauce", Ct))[0];
+        // The SR Legacy chili sauce (ADR 0052 adds FNDDS and Foundation foods, which an SR Legacy file never flags).
+        var srIds = await s.Db.NutrientRefs.Where(n => n.DataType == "sr_legacy_food").Select(n => n.Id).ToListAsync(Ct);
+        var chili = (await s.Nutrition.SearchAsync("chili sauce", Ct)).First(f => srIds.Contains(f.Id));
         await s.Nutrition.MapAsync(null, "gochujang", chili.Id, RecipeTestScope.UserId, Ct);
         var chiliFdc = (await s.Db.NutrientRefs.SingleAsync(n => n.Id == chili.Id, Ct)).FdcId;
 
@@ -246,7 +300,7 @@ public sealed class FR_NUT_02_NutritionServiceTests
         var report = await s.Nutrition.UnmatchedAsync(Ct);
         report.ShouldContain(u => u.Name == "gochujang" && u.Reason == NutritionService.NeedsRemap);
         (await s.Nutrition.GetAsync(r.Id, Ct))!.Calculated.Matched.ShouldBe(2);
-        (await s.Nutrition.SearchAsync("chili sauce", Ct))[0].Removed.ShouldBeTrue();
+        (await s.Nutrition.SearchAsync("chili sauce", Ct)).First(f => f.Id == chili.Id).Removed.ShouldBeTrue();
     }
 
     [Fact]
@@ -260,6 +314,6 @@ public sealed class FR_NUT_02_NutritionServiceTests
         (await s.NutrientImporter.ImportAsync(new MemoryStream(Zip(("food.csv", "fdc_id,data_type,description\n1,branded_food,x\n"),
             ("food_nutrient.csv", "fdc_id,nutrient_id,amount\n"))), "", "admin", Ct)).Error.ShouldBe(NutrientDatasetImporter.NoFoods);
         (await s.Db.NutrientRefs.CountAsync(n => n.RemovedInVersion != null, Ct)).ShouldBe(0);
-        (await s.Db.NutrientDatasets.CountAsync(Ct)).ShouldBe(1);
+        (await s.Db.NutrientDatasets.CountAsync(Ct)).ShouldBe(NutrientDatasetImporter.Seeds.Count);
     }
 }

@@ -107,6 +107,19 @@ public static class ServiceCollectionExtensions
         configuration.GetSection(Ai.AiOptions.SectionName).Bind(ai);
         services.AddSingleton(ai);
         services.AddScoped<Ai.AiParserService>();
+
+        // M9: the Python worker (ADR 0051). One runner and one health record per process; adapters behind Core interfaces.
+        var python = new Python.PythonOptions();
+        configuration.GetSection(Python.PythonOptions.SectionName).Bind(python);
+        services.AddSingleton(python);
+        services.AddSingleton<Python.PythonWorkerHealth>();
+        services.AddSingleton<Python.PythonWorker>();
+        services.AddScoped<Python.PythonFeatures>();
+        services.AddScoped<Core.Python.IFoodSuggestionSource, Python.PythonFoodSuggestionSource>();
+        services.AddScoped<Core.Python.IIngredientSecondOpinion, Python.PythonIngredientSecondOpinion>();
+        services.AddScoped<Core.Python.ISiteRecipeScraper, Python.PythonSiteRecipeScraper>();
+        services.AddScoped<Nutrition.FoodSuggestionService>();
+        services.AddScoped<ImportCompareService>();
         return services;
     }
 

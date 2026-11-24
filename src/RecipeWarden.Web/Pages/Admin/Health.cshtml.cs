@@ -17,9 +17,17 @@ namespace RecipeWarden.Web.Pages.Admin;
 /// is an SVG drawn on the server (NFR-09: no scripts). Maintenance actions: integrity check, compact (VACUUM), purge
 /// expired imports and trash; and the "move to a new host" guide.
 /// </summary>
-public sealed class HealthModel(HealthService health, AuditLog audit, IServiceProvider services, BackupGate gate) : PageModel
+public sealed class HealthModel(HealthService health, AuditLog audit, IServiceProvider services, BackupGate gate,
+    Infrastructure.Python.PythonFeatures python, Infrastructure.Python.PythonWorker worker) : PageModel
 {
     public HealthReport Report { get; private set; } = null!;
+
+    /// <summary>FR-OPS-06: the Python worker's state, the Admin switch and whether the server owner allows it.</summary>
+    public Infrastructure.Python.PythonHealthSnapshot Python { get; private set; } = null!;
+
+    public bool PythonAdminEnabled { get; private set; }
+
+    public bool PythonServerEnabled => python.ServerEnabled;
 
     public string? Message { get; private set; }
 
@@ -35,6 +43,26 @@ public sealed class HealthModel(HealthService health, AuditLog audit, IServicePr
     {
         Message = done;
         Report = await health.EvaluateAsync(store: false, HttpContext.RequestAborted);
+        Python = await python.StatusAsync(HttpContext.RequestAborted);
+        PythonAdminEnabled = await python.AdminEnabledAsync(HttpContext.RequestAborted);
+    }
+
+    /// <summary>FR-OPS-06: the worker's self-test, now (also run once at start-up).</summary>
+    public async Task<IActionResult> OnPostPythonSelftestAsync()
+    {
+        var call = await worker.SelftestAsync(HttpContext.RequestAborted);
+        await audit.RecordAsync("Maintenance.PythonSelftest", null, null, new { passed = call.Ok, failure = call.Failure.ToString() }, HttpContext.RequestAborted);
+        return Redirect("/admin/health?done=" + Uri.EscapeDataString(call.Ok
+            ? "Python worker self-test passed."
+            : "Python worker self-test FAILED (" + call.Failure + "); Python features use the built-in behaviour until it passes.") + "#python");
+    }
+
+    /// <summary>FR-OPS-06, D5: the Admin switch for every Python feature (on by default).</summary>
+    public async Task<IActionResult> OnPostPythonSwitchAsync(bool enabled)
+    {
+        await python.SetAdminEnabledAsync(enabled, HttpContext.RequestAborted);
+        await audit.RecordAsync("Settings.Python", null, null, new { enabled }, HttpContext.RequestAborted);
+        return Redirect("/admin/health?done=" + Uri.EscapeDataString(enabled ? "Python features turned on." : "Python features turned off.") + "#python");
     }
 
     public async Task<IActionResult> OnPostIntegrityAsync()

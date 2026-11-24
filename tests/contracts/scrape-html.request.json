@@ -1,0 +1,2 @@
+{ "url": "https://example.com/r/soup",
+  "html": "<html><head><script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Recipe\",\"name\":\"Lemon Lentil Soup\",\"recipeYield\":\"6\",\"totalTime\":\"PT55M\",\"recipeIngredient\":[\"1 cup red lentils\",\"6 cups vegetable broth\"],\"recipeInstructions\":[{\"@type\":\"HowToStep\",\"text\":\"Simmer 30 minutes.\"}]}</script></head><body></body></html>" }

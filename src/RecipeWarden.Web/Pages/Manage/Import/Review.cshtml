@@ -61,7 +61,15 @@
         <ul>
             @foreach (var w in review.Warnings)
             {
-                <li>@w.Message@if (w.Line is not null) { <text>: </text><q>@w.Line</q> }</li>
+                @if (w.IsSecondOpinion)
+                {
+                    <li class="second-opinion"><span class="badge">Second reading</span> <q>@w.Line</q> — @w.Message.
+                        <span class="hint">Your text is kept as it is; edit the line below if the second reading is right.</span></li>
+                }
+                else
+                {
+                    <li>@w.Message@if (w.Line is not null) { <text>: </text><q>@w.Line</q> }</li>
+                }
             }
         </ul>
     </section>

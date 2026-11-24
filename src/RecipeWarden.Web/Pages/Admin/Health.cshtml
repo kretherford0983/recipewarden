@@ -72,6 +72,41 @@
     <dt>Memory</dt><dd>@HealthRules.FormatBytes(Model.WorkingSetBytes) in use (managed heap @HealthRules.FormatBytes(Model.MemoryBytes))</dd>
 </dl>
 
+<h2 id="python">Python worker</h2>
+@{ var py = Model.Python; }
+<p class="hint">Suggested matches for nutrition and a second reading of imported ingredients (ADR 0051). It runs on this
+    server only and never goes online; when it is off or not working, both use the built-in behaviour.</p>
+<dl class="facts">
+    <dt>Status</dt>
+    <dd>
+        @switch (py.Status)
+        {
+            case RecipeWarden.Infrastructure.Python.PythonStatus.Ok: <span class="badge ok">OK</span> break;
+            case RecipeWarden.Infrastructure.Python.PythonStatus.TurnedOff: <span class="badge">Turned off</span> break;
+            case RecipeWarden.Infrastructure.Python.PythonStatus.Unavailable: <span class="badge warn">Unavailable</span> break;
+            default: <span class="badge">Not checked yet</span> break;
+        }
+        @if (py.Detail is not null) { <span class="hint">@py.Detail</span> }
+    </dd>
+    <dt>Last self-test</dt><dd>@(py.CheckedAt is { } ca ? ca.ToLocalTime().ToString("yyyy-MM-dd HH:mm") : "not run since start-up")@if (py.Checks is { } ch) { <text> — parse @ch.ParseMs ms, scrape @ch.ScrapeMs ms</text> }</dd>
+    @if (py.Engine is not null) { <dt>Libraries</dt><dd>@py.Engine</dd> }
+    <dt>Last call</dt><dd>@(py.LastCallAt is { } lc ? lc.ToLocalTime().ToString("yyyy-MM-dd HH:mm") + " (" + py.LastCommand + ", " + (py.LastFailure is null or RecipeWarden.Core.Python.WorkerFailure.None ? "ok" : py.LastFailure.ToString()) + ")" : "none yet")</dd>
+</dl>
+<div class="actions">
+    @if (!Model.PythonServerEnabled)
+    {
+        <p class="hint">Turned off in the server's config file (<code>Python:Enabled</code>).</p>
+    }
+    else
+    {
+        <form method="post" action="/admin/health?handler=PythonSwitch" asp-antiforgery="true">
+            <input type="hidden" name="enabled" value="@(Model.PythonAdminEnabled ? "false" : "true")">
+            <button type="submit">@(Model.PythonAdminEnabled ? "Turn Python features off" : "Turn Python features on")</button>
+        </form>
+        <form method="post" action="/admin/health?handler=PythonSelftest" asp-antiforgery="true"><button type="submit">Run the Python self-test</button></form>
+    }
+</div>
+
 <h2>Maintenance</h2>
 <div class="actions">
     <form method="post" action="/admin/health?handler=Integrity" asp-antiforgery="true"><button type="submit">Run integrity check</button></form>

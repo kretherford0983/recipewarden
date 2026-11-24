@@ -314,6 +314,45 @@ public static class NutritionRules
     }
 
     /// <summary>g/ml from a USDA volume portion ("1 cup" = 125 g), or null when the portion is not a cup, tablespoon or teaspoon.</summary>
+    /// <summary>ADR 0052: a short name for a USDA data type, shown next to search results; null for anything else.</summary>
+    public static string? DatasetLabel(string? dataType) => dataType switch
+    {
+        "sr_legacy_food" => "SR Legacy",
+        "foundation_food" => "Foundation",
+        "survey_fndds_food" => "FNDDS",
+        _ => null,
+    };
+
+    /// <summary>
+    /// ADR 0052: FNDDS writes a portion as words with the amount in front ("1 cup", "1/2 cup, diced", "1.5 oz") and
+    /// leaves the amount column empty. Returns the leading amount and the rest, or (1, text) when there is no amount.
+    /// </summary>
+    public static (decimal Amount, string Text) SplitPortion(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        var trimmed = text.Trim();
+        var space = trimmed.IndexOf(' ', StringComparison.Ordinal);
+        if (space <= 0)
+        {
+            return (1m, trimmed);
+        }
+
+        var head = trimmed[..space];
+        var rest = trimmed[(space + 1)..].TrimStart();
+        var slash = head.IndexOf('/', StringComparison.Ordinal);
+        if (slash > 0
+            && decimal.TryParse(head[..slash], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var top)
+            && decimal.TryParse(head[(slash + 1)..], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var bottom)
+            && top > 0 && bottom > 0)
+        {
+            return (top / bottom, rest);
+        }
+
+        return decimal.TryParse(head, System.Globalization.NumberStyles.AllowDecimalPoint, System.Globalization.CultureInfo.InvariantCulture, out var n) && n > 0
+            ? (n, rest)
+            : (1m, trimmed);
+    }
+
     public static decimal? DensityFromPortion(string? modifier, string? unitName, decimal amount, decimal grams)
     {
         if (amount <= 0 || grams <= 0)

@@ -38,4 +38,20 @@ health_out=$("$app/cli/recipewarden" --config "$work/config.json" health || true
 echo "$health_out"
 grep -q "quick_check: ok" <<<"$health_out" || { echo "::error::CLI health did not find a sound database"; exit 1; }
 
-echo "Smoke test passed: web and CLI report $expected"
+# ADR 0051: the bundled Python worker passes its self-test with no network at all (AC-106), and fits NFR-10's budget.
+offline() {
+  if unshare -rn true 2>/dev/null; then unshare -rn "$@"
+  elif sudo -n unshare -n true 2>/dev/null; then sudo -n unshare -n setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups "$@"
+  elif [[ -n ${GITHUB_ACTIONS:-} ]]; then echo "::error::cannot create a network namespace for the offline check"; return 1
+  else echo "warning: no network namespace available here; running the Python self-test with network" >&2; "$@"
+  fi
+}
+py_out=$(offline env -i HOME="$work" PATH=/usr/bin:/bin "$app/cli/recipewarden" --config "$work/config.json" python-selftest 2>&1) || true
+echo "$py_out"
+grep -q "Self-test: passed" <<<"$py_out" || { echo "::error::the bundled Python worker failed its offline self-test (AC-106)"; exit 1; }
+py_bytes=$(tar -C "$app" -czf - python | wc -c)
+budget=$((90 * 1024 * 1024))
+echo "Python runtime: $((py_bytes / 1048576)) MiB compressed (NFR-10 budget 90 MiB)"
+(( py_bytes <= budget )) || { echo "::error::the Python runtime is $py_bytes bytes compressed, over the NFR-10 budget"; exit 1; }
+
+echo "Smoke test passed: web and CLI report $expected; the Python worker works offline"

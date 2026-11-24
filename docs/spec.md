@@ -1,6 +1,6 @@
-# RecipeWarden — Specification v0.25
+# RecipeWarden — Specification v0.26
 
-Version 0.25 · 2026-11-24
+Version 0.26 · 2026-11-24
 
 ## 1. Overview
 
@@ -87,6 +87,8 @@ Requirements carry stable IDs (FR = functional, NFR = non-functional) used by th
 | FR-IMP-08 | Keep the raw import payload for 30 days to allow re-parsing after parser fixes. | C |
 | FR-IMP-09 | Optional AI parser (D-08), off by default and enabled by an Admin: provider Claude API or any OpenAI-compatible endpoint (including a local model such as Ollama or LM Studio), model name and API key. Used automatically when the rules-based parse finds no structure or many low-confidence lines (e.g. blog prose, messy PDFs), or on demand with "Re-parse with AI" on the review screen. Output must validate as recipe-md v1 and always goes to review, with AI-parsed fields marked. | M |
 | FR-IMP-10 | AI usage visibility: a log of each call (provider, model, tokens in/out, duration, result), a monthly token total on the admin dashboard, a "Test connection" button, and an optional monthly token cap after which AI parsing pauses and the rules-based parser is used. | S |
+| FR-IMP-11 | Second opinion on imported ingredients (ADR 0051): when the Python worker is available, each imported ingredient line is also read by the NLP parser; lines where the readings disagree on quantity, unit or food (BR-118) are marked on the review page with the other reading. The imported text is never changed automatically. | S |
+| FR-IMP-12 | (M10) Site-specific extraction: for a URL whose host has a site-specific scraper, the scraper's reading is used when the JSON-LD/microdata reading is missing or incomplete (BR-117); the review page names the method. | C |
 
 ### 3.3 Organization and search (ORG / SRCH)
 
@@ -163,6 +165,7 @@ Requirements carry stable IDs (FR = functional, NFR = non-functional) used by th
 | FR-NUT-04 | Custom foods from a package label: enter serving size (g or ml) and the Nutrition Facts values; the app stores them per 100 g as a local food that can be mapped like any USDA food. | M |
 | FR-NUT-05 | Dataset refresh: each release ships the current USDA snapshot; an Admin can also import a newer USDA FoodData Central download file (uploaded, never fetched by the app). Mappings are kept by USDA id; foods removed from the new dataset are flagged for re-mapping. | M |
 | FR-NUT-06 | When the AI parser is enabled, it can suggest mappings for unmatched ingredients, choosing only from candidate foods found in the local dataset; an Editor confirms each suggestion. | S |
+| FR-NUT-07 | Local mapping suggestions (ADR 0051, 0052): when the Python worker is available, the unmatched-ingredient report suggests a USDA food for each unmatched name, chosen by the bundled ingredient matcher and resolved against the local dataset only, with its confidence. An Editor confirms or dismisses each; confirming is the same as a manual mapping (FR-NUT-03). | S |
 
 ### 3.9 Home, navigation and preferences (HOME / UI)
 
@@ -216,13 +219,14 @@ Requirements carry stable IDs (FR = functional, NFR = non-functional) used by th
 | FR-OPS-03 | Capacity tracking: a daily storage snapshot drives a 90-day growth chart and a "days until full" projection; configurable Warning and Critical thresholds raise a banner for Admins on every page and a clear recommendation (free space, add disk, or back up and restore to a larger host). | M |
 | FR-OPS-04 | Maintenance actions on the health page: run integrity check, VACUUM (compact) the database, purge expired import files and trash, open the "move to a new host" guide. | S |
 | FR-OPS-05 | Machine-readable status: /health/ready returns 503 when status is Critical (for Uptime Kuma or similar); optional outbound webhook (e.g. ntfy, Discord) on status change. | S |
+| FR-OPS-06 | Python worker status (ADR 0051): the health page shows the worker's state (OK, unavailable, turned off) from a self-test at startup and the last call; an Admin can turn Python features off (`Python:Enabled`). When it is unavailable every feature falls back to the .NET behaviour (BR-119). `recipewarden python-selftest` checks it from the CLI. | M |
 
 ### 3.13 Non-functional
 
 | ID | Requirement |
 | --- | --- |
 | NFR-01 Performance | Recipe and home pages render server-side in under 300 ms at p95 with 5,000 recipes on a 2-vCPU host; search returns in under 200 ms. |
-| NFR-02 Footprint | Idle memory under 250 MB; runs on Debian 12/13 and Ubuntu 22.04/24.04/26.04 LTS x64 (arm64 a Should). |
+| NFR-02 Footprint | Idle memory under 250 MB; runs on Debian 12/13 and Ubuntu 24.04/26.04 LTS x64 (arm64 a Should). Ubuntu 22.04 installs with a warning but is not tested (ADR 0054). |
 | NFR-03 Accessibility | WCAG 2.2 AA: keyboard reachable, visible focus, 4.5:1 contrast in both themes, labelled forms, alt text on images. |
 | NFR-04 Browsers | Current Safari (macOS/iOS), Chrome, Firefox, Edge; responsive from 360 px to desktop ultrawide (3440 px). |
 | NFR-05 Security | Meets every rule in section 5; no high/critical vulnerable packages at release. |
@@ -230,6 +234,7 @@ Requirements carry stable IDs (FR = functional, NFR = non-functional) used by th
 | NFR-07 Reliability | SQLite in WAL mode; no data loss on service restart; backups verified by restore test in CI. |
 | NFR-08 Maintainability | Warnings as errors, nullable enabled, analyzers on, central package management. |
 | NFR-09 Privacy | No telemetry, no third-party scripts, fonts or CDNs; all assets served locally. |
+| NFR-10 Python worker | On a 2-vCPU host: self-test under 3 s; `parse-ingredients` for 100 lines with FDC matching under 3 s p95; worker peak memory under 400 MB and none when idle (NFR-02's idle memory is unchanged); the Linux package grows by no more than 90 MB compressed (ADR 0051). |
 
 ## 4. Business rules
 
@@ -254,6 +259,9 @@ These rules are enforced in the domain layer (not only the UI) and each has unit
 | BR-11 | Only an Admin can change a Web recipe's source type to another type, e.g. Personal when heavily adapted (any change away from Web, so the credit cannot be hidden by another route), and the change is audit-logged. |
 | BR-12 | Copying a source image requires the user to tick the opt-in on that import; the image's original URL is stored with it. |
 | BR-13 | Imported HTML is never stored or rendered as HTML: text is extracted and stored as plain text or restricted Markdown. |
+| BR-117 | (M10, FR-IMP-12) URL extraction order: JSON-LD → microdata; if that result is complete (title, ≥ 1 ingredient, ≥ 1 step) it wins; else, if the host has a site scraper and the scraper's result is complete, it wins; else the heading heuristic. `Import:SiteScrapers` turns the scraper step off; its default follows the `import-compare` data (ADR 0051, D6). |
+| BR-118 | (FR-IMP-11) Second-opinion comparison: quantities equal within 0.001 (ranges compare both ends), units equal after the unit alias table, food names equal after removing the FoodMatcher modifier words and plurals, with "or" read as "and" (alternatives). A count word the .NET parser keeps in the name ("6 garlic cloves") that the NLP parser reads as the unit ("6 cloves garlic") is the same reading. Only quantity, unit or food differences are flagged; preparation and notes are not. |
+| BR-119 | Python results are advisory: a failure, timeout or invalid response never blocks an import, a save or a page; the .NET result is used and the event is logged once per request (ADR 0051). |
 
 ### 4.3 Scaling and conversion
 
@@ -302,6 +310,7 @@ These rules are enforced in the domain layer (not only the UI) and each has unit
 | BR-52 | Allergen detection uses the ingredient catalogue mapping plus keyword rules; manual overrides win and survive re-detection. |
 | BR-53 | (M6, ADR 0009) A "free of" filter excludes any recipe with that allergen detected or manually set, and also recipes with unmatched ingredients unless the user chooses "include unverified". |
 | BR-54 | Nutrition data is local only: the app never calls a nutrition service. Mapping precedence for an ingredient: Editor mapping > custom food > automatic name/alias match. Unmapped ingredients lower completeness (BR-50) and appear in the unmatched report. |
+| BR-116 | (FR-NUT-07) A food suggestion is shown only if its FDC id matches a local, non-removed `NutrientRef`, with confidence ≥ 0.75; it is never applied without an Editor; precedence stays Editor mapping > custom food > automatic exact match (BR-54). Dismissed suggestions are not shown again for that name and engine version. |
 
 ### 4.7 Backups
 
@@ -478,6 +487,19 @@ The repository is public (ADR 0005). The pipeline uses these gates; GitHub code 
 | SEC-82 | .NET analyzers (`AnalysisMode=Recommended`) with the security rules (CA2xxx, CA3xxx, CA5xxx) raised to errors; warnings as errors. |
 | SEC-83 | gitleaks secret scan on every push and as a local pre-commit hook. |
 | SEC-84 | Actions pinned to commit SHAs; workflow `permissions: contents: read` by default. |
+
+### 5.10 Python worker
+
+ADR 0051. The worker is an adapter for parsing and matching; these rules apply to every Python feature.
+
+| ID | Rule |
+| --- | --- |
+| SEC-90 | The worker makes no network connections: a guard installed before any third-party import makes `connect`, `create_connection` and `getaddrinfo` fail; all models and data are bundled in the package. |
+| SEC-91 | The worker is started only by the app, without a shell, with a fixed argument list, `-I -B` and an allow-listed environment. Its input is JSON on stdin; it never receives file paths, commands or URLs to fetch. |
+| SEC-92 | Limits: request 6 MiB, response 2 MiB, 20 s (selftest 30 s), at most two worker processes at a time; on breach the process tree is killed and BR-119 applies. |
+| SEC-93 | Worker output is untrusted: strict JSON contract (unknown members rejected), lengths capped, text sanitized like any import (BR-13, SEC-22), never rendered as HTML; FDC ids are resolved locally only. |
+| SEC-94 | Python files are installed root-owned and read-only inside the release directory; the worker runs as the service user inside the existing sandbox (SEC-70) with no extra writable paths, and loads no models or pickles from outside the package. |
+| SEC-95 | Python dependencies are pinned with hashes, installed from wheels only (`--only-binary :all:`); CI fails on a known-vulnerable package (pip-audit) or on a licence outside `python/licences-allowed.txt` (ADR 0053); Dependabot watches the lock file. |
 
 ## 6. UX standards and workflows
 
@@ -752,8 +774,9 @@ Inbound requests only arrive through cloudflared to Kestrel on its configured IP
 | Logging | Serilog (journald/console + rolling file) | Apache-2.0 |
 | Tests | xUnit v3, Shouldly, NSubstitute, Verify (snapshots), WebApplicationFactory, Playwright for .NET, coverlet | MIT / Apache-2.0 |
 | AI parser (optional) | Plain HttpClient against the Claude Messages API and OpenAI-compatible chat completions; provider behind an IAiRecipeParser interface | — |
+| Python adapters (ADR 0051) | Bundled CPython 3.13 (python-build-standalone) running `rw_worker` as a short-lived process: ingredient-parser-nlp (FR-NUT-07, FR-IMP-11), recipe-scrapers (FR-IMP-12, M10); locked with uv | PSF / MIT; dependencies permissive except two unmodified MPL-2.0 packages (ADR 0053) |
 
-All libraries are permissively licensed; avoid packages that moved to commercial licences for assertions or mocking.
+All libraries are permissively licensed (the Python exception is ADR 0053); avoid packages that moved to commercial licences for assertions or mocking.
 
 ### 9.2 Solution structure
 
@@ -764,7 +787,8 @@ recipewarden/
     RecipeWarden.Importers/       URL, Markdown, Docx, PDF parsers -> canonical recipe; ingredient line parser; optional AI parser
     RecipeWarden.Infrastructure/  EF Core, migrations, file store, safe HTTP fetcher, backup service, health monitor, nutrition calc
     RecipeWarden.Web/             Razor Pages, htmx partials, auth, middleware, static assets
-    RecipeWarden.Cli/             admin create, backup, restore, health, apply-config (also used by installer)
+    RecipeWarden.Cli/             admin create, backup, restore, health, apply-config, python-selftest, import-compare
+  python/                         rw_worker (ADR 0051): uv project, network guard, contract v1, commands; pytest; licence lists
   tests/
     RecipeWarden.Core.Tests/
     RecipeWarden.Importers.Tests/   (fixture corpus of real-world pages and files)
@@ -772,6 +796,7 @@ recipewarden/
     RecipeWarden.Web.Tests/         (integration: endpoints, auth matrix, CSRF, headers)
     RecipeWarden.Cli.Tests/
     RecipeWarden.E2E.Tests/         (Playwright: key workflows W1-W10)
+    contracts/                      (worker request/response fixtures shared by pytest and xUnit; corpus disagreements)
   deploy/
     install.sh  uninstall.sh  recipewarden.service  cloudflared-example.yml  fstab-nas-example
   docs/
@@ -803,7 +828,7 @@ Pure, deterministic code in Core, and the most heavily tested part of the system
 
 | Item | Location |
 | --- | --- |
-| Binaries | `/opt/recipewarden/releases/<version>-<time>/{web,cli}` + `current` symlink (3 kept, for rollback) |
+| Binaries | `/opt/recipewarden/releases/<version>-<time>/{web,cli,python}` + `current` symlink (3 kept, for rollback); `python/` is the bundled CPython and worker (ADR 0051), root-owned and read-only |
 | Config | `/etc/recipewarden/appsettings.Production.json` |
 | Data | `/var/lib/recipewarden/{db,media,imports,backups,keys}` |
 | Logs | journald + `/var/log/recipewarden/` |
@@ -931,7 +956,8 @@ Free text.
 | Snapshot | Parser output for a corpus of saved pages and files; Markdown export | Verify |
 | Integration | Every endpoint against an in-memory host: auth matrix, antiforgery, headers, CSP, SSRF block list, upload validation, backup/restore round-trip | WebApplicationFactory, temp SQLite |
 | End-to-end | W1–W7 in Chromium, both themes, phone and desktop sizes; accessibility scan | Playwright |
-| Installer | `install.sh` run in Debian and Ubuntu containers: install, upgrade, uninstall | GitHub Actions + Docker |
+| Installer | `install.sh` run in Debian and Ubuntu containers: install, upgrade, uninstall; `python-selftest` after each (AC-107) | GitHub Actions + Docker |
+| Python worker (ADR 0051) | Unit and contract tests (`tests/contracts`, shared with xUnit), licence and source-build checks; .NET tests against a fake worker for faults and the real one end to end (never skipped) | pytest, ruff, pip-audit; xUnit |
 
 Rules: tests are written with or before the code; every bug fix adds a failing test first; no test is skipped or deleted to make a build pass; coverage gates per NFR-06.
 
@@ -943,6 +969,7 @@ The repository is public (ADR 0005): GitHub-hosted Actions minutes are free and 
 
 - Branch flow (ADR 0004, docs/branching.md): `feature/*` → `develop` → `main`; `hotfix/*` → `main`, then back-merged into `develop`. A `promotion-rules` check enforces the flow, and that a version reaching `main` is unreleased and has a CHANGELOG section.
 - `ci.yml` on feature/hotfix pushes and every PR into `develop` or `main`: promotion rules → restore (NuGet cache) → build (warnings as errors) → all unit, integration and E2E tests (Playwright browsers cached) → coverage gate → vulnerable-package check → gitleaks → installer container tests. Target under 8 minutes.
+- The `python worker` job (ADR 0051, SEC-95): ruff, pytest with an 85% coverage gate, licences (ADR 0053) and source builds, pip-audit; `build-test` sets up the worker for the real-worker tests, and `package` bundles a pinned CPython (uv-verified).
 - `build.yml` on pushes to `develop` and `main`: build the self-contained linux-x64 package (and arm64 when added), smoke-test it, and publish it with `install.sh` + SHA-256: `develop` → pre-release `v<version>-dev.<run>` for the test host (newest 3 kept); `main` → release `v<version>`.
 - Workflow-run artifact retention 1 day (7 for hand-run builds); releases kept.
 - `ci.yml` jobs run side by side; the aggregate job `test` is the one required check (ADR 0006).
@@ -961,6 +988,8 @@ The repository is public (ADR 0005): GitHub-hosted Actions minutes are free and 
 8. **M6 Nutrition and allergens** — bundled SR Legacy data, calculated nutrition, imported and manual panels, allergen detection and overrides, the "free of" filter, the unmatched report, mapping, label foods, and the `nutrition-import` CLI. The upload page for a newer dataset is M7; AI mapping suggestions (FR-NUT-06) are M8 (ADR 0034 to 0036).
 9. **M7 Operations** — backups, schedule, retention, encryption and recovery kit, restore (ad hoc, CLI and at install), `/setup`, audit, users, settings, health and capacity dashboard, `/admin/nutrition-data`, installer restore, pre-upgrade backup and firewall rule (ADR 0037 to 0041). TOTP, `/account/password` and `/admin/ai` are M8.
 10. **M8 Hardening** — optional AI parser (FR-IMP-09/10, FR-NUT-06, ADR 0026, 0042), TOTP, `/account/password`, common-password list, remember me and the sign-in rate limit (ADR 0043), home recommendations FR-HOME-02 (ADR 0044), security test pass, accessibility pass and performance at 5,000 recipes (ADR 0045), v1.0 release (ADR 0046).
+11. **M9 Python foundation and ingredient intelligence** (ADR 0051 to 0054) — bundled Python runtime and worker with CI and packaging, local mapping suggestions (FR-NUT-07), a second opinion on imported ingredient lines (FR-IMP-11), worker health and the Admin switch (FR-OPS-06), and `recipewarden import-compare` to measure M10; Foundation Foods and FNDDS ship with SR Legacy (ADR 0052); Ubuntu 22.04 dropped (ADR 0054).
+12. **M10 Site-specific URL scrapers** — FR-IMP-12 (BR-117), switched on only if `import-compare` shows a gain; otherwise closed with an ADR.
 
 ## 10. Requirements traceability
 
@@ -1004,6 +1033,10 @@ This matrix seeds `docs/traceability.md` in the repo. Test classes are named aft
 | FR-SCL-04/05/06 | BR-110–114; BR-20, BR-21, BR-27 | ContainerRules; Recipe.Yield\*; KitchenTool (Container); recipe page; `/manage/recipes/{id}/cooked` | Core.Tests ContainerRules; Infra.Tests YieldAndPanStore; Web.Tests ContainerPage | AC-37, AC-38, AC-39 |
 | FR-IMP-09/10 | BR-13, BR-93; SEC-44–47 | IAiRecipeParser, AI settings, AiCallLog; /admin/ai | Importers.Tests AiParser (stubbed provider); Web.Tests AiSettings, AiSsrfException | AC-17, AC-18 |
 | FR-NUT-03 to 06 | BR-50, BR-54 | Unmatched report, mapping, NutrientRef (Custom), NutrientDatasetImporter, CLI `nutrition-import`; /manage/nutrition (/admin/nutrition-data in M7; FR-NUT-06 in M8) | Core.Tests NutritionRules; Infra.Tests NutritionService (dataset refresh); Cli.Tests NutritionImport; Web.Tests NutritionPage | AC-57, AC-58 |
+| FR-NUT-07 | BR-116, BR-54 | FoodSuggestion, `FoodSuggestionService`, Python matcher (ADR 0051, 0052); `/manage/nutrition` | Core, Infra, Web, pytest | AC-101, AC-102, AC-103 |
+| FR-IMP-11 | BR-118, BR-119 | `SecondOpinionRules`, `ImportService`, review page | Core, Infra (corpus), Web | AC-104 |
+| FR-IMP-12 (M10) | BR-117 | Site reader in the URL import order | M10 | AC-110 to AC-112 |
+| FR-OPS-06 | BR-119; SEC-90–95; NFR-10 | `PythonWorker`, health section, CLI `python-selftest`, `import-compare` | Infra, Web, Cli, pytest, smoke and installer tests | AC-103, AC-105 to AC-109 |
 | FR-BKP-08 to 15 | BR-60–62; SEC-70, SEC-74, SEC-75 | Backup:AllowedFolders, apply-config, systemd drop-in, BackupSchedule, marker check, encryption (9.6.1) | Cli.Tests ApplyConfig; Infra.Tests BackupDestination, Retention, Encryption; installer container tests | AC-86, AC-87, AC-88, AC-89 |
 
 ## 11. Acceptance criteria
@@ -1099,7 +1132,7 @@ Each criterion is written Given / When / Then and becomes at least one automated
 | AC-80 | Given "Back up now", then an archive with database, media, config and a valid manifest is created and listed with its size and checksum. |
 | AC-81 | Given a daily schedule with retention keep-7-daily, 4-weekly, 6-monthly, after 60 simulated days, then exactly those archives remain and the newest is never deleted. |
 | AC-82 | Given a valid archive, when restored, then a pre-restore backup is made, data matches the archive, and the site returns to service. A tampered archive (checksum mismatch or `../` path) is rejected before anything changes. |
-| AC-90 | Given a clean Debian 12/13 or Ubuntu 22.04/24.04/26.04 host, when `install.sh --port 5080` runs, then dependencies are installed as needed, the service is enabled, starts on reboot, and `/health` returns ok on the chosen bind address and port. |
+| AC-90 | Given a clean Debian 12/13 or Ubuntu 24.04/26.04 host, when `install.sh --port 5080` runs, then dependencies are installed as needed, the service is enabled, starts on reboot, and `/health` returns ok on the chosen bind address and port. |
 | AC-91 | Given port 5080 in use, then the installer stops before changing anything and suggests a free port. |
 | AC-92 | Given an installed v1.0, when a v1.1 install runs with `--upgrade` and the new build fails health, then it rolls back to v1.0 automatically. |
 | AC-93 | Given `install.sh --bind 192.168.1.15 --port 5080 --trusted-proxy 192.168.1.20`, then the service listens on 192.168.1.15:5080; a request from 192.168.1.20 (the tunnel container) succeeds and its `CF-Connecting-IP` is used as the client IP; a request from any other LAN address is refused; forwarded headers from an untrusted address are ignored. `install.sh --reconfigure --bind 192.168.1.16` moves the listener and firewall rule without data loss. |
@@ -1116,6 +1149,23 @@ Each criterion is written Given / When / Then and becomes at least one automated
 | AC-87 | (AC-BKP-005, 006) Saving a schedule whose destination is not in the allowed list is refused and the saved value is always the config entry; Test on a writable listed folder succeeds and leaves no probe file; on a read-only folder it reports the OS error with the hint. |
 | AC-88 | (AC-BKP-007 to 009) An interrupted backup leaves no file with the final name; retention never deletes a file it did not write; with the marker file missing (share unmounted), the run fails and nothing is written. |
 | AC-89 | (AC-BKP-010) A failed run shows the Admin banner and is retried after 1 hour, then 2, then 4; the next scheduled run still occurs on time; a run missed while the service was stopped runs at the next start. A backup archive cannot be read without the recovery kit and passphrase, and a restore with the wrong passphrase changes nothing. |
+
+### 11.8 Python adapters (M9, M10)
+
+| ID | Criterion |
+| --- | --- |
+| AC-101 | (M9) Given the unmatched ingredient "brown sugar" and a working worker, when an Editor asks for suggestions, then "Sugars, brown" (or the FNDDS/Foundation equivalent present locally) is shown with its confidence, and confirming maps every recipe using it and recalculates nutrition. |
+| AC-102 | (M9) Given a suggestion whose FDC id is not in the local dataset (or is removed), then it is not shown. |
+| AC-103 | (M9) Given the worker is unavailable or turned off, then the unmatched report and import work as in v1, the health page shows the worker state, and no error page is shown. |
+| AC-104 | (M9) Given an imported line the parsers read differently (e.g. "1-1/2 cups milk"), then the review page marks that line with the second reading; saving keeps the editor's text unchanged. |
+| AC-105 | (M9) Given the worker returns malformed, oversized or late output, then the request completes with the .NET result, the process is gone, and one warning is logged. |
+| AC-106 | (M9) Given the network is unavailable to the worker, then `python-selftest` passes from the built package (models bundled), and an attempted connection fails inside the worker. |
+| AC-107 | (M9) Given each installer matrix image, when the package is installed, upgraded and rolled back, then `recipewarden python-selftest` passes after each step. |
+| AC-108 | (M9) Given a Python dependency with a disallowed licence or a known vulnerability, then CI fails. |
+| AC-109 | (M9) `recipewarden import-compare` reports, for each saved URL import, the .NET method, whether a site scraper exists and how the two readings differ; it reads only `<data>/imports` and writes nothing. |
+| AC-110 | (M10) Given a supported host whose page has no complete JSON-LD/microdata recipe, then the import uses the site scraper, shows "Site reader" as the method, and credits the source as usual. |
+| AC-111 | (M10) Given a page whose JSON-LD result is complete, then the .NET result is used even if a site scraper exists. |
+| AC-112 | (M10) The site scraper only ever receives HTML from SafeFetcher or paste; a test proves no fetch is attempted. |
 
 ## 12. Project instructions and kickoff prompt
 
@@ -1137,6 +1187,8 @@ rules (BR-, SEC-, UX-) and acceptance criteria (AC-) are referenced in code, tes
 - Target: Linux x64 headless, self-contained build, systemd service `recipewarden` behind Cloudflare Tunnel;
   bind IP/port set at install (loopback, or the host's LAN IP when cloudflared runs in a separate container)
 - Optional AI parser (off by default): Claude API or an OpenAI-compatible endpoint, via plain HttpClient
+- Python adapters (ADR 0051): bundled CPython 3.13 runs `rw_worker` (python/, uv-locked) as a short-lived, offline
+  process behind Core interfaces; .NET stays the parser of record and every Python feature falls back to it
 
 ## How we work
 1. Before coding, restate the requirement IDs in scope and list the acceptance criteria you will satisfy.
@@ -1195,6 +1247,7 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
+- v0.26 (2026-11-24): M9 drafts (ADR 0051 to 0054). FR-IMP-11, FR-IMP-12 (M10), FR-NUT-07, FR-OPS-06; BR-116 to BR-119; new section 5.10 (SEC-90 to SEC-95); NFR-10; 11.8 AC-101 to AC-112; 9.1 Python adapters row; 9.10 M9 and M10. NFR-02 and AC-90 drop Ubuntu 22.04 (ADR 0054).
 - v0.25 (2026-11-24): UX-14 amendment — JSON-LD follows Safari HomeView and Google Recipe guidance (ADR 0050 amendment 1). Changelog renumbered (two v0.24 lines; v0.22 was on an unmerged branch).
 - v0.24 (2026-11-23): Recipe JSON-LD (ADR 0050); SEC-23 allows that one data block.
 - v0.23 (2026-11-23): UX-14 amendment — ingredient lines are paragraphs; recipe pages declare `og:type=article` with a description (ADR 0048 amendment 1).

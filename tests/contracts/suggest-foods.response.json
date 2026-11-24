@@ -1,0 +1,31 @@
+{
+ "v": 1,
+ "ok": true,
+ "engine": {
+  "worker": "1.0.0",
+  "python": "3.13.18",
+  "libs": {
+   "ingredient-parser-nlp": "2.10.0",
+   "recipe-scrapers": "15.14.0"
+  }
+ },
+ "result": {
+  "suggestions": [
+   {
+    "name": "brown sugar",
+    "fdc": [
+     {
+      "fdc_id": 2710260,
+      "data_type": "survey_fndds_food",
+      "description": "Sugar, brown",
+      "confidence": 1.0
+     }
+    ]
+   },
+   {
+    "name": "gochujang",
+    "fdc": []
+   }
+  ]
+ }
+}

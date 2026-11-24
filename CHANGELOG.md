@@ -5,6 +5,23 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 
 ## 1.0.0 — unreleased
 
+### M9 Python adapters (ADR 0051 to 0054)
+- Ubuntu 22.04 is no longer supported (ADR 0054): the installer warns on it and carries on; CI no longer tests it.
+- The bundled nutrition data adds USDA Foundation Foods (2026-04) and FNDDS (2024-10) next to SR Legacy (ADR 0052):
+  13,694 foods. Food search names each result's dataset, and the nutrition page lists every dataset in use. A full
+  FNDDS download can be imported like the others.
+- Nutrition: "Suggest matches" on the unmatched-ingredient report looks each ingredient up in the bundled USDA data
+  on this server and shows a suggested food with how sure it is; "Use" maps it, "Dismiss" hides it (FR-NUT-07).
+- Import review: a line the second parser reads differently is marked "Second reading" with its reading; your text is
+  never changed (FR-IMP-11).
+- Without the Python worker (turned off, missing or failing) both work as before (BR-119).
+- Health page: a "Python worker" section shows its state, libraries and last self-test, with "Run the Python
+  self-test" and an Admin switch to turn Python features off (FR-OPS-06). The self-test also runs at start-up.
+- `sudo recipewarden python-selftest` checks the bundled worker from the shell; the installer tests run it after
+  install, upgrade and rollback (AC-107).
+- `sudo recipewarden import-compare` re-reads your saved URL imports (kept 30 days) with the built-in extractor and with
+  site-specific readers, and says whether M10 would help. It reads only (AC-109).
+
 ### Ounces on liquids (BR-115, ADR 0049)
 - "24 oz chicken broth" now converts and scales as fluid ounces (24 fl oz, 710 ml), not 1½ lb or grams. This applies
   to broth, milk, cream, wine, juice and other water-like liquids; honey, syrups, solids and unmatched lines keep

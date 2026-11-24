@@ -24,7 +24,11 @@ public sealed record RecipeNutrition(
 public sealed record UnmatchedRow(string Name, int? FoodId, string? FoodName, int Recipes, int Lines, string Reason);
 
 /// <summary>A nutrient row found by search.</summary>
-public sealed record NutrientChoice(int Id, string Description, string? Category, string Source, decimal? Calories, bool Removed);
+public sealed record NutrientChoice(int Id, string Description, string? Category, string Source, decimal? Calories, bool Removed)
+{
+    /// <summary>ADR 0052: the USDA dataset's short name ("FNDDS"), so Editors can tell like-named foods apart.</summary>
+    public string? Dataset { get; init; }
+}
 
 public sealed record NutritionEditResult(bool Ok, string? Error)
 {
@@ -281,7 +285,7 @@ public sealed class NutritionService(AppDbContext db, FoodCatalogService foods, 
             q = q.Where(n => n.NormalizedDescription.Contains(word));
         }
 
-        var found = await q.Select(n => new { n.Id, n.Description, n.Category, n.Source, n.Calories, n.RemovedInVersion })
+        var found = await q.Select(n => new { n.Id, n.Description, n.Category, n.Source, n.Calories, n.RemovedInVersion, n.DataType })
             .Take(500).ToListAsync(cancellationToken).ConfigureAwait(false);
         return found
             .OrderBy(n => n.RemovedInVersion is null ? 0 : 1)
@@ -289,7 +293,10 @@ public sealed class NutritionService(AppDbContext db, FoodCatalogService foods, 
             .ThenBy(n => n.Description.Length)
             .ThenBy(n => n.Description, StringComparer.OrdinalIgnoreCase)
             .Take(SearchLimit)
-            .Select(n => new NutrientChoice(n.Id, n.Description, n.Category, n.Source, n.Calories, n.RemovedInVersion is not null))
+            .Select(n => new NutrientChoice(n.Id, n.Description, n.Category, n.Source, n.Calories, n.RemovedInVersion is not null)
+            {
+                Dataset = NutritionRules.DatasetLabel(n.DataType),
+            })
             .ToList();
     }
 
@@ -324,7 +331,10 @@ public sealed class NutritionService(AppDbContext db, FoodCatalogService foods, 
             .ThenBy(f => f.Row.Description.Length)
             .ThenBy(f => f.Row.Description, StringComparer.OrdinalIgnoreCase)
             .Take(SearchLimit)
-            .Select(f => new NutrientChoice(f.Row.Id, f.Row.Description, f.Row.Category, f.Row.Source, f.Row.Calories, false))
+            .Select(f => new NutrientChoice(f.Row.Id, f.Row.Description, f.Row.Category, f.Row.Source, f.Row.Calories, false)
+            {
+                Dataset = NutritionRules.DatasetLabel(f.Row.DataType),
+            })
             .ToList();
     }
 
@@ -407,4 +417,37 @@ public sealed class NutritionService(AppDbContext db, FoodCatalogService foods, 
     public async Task<NutrientDataset?> DatasetAsync(CancellationToken cancellationToken = default) =>
         (await db.NutrientDatasets.AsNoTracking().ToListAsync(cancellationToken).ConfigureAwait(false))
             .OrderByDescending(d => d.AppliedAt).ThenByDescending(d => d.Id).FirstOrDefault();
+
+    /// <summary>
+    /// The USDA data in use (ADR 0052: several datasets live side by side): each version that still has foods, oldest
+    /// first, and how many foods are current. <see cref="DatasetSummary.Key"/> names the data for caches (BR-116).
+    /// </summary>
+    public async Task<DatasetSummary?> DatasetSummaryAsync(CancellationToken cancellationToken = default)
+    {
+        var counts = await db.NutrientRefs.AsNoTracking()
+            .Where(n => n.Source == NutrientSources.Usda && n.RemovedInVersion == null && n.DatasetVersion != null)
+            .GroupBy(n => n.DatasetVersion!)
+            .Select(g => new { Version = g.Key, Foods = g.Count() })
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+        if (counts.Count == 0)
+        {
+            return null;
+        }
+
+        var applied = (await db.NutrientDatasets.AsNoTracking().ToListAsync(cancellationToken).ConfigureAwait(false))
+            .GroupBy(d => d.Version, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Max(d => d.Id), StringComparer.Ordinal);
+        var versions = counts.Select(c => c.Version)
+            .OrderBy(v => applied.TryGetValue(v, out var id) ? id : int.MaxValue).ThenBy(v => v, StringComparer.Ordinal)
+            .ToList();
+        return new DatasetSummary(versions, counts.Sum(c => c.Foods));
+    }
+}
+
+/// <summary>The USDA datasets in use and their current food count (ADR 0052).</summary>
+public sealed record DatasetSummary(IReadOnlyList<string> Versions, int Foods)
+{
+    public string Key => string.Join(" + ", Versions);
+
+    public string Text => string.Join("; ", Versions);
 }

@@ -23,6 +23,16 @@ updates:
       # Serilog's major versions follow .NET's (Serilog.AspNetCore 11 pulls in Microsoft.Extensions 11).
       - dependency-name: "Serilog*"
         update-types: ["version-update:semver-major"]
+  # SEC-95: the Python worker's lock file (ADR 0051).
+  - package-ecosystem: uv
+    directory: /python
+    target-branch: develop
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      python:
+        patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
     target-branch: develop
