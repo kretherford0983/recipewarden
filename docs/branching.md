@@ -36,7 +36,7 @@ systemd unit, `build-info.json`), plus `install.sh`, `build-info.json` and `SHA2
 3. **Pull request feature → develop**; merge with **Squash** when green. The build publishes `v<version>-dev.<n>`.
 4. **Test**: run the install command from that pre-release's notes on the test host (docs/install.md).
 5. **Release**: pull request **develop → main**, merge with **Create a merge commit**. The build publishes `v<version>`
-   (notes = that version's CHANGELOG section) and removes its development pre-releases.
+   (notes = that version's CHANGELOG section) and removes the development pre-releases of that version and every earlier one (dev builds of a later version stay).
 6. **Hotfix**: branch `hotfix/<name>` from `main`, bump the patch number, pull request into `main`; then pull request
    `main → develop` (merge commit) so the fix is not lost.
 
