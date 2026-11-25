@@ -22,6 +22,11 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
   source, public with a published recipe and included in the Markdown zip export (BR-131).
 - Admin → AI parser: "This model can read images" and "Test image reading" (ADR 0058 D8).
 
+### Release publishing (ADR 0061)
+- A GitHub error while uploading no longer leaves a dev build stuck as a draft (the v1.0.0-dev.29 404): uploads are
+  retried, a re-run finishes the draft, and file sizes are checked before publishing.
+- Publishing a release now removes every dev build of that version and earlier ones (like PennyWarden).
+
 ### v1 polish (2026-11-25)
 - The site has a tab icon, an Apple touch icon and app icons, and can be installed as an app: Chrome and Edge show
   "Install" in the address bar, phones offer "Add to home screen". The installed app is named from the site name and
