@@ -3,7 +3,7 @@ using Microsoft.Playwright;
 namespace RecipeWarden.E2E.Tests;
 
 /// <summary>
-/// UX-15, AC-134, ADR 0058: Chrome itself reports the site as installable (no installability errors), and the tab
+/// UX-15, AC-134, ADR 0060: Chrome itself reports the site as installable (no installability errors), and the tab
 /// icon is the one the page links to. Uses Chrome's own check through the DevTools protocol.
 /// </summary>
 [Trait("Req", "UX-15")]

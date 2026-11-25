@@ -277,7 +277,7 @@ public static class RecipeWardenHost
             .AllowAnonymous()
             .WithName("Ready");
 
-        // UX-15, ADR 0058: the web app manifest, named from the site name setting (anonymous, like the icons it lists).
+        // UX-15, ADR 0060: the web app manifest, named from the site name setting (anonymous, like the icons it lists).
         app.MapGet("/manifest.webmanifest", async (RecipeWarden.Infrastructure.Settings.SettingsStore settings, CancellationToken ct) =>
                 Results.Json(RecipeWarden.Core.Presentation.AppManifest.For(await settings.GetAsync(RecipeWarden.Infrastructure.Settings.SettingKeys.SiteName, ct)),
                     contentType: "application/manifest+json"))

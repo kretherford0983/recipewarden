@@ -15,7 +15,7 @@ public sealed record ManifestShortcut(
     [property: JsonPropertyName("url")] string Url);
 
 /// <summary>
-/// UX-15, ADR 0058: the web app manifest that makes the site installable as an app (Chrome and Edge "Install",
+/// UX-15, ADR 0060: the web app manifest that makes the site installable as an app (Chrome and Edge "Install",
 /// Android "Add to home screen"). Named from the site name setting; no service worker is needed to install.
 /// </summary>
 public sealed record AppManifest(

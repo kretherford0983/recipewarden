@@ -29,3 +29,8 @@ one before buying (a roux needs butter and flour, usually on hand) and to restoc
 ## Consequences
 New tables Staples and ShoppingStapleChecks; ShoppingLines gains IsStaple, IsRestock and Section. Existing lines are
 marked IsStaple from today's flags by the migration, so open lists look the same after upgrading.
+
+## Amendment 1 (2026-11-25): editable kitchen locations (BR-49)
+The fixed list becomes the starting list, stored in the setting `Shopping.StapleLocations` once edited. Editors add,
+rename, reorder (by number) and remove locations on /manage/staples. Renaming moves the staples with it; removing
+moves them to "Other", which is always last and fixed. At most 20 locations of up to 24 characters.

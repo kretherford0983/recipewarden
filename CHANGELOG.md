@@ -22,6 +22,14 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
   source, public with a published recipe and included in the Markdown zip export (BR-131).
 - Admin → AI parser: "This model can read images" and "Test image reading" (ADR 0058 D8).
 
+### v1 polish (2026-11-25)
+- The site has a tab icon, an Apple touch icon and app icons, and can be installed as an app: Chrome and Edge show
+  "Install" in the address bar, phones offer "Add to home screen". The installed app is named from the site name and
+  opens in its own window (UX-15, ADR 0060).
+- Allergens: if checking an ingredient line ever takes too long, the recipe now shows "May contain" for every allergen
+  instead of none, and the "free of" filter leaves it out until it is checked again (BR-55).
+- Staples: kitchen locations can be added, renamed, reordered and removed on Manage → Staples (BR-49).
+
 ### Owner testing feedback (ADR 0055 to 0057)
 - My Kitchen: the form shows only the fields for the chosen type, the scale's step is called "Resolution (smallest
   step)" with how to read it off the label ("1" means 1 g), and fields from another type are never saved (BR-120, BR-121).

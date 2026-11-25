@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ADR 0058: regenerates the favicon, Apple touch icon and web app manifest icons from build/icons/*.svg.
+# ADR 0060: regenerates the favicon, Apple touch icon and web app manifest icons from build/icons/*.svg.
 # Needs rsvg-convert (librsvg) and ImageMagick's convert. The outputs are committed; run this only after changing the SVGs.
 set -euo pipefail
 cd "$(dirname "$0")/.."

@@ -20,3 +20,10 @@
    with unmatched lines unless "include unverified" is ticked.
 5. **Disclaimer (FR-ALG-03):** the footer line stays. The recipe's allergen badges and nutrition panel also say
    they are estimates and that labels should be checked.
+
+## Amendment 1 (2026-11-25): fail safe on a timed-out check (BR-55)
+A line whose word match timed out used to count as "no allergens found", so a busy host could silently drop a badge
+(seen once in a loaded test run). Now such a line may contain every allergen, so the recipe shows "May contain" for
+all of them and the "free of" filter leaves it out until the next save or re-check. The limit rose from 250 ms to 2 s:
+the patterns are literal word lists, so matching is linear in the line's length and the limit only guards against a
+stalled host.

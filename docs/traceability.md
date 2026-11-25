@@ -331,6 +331,14 @@ rules, stored for search, "free of").
 | FR-SHOP-03 (changed), FR-SHOP-05 / BR-43 to BR-48 / AC-51 (revised), AC-52 to AC-54, AC-125 | Done | `ShoppingRules.Merge` (answers, restock, IsStaple), `StapleRules`, `StapleService`, `ShoppingService.AnswerStapleAsync`/`AddRestockAsync`; `/manage/staples`, `/shopping/{id}/staples`, `?handler=Staple`; migration `StaplesAndRestock` | Core `FR_SHOP_05_StapleRulesTests`; Infra `FR_SHOP_05_StapleServiceTests`; Web `FR_SHOP_05_StaplePageTests`, `AC_70_AuthMatrixTests` |
 | FR-MEAS-07 | Fix | `PanRules.FromSteps` returns no pan on a regex timeout instead of failing the recipe page | — (seen as an intermittent 500 under a loaded test run) |
 
+### v1 polish, 2026-11-25 (ADR 0060, ADR 0036 and 0057 amendments; PR into `develop`)
+
+| ID | Status | Implementation | Tests |
+| --- | --- | --- | --- |
+| BR-55 / AC-132 | Done | `AllergenRules.TryDetect`, `Unchecked`, 2 s limit | Core `BR_55_AllergenFailSafeTests` |
+| BR-49 / AC-133 | Done | `StapleRules.EditLocations`, `ParseLocations`, `DefaultFor`; setting `Shopping.StapleLocations`; `StapleService.LocationsAsync`/`SaveLocationsAsync`; location editor on `/manage/staples` | Core `BR_49_KitchenLocationTests`; Web `FR_SHOP_05_StaplePageTests` |
+| UX-15 / AC-134 | Done | `build/icons/*.svg`, `build/icons.sh`, wwwroot icons, `_AppIcons`, `AppManifest` (Core), `/manifest.webmanifest`, maintenance page icon | Core `UX_15_AppManifestTests`; Web `UX_15_AppIconTests`, `AC_70_AuthMatrixTests`; E2E `UX_15_InstallableTests` (Chrome's installability check) |
+
 ### Notes and open issues
 
 - **Owner testing notes (2026-11-24):**
@@ -340,9 +348,8 @@ rules, stored for search, "free of").
   - A step line starting "-" or "*" now needs a space after it to count as a bullet, so a lone `**Alone**` line keeps
     its text (it used to lose a "*").
   - The owner's three recipe files are committed as importer fixtures at the owner's request.
-  - Seen under a fully loaded test run and left as an open issue: `AllergenRules` (Core) catches a regex timeout and
-    then reports no allergens for that line. On a slow host that would silently drop an allergen badge. Needs its own
-    change (an allergen check should fail loud, not empty).
+  - Seen under a fully loaded test run: `AllergenRules` (Core) caught a regex timeout and reported no allergens for
+    that line. Fixed on 2026-11-25 (BR-55): the line may contain every allergen instead.
   - No new packages.
 
 - **M9 notes (2026-11-24):**
