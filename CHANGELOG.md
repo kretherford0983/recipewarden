@@ -5,6 +5,13 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 
 ## 1.0.0 — unreleased
 
+### Site readers for web imports (M10, ADR 0059)
+- When a page's recipe data (JSON-LD or microdata) is missing or incomplete, recipe-scrapers' reader for that site can
+  read the same HTML; a complete reading replaces the .NET one (FR-IMP-12, BR-117). Off by default: turn it on under
+  Admin → Health once `import-compare` shows a gain. Complete recipe data always wins (AC-111); the reader never
+  fetches (AC-112); a worker failure keeps the normal reading (AC-131).
+- The review page says how a web import was read ("Recipe data (JSON-LD)", "Site reader (recipe-scrapers)", …).
+
 ### Photo import with the AI parser (M8b, ADR 0058)
 - Import a recipe from 1 to 4 photos (a handwritten card, a printed page) on **Manage → Import → From photos** when
   the AI parser is on and its model can read images. Photos are sent upright, at most 1568 px, as JPEG without

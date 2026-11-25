@@ -7,7 +7,11 @@
 }
 <p class="breadcrumb"><a href="/manage">Manage</a> › <a href="/manage/import">Import</a> ›</p>
 <h1>Review import</h1>
-<p class="hint">From @review.Kind: @review.SourceRef</p>
+<p class="hint">From @review.Kind: @review.SourceRef@if (review.Kind is RecipeWarden.Core.Import.ImportSourceKind.Url or RecipeWarden.Core.Import.ImportSourceKind.Paste && !review.ParsedByAi)
+    {
+        @* FR-IMP-12: the review page names how the recipe was read. *@
+        <text> · Read from: @RecipeWarden.Core.Import.SiteReaderRules.MethodLabel(review.Recipe.Method)</text>
+    }</p>
 
 @if (review.Batch.Count > 1)
 {

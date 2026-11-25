@@ -72,6 +72,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<SafeFetcher>();
         services.AddScoped<ImageStore>();
         services.AddScoped<ImportService>();
+        services.AddScoped<SiteReaderSettings>();
         services.AddScoped<ShoppingService>();
         services.AddScoped<StapleService>();
         services.AddScoped<ShoppingSeeder>();

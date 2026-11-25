@@ -18,7 +18,7 @@ namespace RecipeWarden.Web.Pages.Admin;
 /// expired imports and trash; and the "move to a new host" guide.
 /// </summary>
 public sealed class HealthModel(HealthService health, AuditLog audit, IServiceProvider services, BackupGate gate,
-    Infrastructure.Python.PythonFeatures python, Infrastructure.Python.PythonWorker worker) : PageModel
+    Infrastructure.Python.PythonFeatures python, Infrastructure.Python.PythonWorker worker, Infrastructure.Import.SiteReaderSettings siteReaders) : PageModel
 {
     public HealthReport Report { get; private set; } = null!;
 
@@ -26,6 +26,9 @@ public sealed class HealthModel(HealthService health, AuditLog audit, IServicePr
     public Infrastructure.Python.PythonHealthSnapshot Python { get; private set; } = null!;
 
     public bool PythonAdminEnabled { get; private set; }
+
+    /// <summary>FR-IMP-12, ADR 0059: whether web imports may use the site readers.</summary>
+    public bool SiteReadersEnabled { get; private set; }
 
     public bool PythonServerEnabled => python.ServerEnabled;
 
@@ -45,6 +48,7 @@ public sealed class HealthModel(HealthService health, AuditLog audit, IServicePr
         Report = await health.EvaluateAsync(store: false, HttpContext.RequestAborted);
         Python = await python.StatusAsync(HttpContext.RequestAborted);
         PythonAdminEnabled = await python.AdminEnabledAsync(HttpContext.RequestAborted);
+        SiteReadersEnabled = await siteReaders.EnabledAsync(HttpContext.RequestAborted);
     }
 
     /// <summary>FR-OPS-06: the worker's self-test, now (also run once at start-up).</summary>
@@ -63,6 +67,14 @@ public sealed class HealthModel(HealthService health, AuditLog audit, IServicePr
         await python.SetAdminEnabledAsync(enabled, HttpContext.RequestAborted);
         await audit.RecordAsync("Settings.Python", null, null, new { enabled }, HttpContext.RequestAborted);
         return Redirect("/admin/health?done=" + Uri.EscapeDataString(enabled ? "Python features turned on." : "Python features turned off.") + "#python");
+    }
+
+    /// <summary>FR-IMP-12, ADR 0059: the site-reader switch for web imports (off until an Admin turns it on).</summary>
+    public async Task<IActionResult> OnPostSiteReaderSwitchAsync(bool enabled)
+    {
+        await siteReaders.SetEnabledAsync(enabled, HttpContext.RequestAborted);
+        await audit.RecordAsync("Settings.SiteReaders", null, null, new { enabled }, HttpContext.RequestAborted);
+        return Redirect("/admin/health?done=" + Uri.EscapeDataString(enabled ? "Site readers turned on." : "Site readers turned off.") + "#python");
     }
 
     public async Task<IActionResult> OnPostIntegrityAsync()

@@ -116,6 +116,10 @@ this server only and never go online; nothing to install. **Admin → Health** s
 has the switch to turn them off; `"Python": { "Enabled": false }` in `appsettings.Production.json` turns them off for
 good. When off or not working, both features use the built-in behaviour.
 
+**Site readers for web imports** (M10, ADR 0059) are off by default. After some weeks of URL imports, run
+`sudo recipewarden import-compare`: if it lists pages that only the site reader read completely, turn them on under
+**Admin → Health** ("Turn site readers on"). They are only tried when a page's recipe data is missing or incomplete.
+
 ```bash
 sudo recipewarden python-selftest   # check the bundled worker (exit 0 passed)
 sudo recipewarden import-compare    # after a few weeks of URL imports: would site-specific readers have helped? (reads only)

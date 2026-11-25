@@ -1,6 +1,6 @@
-# RecipeWarden — Specification v0.28
+# RecipeWarden — Specification v0.29
 
-Version 0.28 · 2026-11-24
+Version 0.29 · 2026-11-24
 
 ## 1. Overview
 
@@ -89,7 +89,7 @@ Requirements carry stable IDs (FR = functional, NFR = non-functional) used by th
 | FR-IMP-09 | Optional AI parser (D-08), off by default and enabled by an Admin: provider Claude API or any OpenAI-compatible endpoint (including a local model such as Ollama or LM Studio), model name and API key. Used automatically when the rules-based parse finds no structure or many low-confidence lines (e.g. blog prose, messy PDFs), or on demand with "Re-parse with AI" on the review screen. Output must validate as recipe-md v1 and always goes to review, with AI-parsed fields marked. | M |
 | FR-IMP-10 | AI usage visibility: a log of each call (provider, model, tokens in/out, duration, result), a monthly token total on the admin dashboard, a "Test connection" button, and an optional monthly token cap after which AI parsing pauses and the rules-based parser is used. | S |
 | FR-IMP-11 | Second opinion on imported ingredients (ADR 0051): when the Python worker is available, each imported ingredient line is also read by the NLP parser; lines where the readings disagree on quantity, unit or food (BR-118) are marked on the review page with the other reading. The imported text is never changed automatically. | S |
-| FR-IMP-12 | (M10) Site-specific extraction: for a URL whose host has a site-specific scraper, the scraper's reading is used when the JSON-LD/microdata reading is missing or incomplete (BR-117); the review page names the method. | C |
+| FR-IMP-12 | (M10, ADR 0059) Site-specific extraction: for a URL whose host has a site-specific scraper, the scraper's reading is used when the JSON-LD/microdata reading is missing or incomplete (BR-117), while an Admin has site readers turned on (off by default); the review page names the method. | C |
 | FR-IMP-13 | (M8b, ADR 0058) Import from 1 to 4 photos (JPEG, PNG, WebP) through the AI parser (D-13): offered only when the AI parser is on and its model is marked as image-capable; photos are re-encoded without metadata before sending; the result validates as recipe-md v1 and goes to review with the photos shown; the photos can be kept with the recipe as recipe-card images (kept by default). | S |
 
 ### 3.3 Organization and search (ORG / SRCH)
@@ -262,7 +262,7 @@ These rules are enforced in the domain layer (not only the UI) and each has unit
 | BR-11 | Only an Admin can change a Web recipe's source type to another type, e.g. Personal when heavily adapted (any change away from Web, so the credit cannot be hidden by another route), and the change is audit-logged. |
 | BR-12 | Copying a source image requires the user to tick the opt-in on that import; the image's original URL is stored with it. |
 | BR-13 | Imported HTML is never stored or rendered as HTML: text is extracted and stored as plain text or restricted Markdown. |
-| BR-117 | (M10, FR-IMP-12) URL extraction order: JSON-LD → microdata; if that result is complete (title, ≥ 1 ingredient, ≥ 1 step) it wins; else, if the host has a site scraper and the scraper's result is complete, it wins; else the heading heuristic. `Import:SiteScrapers` turns the scraper step off; its default follows the `import-compare` data (ADR 0051, D6). |
+| BR-117 | (M10, FR-IMP-12, ADR 0059) URL extraction order, for a fetched page or pasted HTML with a page address: JSON-LD → microdata; if that result is complete (title, ≥ 1 ingredient, ≥ 1 step) it wins; else, if site readers are on (setting `Import.SiteReaders`, Admin → Health, off by default), the host has a site scraper and the scraper's result is complete, it wins; else the .NET reading as before (incomplete structured data or the heading heuristic). The AI fallback (FR-IMP-09) follows unchanged. Turn it on once `import-compare` shows a gain (D6). |
 | BR-118 | (FR-IMP-11) Second-opinion comparison: quantities equal within 0.001 (ranges compare both ends), units equal after the unit alias table, food names equal after removing the FoodMatcher modifier words and plurals, with "or" read as "and" (alternatives). A count word the .NET parser keeps in the name ("6 garlic cloves") that the NLP parser reads as the unit ("6 cloves garlic") is the same reading. Only quantity, unit or food differences are flagged; preparation and notes are not. |
 | BR-119 | Python results are advisory: a failure, timeout or invalid response never blocks an import, a save or a page; the .NET result is used and the event is logged once per request (ADR 0051). |
 | BR-124 | (FR-IMP-04, ADR 0056) Two recipes in one file are batch sizes of one recipe when their titles match once a batch word is removed ("(Single Batch)", "Double", "x2", "for 12") and their ingredients overlap by more than 80% with one consistent ratio (at least 70% of matched amounts within ±15%). |
@@ -669,7 +669,7 @@ Three zones: public reading pages, `/manage` for editors, `/admin` for admins. T
 | /recipes/{slug}/export-ai, /collections/{slug}/export-ai, /recipes/export-ai | Export for AI (goal picker, include-inventory option, download or copy); GET only; readers get published recipes; collection and all share the search rate limit (ADR 0033) | Anonymous |
 | /manage/import/ai-response | Paste or upload AI reply, diff, save as variant (draft by default), publish it, or replace the original (ADR 0033) | Editor |
 | /docs/recipe-md.schema.json | JSON Schema for recipe-md v1 front matter (FR-EXP-06), a static file | Anonymous |
-| /admin/health | Health and capacity dashboard, maintenance actions | Admin |
+| /admin/health | Health and capacity dashboard, maintenance actions; Python switch and site-reader switch (ADR 0059) | Admin |
 | /health/ready | Readiness: 200 OK or Warning, 503 Critical (no details) | Anonymous |
 | /setup | First run: create admin or restore from backup | Setup token, only before first admin (SEC-15) |
 | /manage/nutrition | Unmatched ingredients, mapping, custom foods from labels | Editor |
@@ -1024,7 +1024,7 @@ The repository is public (ADR 0005): GitHub-hosted Actions minutes are free and 
 10. **M8 Hardening** — optional AI parser (FR-IMP-09/10, FR-NUT-06, ADR 0026, 0042), TOTP, `/account/password`, common-password list, remember me and the sign-in rate limit (ADR 0043), home recommendations FR-HOME-02 (ADR 0044), security test pass, accessibility pass and performance at 5,000 recipes (ADR 0045), v1.0 release (ADR 0046).
 10b. **M8b Photo import** (ADR 0058) — FR-IMP-13, BR-128 to BR-131, SEC-48: vision requests in AiProtocol for both providers, image-capable flag and image test on /admin/ai, photo upload and review, recipe-card images, W11. Built before M9 (owner, 2026-11-24).
 11. **M9 Python foundation and ingredient intelligence** (ADR 0051 to 0054) — bundled Python runtime and worker with CI and packaging, local mapping suggestions (FR-NUT-07), a second opinion on imported ingredient lines (FR-IMP-11), worker health and the Admin switch (FR-OPS-06), and `recipewarden import-compare` to measure M10; Foundation Foods and FNDDS ship with SR Legacy (ADR 0052); Ubuntu 22.04 dropped (ADR 0054).
-12. **M10 Site-specific URL scrapers** — FR-IMP-12 (BR-117), switched on only if `import-compare` shows a gain; otherwise closed with an ADR.
+12. **M10 Site-specific URL scrapers** (ADR 0059) — FR-IMP-12 (BR-117), built behind an Admin switch that starts off (owner, 2026-11-24); turned on once `import-compare` shows a gain.
 
 ## 10. Requirements traceability
 
@@ -1070,7 +1070,7 @@ This matrix seeds `docs/traceability.md` in the repo. Test classes are named aft
 | FR-NUT-03 to 06 | BR-50, BR-54 | Unmatched report, mapping, NutrientRef (Custom), NutrientDatasetImporter, CLI `nutrition-import`; /manage/nutrition (/admin/nutrition-data in M7; FR-NUT-06 in M8) | Core.Tests NutritionRules; Infra.Tests NutritionService (dataset refresh); Cli.Tests NutritionImport; Web.Tests NutritionPage | AC-57, AC-58 |
 | FR-NUT-07 | BR-116, BR-54 | FoodSuggestion, `FoodSuggestionService`, Python matcher (ADR 0051, 0052); `/manage/nutrition` | Core, Infra, Web, pytest | AC-101, AC-102, AC-103 |
 | FR-IMP-11 | BR-118, BR-119 | `SecondOpinionRules`, `ImportService`, review page | Core, Infra (corpus), Web | AC-104 |
-| FR-IMP-12 (M10) | BR-117 | Site reader in the URL import order | M10 | AC-110 to AC-112 |
+| FR-IMP-12 (M10) | BR-117 | Site reader in the URL import order, behind an Admin switch (ADR 0059) | M10 | AC-110 to AC-112, AC-131 |
 | FR-IMP-13 | BR-128 to BR-131; SEC-48, SEC-50, SEC-52 | AiProtocol image parts, PhotoImportRules (Core), ImageEncoder.ForAi, ImportService.StartPhotosAsync, RecipeCardImage, `/manage/import` photo form, review photos, `/admin/ai` image test | Core PhotoImportRules; Importers AiProtocol; Infra PhotoImport; Web PhotoImport | AC-126 to AC-130 |
 | FR-OPS-06 | BR-119; SEC-90–95; NFR-10 | `PythonWorker`, health section, CLI `python-selftest`, `import-compare` | Infra, Web, Cli, pytest, smoke and installer tests | AC-103, AC-105 to AC-109 |
 | FR-BKP-08 to 15 | BR-60–62; SEC-70, SEC-74, SEC-75 | Backup:AllowedFolders, apply-config, systemd drop-in, BackupSchedule, marker check, encryption (9.6.1) | Cli.Tests ApplyConfig; Infra.Tests BackupDestination, Retention, Encryption; installer container tests | AC-86, AC-87, AC-88, AC-89 |
@@ -1219,6 +1219,7 @@ Each criterion is written Given / When / Then and becomes at least one automated
 | AC-110 | (M10) Given a supported host whose page has no complete JSON-LD/microdata recipe, then the import uses the site scraper, shows "Site reader" as the method, and credits the source as usual. |
 | AC-111 | (M10) Given a page whose JSON-LD result is complete, then the .NET result is used even if a site scraper exists. |
 | AC-112 | (M10) The site scraper only ever receives HTML from SafeFetcher or paste; a test proves no fetch is attempted. |
+| AC-131 | (M10, ADR 0059) Given site readers are off (the default), then no URL or paste import calls the site reader and imports read as before; given they are on and the worker fails, then the import uses the .NET reading. |
 
 ## 12. Project instructions and kickoff prompt
 
@@ -1300,6 +1301,7 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
+- v0.29 (2026-11-24): M10 site readers (ADR 0059): FR-IMP-12 and BR-117 revised (Admin switch `Import.SiteReaders`, off by default, replaces the config value); AC-131; 7.2 /admin/health; 9.10 M10.
 - v0.28 (2026-11-24): Photo import through the AI parser (ADR 0058, milestone M8b before M9). D-13; FR-IMP-13; BR-128 to BR-131; SEC-48; SEC-50 and SEC-52 clarified; W11; AC-126 to AC-130; 7.2 import and /admin/ai; 8.2 RecipeCardImage; 8.5 ImportJob photo fields; 9.3 and 9.10.
 - v0.27 (2026-11-24): Owner testing (ADR 0055 to 0057). Kitchen form fields and scale resolution (BR-120, BR-121); per-ingredient weights (FR-TOOL-05, BR-122, BR-123); batch sizes and variations in one import file and Markdown clean-up (BR-124 to BR-127); staples: FR-SHOP-03 changed to "Check before you buy", new FR-SHOP-05 restock walk-through, BR-43 to BR-48. 7.2 adds `/manage/staples`, `/shopping/{id}/staples` and the Staple handler; 8.2 RecipeIngredient.Measure; 8.5 Staple, ShoppingStapleCheck and ShoppingLine columns; ACs 51 (revised), 52 to 54, 113 to 120, 125.
 - v0.26 (2026-11-24): M9 drafts (ADR 0051 to 0054). FR-IMP-11, FR-IMP-12 (M10), FR-NUT-07, FR-OPS-06; BR-116 to BR-119; new section 5.10 (SEC-90 to SEC-95); NFR-10; 11.8 AC-101 to AC-112; 9.1 Python adapters row; 9.10 M9 and M10. NFR-02 and AC-90 drop Ubuntu 22.04 (ADR 0054).

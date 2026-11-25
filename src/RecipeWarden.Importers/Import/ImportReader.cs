@@ -148,8 +148,10 @@ public static class ImportReader
         return name.Length == 0 ? null : ImportText.Line(name, 200);
     }
 
-    private static bool LooksLikeHtml(string text)
+    /// <summary>Pasted text that reads as a saved page (ADR 0024); also decides whether a site reader may see it (ADR 0059).</summary>
+    public static bool LooksLikeHtml(string text)
     {
+        ArgumentNullException.ThrowIfNull(text);
         var head = text.Length > 4000 ? text[..4000] : text;
         return head.Contains("<html", StringComparison.OrdinalIgnoreCase) || head.Contains("<body", StringComparison.OrdinalIgnoreCase)
             || head.Contains("<!doctype", StringComparison.OrdinalIgnoreCase) || head.Contains("<div", StringComparison.OrdinalIgnoreCase)
