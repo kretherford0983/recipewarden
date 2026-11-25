@@ -5,6 +5,11 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 
 ## 1.0.0 — unreleased
 
+### Fixed: saving a recipe could fail on a busy server
+- The ingredient parser's group-heading check let a regex timeout escape, so a save could return an error when the
+  host (or CI runner) was busy. A timeout now reads the line as an ingredient, and the parser allows 2 s, as the
+  allergen check does (BR-55).
+
 ### Site readers for web imports (M10, ADR 0059)
 - When a page's recipe data (JSON-LD or microdata) is missing or incomplete, recipe-scrapers' reader for that site can
   read the same HTML; a complete reading replaces the .NET one (FR-IMP-12, BR-117). Off by default: turn it on under
