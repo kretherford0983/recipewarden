@@ -166,7 +166,9 @@ jobs:
         run: bash build/version.sh --check
 
       - name: Release publishing survives GitHub errors (ADR 0061)
-        run: bash tests/build/test-publish-release.sh
+        run: |
+          bash tests/build/test-publish-release.sh
+          bash tests/build/test-prune-dev-builds.sh
 
   secrets:
     runs-on: ubuntu-24.04

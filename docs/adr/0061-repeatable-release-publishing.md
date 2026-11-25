@@ -21,6 +21,12 @@ A re-run of the failed job therefore finishes a stuck draft. `tests/build/test-p
 against a fake `gh` in CI (dependency checks job): first publish, the dev.29 failure, a re-run, a short file, and an
 already published release.
 
+## Clean-up after a release (owner, 2026-11-25)
+As PennyWarden does, publishing release v<version> from main removes every dev pre-release (and its tag) of that
+version and of any earlier version, e.g. v1.0.0 removes v1.0.0-dev.*, v0.7.0-dev.15 and v0.6.0-dev.14. Dev builds of
+a later version stay, because develop may already be testing the next one. Releases are never removed.
+`tests/build/test-prune-dev-builds.sh` checks both modes.
+
 ## Consequences
 A publish takes a few more API calls. A draft is still possible when GitHub fails four times in a row, but re-running
 the job now finishes it.
