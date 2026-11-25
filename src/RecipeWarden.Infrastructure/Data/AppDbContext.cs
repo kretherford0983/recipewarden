@@ -393,6 +393,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
             e.Property(t => t.ToolType).HasConversion<string>().HasMaxLength(16);
             e.Property(t => t.PanShape).HasConversion<string>().HasMaxLength(16);
             e.Property(t => t.SupportedUnits).HasMaxLength(32);
+            e.Property(t => t.Markings).HasMaxLength(512);
             Real(e.Property(t => t.DefaultFillPct));
             Real(e.Property(t => t.CapacityAmount));
             Real(e.Property(t => t.ResolutionAmount));

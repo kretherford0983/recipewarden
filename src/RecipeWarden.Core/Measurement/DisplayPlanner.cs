@@ -23,6 +23,8 @@ public sealed record ToolPlan(IReadOnlyList<ToolFill> Fills, string Text, decima
 /// FR-MEAS-02, BR-21, BR-24, ADR 0018: combines the active spoons and cups to make an amount. At most 3 fills;
 /// the fewest fills within tolerance wins, then the smallest error. Returns null when nothing fits, and the caller
 /// falls back to the nearest fraction (ADR 0012). Large amounts therefore stay "5 cups" (5 fills is over the cap).
+/// BR-50: a marking on a cup, jug or adjustable measure is one fill; a plan uses at most one, and at the same number of
+/// fills a plan with only fixed measures wins (they are the more accurate).
 /// </summary>
 public static class DisplayPlanner
 {
@@ -40,7 +42,7 @@ public static class DisplayPlanner
         // (5.6% off). Only when nothing is that close, the fewest fills within the recipe's tolerance (BR-21).
         foreach (var stage in new[] { Math.Min(MeasureDisplay.PrecisionTolerance, tolerance), tolerance }.Distinct())
         {
-            if (Search(ml, tools.Measures, stage) is { } plan)
+            if (Search(ml, tools.Measures, tools.Markings, stage) is { } plan)
             {
                 return plan;
             }
@@ -49,20 +51,56 @@ public static class DisplayPlanner
         return null;
     }
 
-    private static ToolPlan? Search(decimal ml, IReadOnlyList<KitchenToolInfo> measures, decimal tolerance)
+    private static ToolPlan? Search(decimal ml, IReadOnlyList<KitchenToolInfo> measures, IReadOnlyList<KitchenToolInfo> markings, decimal tolerance)
+    {
+        for (var fills = 1; fills <= MaxFills; fills++)
+        {
+            var best = Best(ml, measures, fills, null, tolerance);
+            if (best is not null)
+            {
+                return best;
+            }
+
+            foreach (var marking in markings)
+            {
+                if (Best(ml, measures, fills - 1, marking, tolerance) is { } withMarking && (best is null || withMarking.Error < best.Error))
+                {
+                    best = withMarking;
+                }
+            }
+
+            if (best is not null)
+            {
+                return best;
+            }
+        }
+
+        return null;
+    }
+
+    // The closest plan of exactly <fills> fixed fills, plus the marking when given.
+    private static ToolPlan? Best(decimal ml, IReadOnlyList<KitchenToolInfo> measures, int fills, KitchenToolInfo? marking, decimal tolerance)
     {
         ToolPlan? best = null;
-        for (var fills = 1; fills <= MaxFills && best is null; fills++)
+        var combos = fills == 0 ? [Array.Empty<int>()] : Combinations(measures.Count, fills);
+        if (fills > 0 && measures.Count == 0)
         {
-            foreach (var combo in Combinations(measures.Count, fills))
+            return null;
+        }
+
+        foreach (var combo in combos)
+        {
+            var planned = combo.Sum(i => measures[i].CapacityMl!.Value) + (marking?.CapacityMl ?? 0m);
+            var error = Math.Abs(planned - ml) / ml;
+            if (error <= tolerance && (best is null || error < best.Error))
             {
-                var planned = combo.Sum(i => measures[i].CapacityMl!.Value);
-                var error = Math.Abs(planned - ml) / ml;
-                if (error <= tolerance && (best is null || error < best.Error))
+                var grouped = combo.GroupBy(i => i).Select(g => new ToolFill(measures[g.Key], g.Count())).ToList();
+                if (marking is not null)
                 {
-                    var grouped = combo.GroupBy(i => i).Select(g => new ToolFill(measures[g.Key], g.Count())).ToList();
-                    best = new ToolPlan(grouped, Text(grouped), ml, planned, error);
+                    grouped.Add(new ToolFill(marking, 1));
                 }
+
+                best = new ToolPlan(grouped, Text(grouped), ml, planned, error);
             }
         }
 

@@ -52,12 +52,22 @@ public sealed record KitchenToolInfo(
 
     public bool Supports(string unitCode) =>
         SupportedUnits?.Contains(unitCode, StringComparer.Ordinal) == true;
+
+    /// <summary>BR-50: the markings on a cup, jug or adjustable measure (null or empty for a plain measure).</summary>
+    public IReadOnlyList<MeasureScale>? Scales { get; init; }
+
+    /// <summary>BR-50: a virtual tool standing for one marking of <see cref="Id"/> (display planner only).</summary>
+    public bool IsMarking { get; init; }
 }
 
 /// <summary>
 /// BR-120: the form fields that belong to a tool type. Only these are shown, and only these are read on save.
 /// </summary>
-public sealed record KitchenFields(bool Size, bool ScaleUnits, bool Fill, string SizeLabel, string SizeHint, string SizePlaceholder);
+public sealed record KitchenFields(bool Size, bool ScaleUnits, bool Fill, string SizeLabel, string SizeHint, string SizePlaceholder)
+{
+    /// <summary>BR-50: the type can have markings (cups, spoons, jugs).</summary>
+    public bool Markings { get; init; }
+}
 
 /// <summary>A tool to add from /manage/kitchen in one click (ADR 0021).</summary>
 public sealed record KitchenPreset(string Key, string Label, IReadOnlyList<KitchenToolInfo> Tools);
@@ -77,9 +87,9 @@ public static class KitchenRules
     /// <summary>BR-120: which fields a type uses, and how the size field is labelled for it.</summary>
     public static KitchenFields FieldsFor(ToolType type) => type switch
     {
-        ToolType.MeasuringSpoon => new(true, false, false, "Size", "The spoon's size, e.g. 1/8 tsp or 1/2 Tbsp.", "1/8 tsp"),
-        ToolType.MeasuringCup => new(true, false, false, "Size", "The cup's size, e.g. 2/3 cup.", "2/3 cup"),
-        ToolType.LiquidMeasure => new(true, false, false, "Capacity", "How much the jug holds, e.g. 2 cups or 1 quart.", "2 cups"),
+        ToolType.MeasuringSpoon => new(true, false, false, "Size", "The spoon's size, e.g. 1/8 tsp or 1/2 Tbsp.", "1/8 tsp") { Markings = true },
+        ToolType.MeasuringCup => new(true, false, false, "Size", "The cup's size, e.g. 2/3 cup.", "2/3 cup") { Markings = true },
+        ToolType.LiquidMeasure => new(true, false, false, "Capacity", "How much the jug holds, e.g. 2 cups or 1 quart.", "2 cups") { Markings = true },
         ToolType.Container => new(true, false, true, "Capacity", "How much it holds, e.g. 16 fl oz or 1 quart.", "16 fl oz"),
         ToolType.Scale => new(true, true, false, "Resolution (smallest step)",
             "Printed on the scale as Max … x [step], e.g. \"Max 14000g x 1g\" means 1 g. Enter it in grams (1 g) or ounces (0.05 oz).", "1 g"),
@@ -107,6 +117,7 @@ public static class KitchenRules
             PanShape = tool.Type == ToolType.Pan ? tool.PanShape : null,
             PanWidth = tool.Type == ToolType.Pan ? tool.PanWidth : null,
             PanLength = tool.Type == ToolType.Pan ? tool.PanLength : null,
+            Scales = fields.Markings && tool.Scales is { Count: > 0 } ? tool.Scales : null,
         };
     }
 
@@ -228,11 +239,18 @@ public static class KitchenRules
     /// spoons, cups, jugs and containers, a step ("1 g", "0.05 oz") for a scale, or a pan ("9x13", "9-inch round").
     /// </summary>
     public static (KitchenToolInfo Tool, IReadOnlyList<string> Errors) FromInput(ToolType type, string? name, string? size,
-        IReadOnlyList<string>? shows, int quantity, decimal fillPct)
+        IReadOnlyList<string>? shows, int quantity, decimal fillPct, string? markings = null)
     {
         var tool = new KitchenToolInfo(0, (name ?? string.Empty).Trim(), type, QuantityOwned: quantity,
             DefaultFillPct: FieldsFor(type).Fill ? fillPct : 100m);
         var sizeErrors = new List<string>();
+        if (FieldsFor(type).Markings && !string.IsNullOrWhiteSpace(markings))
+        {
+            var (scales, markingErrors) = MeasureScales.Parse(markings); // BR-50
+            sizeErrors.AddRange(markingErrors);
+            tool = tool with { Scales = scales };
+        }
+
         switch (type)
         {
             case ToolType.MeasuringSpoon or ToolType.MeasuringCup or ToolType.LiquidMeasure or ToolType.Container:
@@ -318,7 +336,8 @@ public static class KitchenRules
                 r.ToString("0.###", CultureInfo.InvariantCulture) + " " + tool.ResolutionUnit + " steps; shows " + string.Join(", ", tool.SupportedUnits ?? []),
             ToolType.Pan when tool.PanWidth is { } w => PanRules.Describe(new Pan(tool.PanShape ?? Kitchen.PanShape.Other, w, tool.PanLength ?? w)),
             _ when tool.CapacityAmount is { } a && UnitCatalog.FindByCode(tool.CapacityUnit) is { } u =>
-                Fractions.Format(Fractions.Nearest(a, Fractions.Teaspoon).Value) + " " + MeasureDisplay.UnitName(u, a),
+                Fractions.Format(Fractions.Nearest(a, Fractions.Teaspoon).Value) + " " + MeasureDisplay.UnitName(u, a)
+                + (tool.Scales is { Count: > 0 } sc ? "; marked " + string.Join(", ", sc.Select(x => x.Describe())) : string.Empty),
             _ => string.Empty,
         };
     }

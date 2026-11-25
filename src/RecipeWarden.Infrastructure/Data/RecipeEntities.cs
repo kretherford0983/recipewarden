@@ -295,6 +295,9 @@ public sealed class KitchenTool
 
     /// <summary>Unit codes a scale shows, comma-separated ("g,oz").</summary>
     public string? SupportedUnits { get; set; }
+
+    /// <summary>BR-50: markings, "unit min max step" per set, separated by "|" (invariant numbers).</summary>
+    public string? Markings { get; set; }
     public PanShape? PanShape { get; set; }
     public decimal? PanWidth { get; set; }
     public decimal? PanLength { get; set; }
