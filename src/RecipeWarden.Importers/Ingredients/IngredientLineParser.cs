@@ -58,28 +58,36 @@ public static partial class IngredientLineParser
         "finely", "coarsely", "thinly", "roughly", "freshly", "lightly", "firmly", "loosely", "well", "very", "stiffly",
     };
 
+    /// <summary>
+    /// NFR-05: the patterns are anchored and short, so a timeout means a busy host paused the thread, not a hostile
+    /// line. Two seconds, as for allergens (BR-55); a timeout still never fails a save (FR_REC_03_ParserTimeoutTests).
+    /// </summary>
+    private const int MatchTimeoutMs = 2000;
+
+    internal static TimeSpan MatchTimeout => TimeSpan.FromMilliseconds(MatchTimeoutMs);
+
     [GeneratedRegex(@"^(?<a>\d+\s+\d+/\d+|\d+-\d+/\d+|\d+/\d+|\d+(?:\.\d+)?|\.\d+)(?:\s*(?:-|to|or)\s*(?<b>\d+\s+\d+/\d+|\d+-\d+/\d+|\d+/\d+|\d+(?:\.\d+)?|\.\d+))?(?=\s|$|[A-Za-z])",
-        RegexOptions.CultureInvariant | RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 200)]
+        RegexOptions.CultureInvariant | RegexOptions.IgnoreCase, matchTimeoutMilliseconds: MatchTimeoutMs)]
     private static partial Regex QuantityPattern();
 
-    [GeneratedRegex(@"^\d+(?:\.\d+)?-(?:ounce|oz|inch|pound|lb|quart|gram|g)$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 200)]
+    [GeneratedRegex(@"^\d+(?:\.\d+)?-(?:ounce|oz|inch|pound|lb|quart|gram|g)$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase, matchTimeoutMilliseconds: MatchTimeoutMs)]
     private static partial Regex SizeAdjective();
 
-    [GeneratedRegex(@"\(\s*optional\s*\)", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 200)]
+    [GeneratedRegex(@"\(\s*optional\s*\)", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase, matchTimeoutMilliseconds: MatchTimeoutMs)]
     private static partial Regex OptionalParen();
 
-    [GeneratedRegex(@"^optional\s*:\s*", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 200)]
+    [GeneratedRegex(@"^optional\s*:\s*", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase, matchTimeoutMilliseconds: MatchTimeoutMs)]
     private static partial Regex OptionalPrefix();
 
     [GeneratedRegex(@"^(?:or (?:more )?to taste|to taste|divided|as needed|or as needed|if needed|plus more\b.*|for (?:serving|garnish|garnishing|dusting|frying|greasing|brushing|drizzling|topping|decorating|sprinkling|the pan)\b.*)$",
-        RegexOptions.CultureInvariant | RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 200)]
+        RegexOptions.CultureInvariant | RegexOptions.IgnoreCase, matchTimeoutMilliseconds: MatchTimeoutMs)]
     private static partial Regex NotePhrase();
 
     [GeneratedRegex(@"\s+(?<note>(?:or (?:more )?)?to taste|as needed|for (?:serving|garnish|garnishing|dusting|frying|greasing|brushing|drizzling|topping|decorating|sprinkling))$",
-        RegexOptions.CultureInvariant | RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 200)]
+        RegexOptions.CultureInvariant | RegexOptions.IgnoreCase, matchTimeoutMilliseconds: MatchTimeoutMs)]
     private static partial Regex TrailingNote();
 
-    [GeneratedRegex(@"\s+", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 200)]
+    [GeneratedRegex(@"\s+", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: MatchTimeoutMs)]
     private static partial Regex Spaces();
 
     /// <summary>Parses one line. Blank input gives an empty result with confidence 0.</summary>
@@ -123,10 +131,24 @@ public static partial class IngredientLineParser
         return result;
     }
 
-    private static string? AsHeading(string line)
+    private static string? AsHeading(string line) => AsHeading(line, static (regex, text) => regex.IsMatch(text));
+
+    /// <summary>
+    /// A line ending in ":" (or a short "For the …" line) with no amount is a group heading. When a check runs out of
+    /// time the line is read as an ingredient instead, which keeps its text (NFR-05: never a failed save).
+    /// </summary>
+    internal static string? AsHeading(string line, Func<Regex, string, bool> isMatch)
     {
+        ArgumentNullException.ThrowIfNull(isMatch);
         var tidy = Tidy(line);
-        if (tidy.Length == 0 || QuantityPattern().IsMatch(tidy) || OptionalPrefix().IsMatch(tidy))
+        try
+        {
+            if (tidy.Length == 0 || isMatch(QuantityPattern(), tidy) || isMatch(OptionalPrefix(), tidy))
+            {
+                return null;
+            }
+        }
+        catch (RegexMatchTimeoutException)
         {
             return null;
         }

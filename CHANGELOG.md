@@ -5,6 +5,11 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 
 ## 1.0.0 — unreleased
 
+### Fixed: saving a recipe could fail on a busy server
+- The ingredient parser's group-heading check let a regex timeout escape, so a save could return an error when the
+  host (or CI runner) was busy. A timeout now reads the line as an ingredient, and the parser allows 2 s, as the
+  allergen check does (BR-55).
+
 ### import-compare --url
 - `recipewarden import-compare --url <address>` fetches a page (through the same checks as a URL import) and compares
   the normal reading with the site reader's, saving nothing; repeat `--url` for several. Pages that fail to import
