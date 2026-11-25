@@ -88,8 +88,7 @@ public static partial class ImportRules
                 continue;
             }
 
-            var amount = text.StartsWith("makes ", StringComparison.OrdinalIgnoreCase) ? text[6..] : text;
-            if (yield is null && AmountText.TryParse(amount, out _))
+            if (yield is null && YieldAmount(text) is { } amount)
             {
                 yield = amount;
                 continue;
@@ -100,6 +99,39 @@ public static partial class ImportRules
 
         return (servings, yield, remark);
     }
+
+    /// <summary>
+    /// BR-134: a yield written in loose words, as an amount Makes accepts (ADR 0019): "Yield: approximately 1 1/2 cups
+    /// of sauce" → "about 1 1/2 cups". "makes", "yield", "yields" and "serves" lead-ins are dropped; "approximately",
+    /// "approx.", "roughly", "around", "about" and "~" become "about"; words after "of" following the unit are dropped.
+    /// Null when what is left is not a volume or weight.
+    /// </summary>
+    public static string? YieldAmount(string? value)
+    {
+        var text = ImportText.Line(value, 100);
+        if (text is null)
+        {
+            return null;
+        }
+
+        var m = YieldLeadIn().Match(text);
+        var about = m.Groups["about"].Success;
+        var rest = text[m.Length..].Trim().TrimEnd('.');
+        var of = rest.IndexOf(" of ", StringComparison.OrdinalIgnoreCase);
+        foreach (var candidate in of > 0 ? [rest, rest[..of]] : new[] { rest })
+        {
+            if (AmountText.TryParse(candidate, out _))
+            {
+                return about ? "about " + candidate : candidate;
+            }
+        }
+
+        return null;
+    }
+
+    [GeneratedRegex(@"^\s*(?:(?:makes|yield|yields)\s*:?\s*)?(?<about>(?:approximately|approx\.?|roughly|around|about|~)\s*)?",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 200)]
+    private static partial Regex YieldLeadIn();
 
     /// <summary>
     /// The review warnings (FR-IMP-06): missing parts (BR-01) and ingredient lines whose parse confidence is below

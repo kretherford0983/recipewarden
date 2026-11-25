@@ -780,7 +780,7 @@ table.conversions td input[name="aliases"] { min-width: 12rem; }
 .recipe-cards img { display: block; max-height: 9rem; max-width: 100%; border: 1px solid var(--border); border-radius: var(--radius); }
 .import-warnings q { font-family: var(--mono); }
 .review-options { margin: 1rem 0; }
-form.discard { margin-top: 1rem; }
+.sticky-actions .push-end { margin-left: auto; } /* AC-144: Discard this import, at the end of the bar */
 .progress { color: var(--muted); }
 
 /* Shopping (M5) */
@@ -830,6 +830,8 @@ form.discard { margin-top: 1rem; }
 .line-diff .diff-removed { background: color-mix(in srgb, #dc2626 18%, transparent); text-decoration: line-through; }
 #ai-reply { width: 100%; }
 .ai-parsed { border-left: 4px solid var(--accent); padding-left: .75rem; }
+/* AC-144: an AI-parsed draft stays a card (same padding, so the sticky bar fits) with the accent on its left edge. */
+.content > form.editor.ai-parsed { border-left: 4px solid var(--accent); padding-left: 1.25rem; }
 .reparse { margin: 1rem 0; display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
 
 /* Operations (M7) */

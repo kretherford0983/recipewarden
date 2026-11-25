@@ -342,6 +342,16 @@ rules, stored for search, "free of").
 | BR-132 / AC-137 | Done | `BatchRules.Versions`, `ResolveVersions`, `VersionChoice` (Core); `ImportService.ResolveVersionsAsync`; Versions handler on the review page | Core `BR_132_IngredientVersionTests`; Importers `BR_124_MultiRecipeImportTests` (street corn); Web `BR_132_IngredientVersionPageTests` |
 | UX-15 / AC-134 | Done | `build/icons/*.svg`, `build/icons.sh`, wwwroot icons, `_AppIcons`, `AppManifest` (Core), `/manifest.webmanifest`, maintenance page icon | Core `UX_15_AppManifestTests`; Web `UX_15_AppIconTests`, `AC_70_AuthMatrixTests`; E2E `UX_15_InstallableTests` (Chrome's installability check) |
 
+### Owner testing, 2026-11-25: versions under one title, Makes on import, review bar (ADR 0062; PR into `develop`)
+
+| ID | Status | Implementation | Tests |
+| --- | --- | --- | --- |
+| FR-IMP-04 / BR-133 / AC-138, AC-139 | Done | `TextRecipeExtractor.SplitVersions`, `SplitBatchSection`, `VersionTitle` (then `BatchRules.Fold`) | Importers `BR_133_VariantSectionsImportTests` (owner's file `Fixtures/Markdown/buffalo-wing-sauce.md`); Infra `BR_135_ImportYieldServiceTests` (batch of two, Entered yield) |
+| BR-134 / AC-140 | Done | `ImportRules.YieldAmount`, `ServingsAndYield`; `TextRecipeExtractor` fact headings, block quotes, `Loose` times | Core `BR_134_ImportYieldTests`; Importers `BR_133_VariantSectionsImportTests` |
+| FR-SCL-06 / BR-135 / AC-141, AC-142 | Done | `ImportYieldRules.Prefill`, `Warning` (Core); `ImportService.EstimateAsync`, `GetReviewAsync` (`ImportReview.EstimatedYield`), `SaveAsync` keeps Estimated | Core `BR_134_ImportYieldTests`; Infra `BR_135_ImportYieldServiceTests`; E2E `W4_the_review_bar_…` (prefilled Makes) |
+| FR-IMP-09 / BR-136 / AC-143 | Done | `AiParserRules.ParseInstructions`, `PickForDraft`; `AiParseResult.Recipes`; `AiParserService.Marked` (yield as an amount or a remark); `ImportService.WithAiAsync`, `ReparseWithAiAsync` | Core `BR_136_AiParserVersionsTests`; Infra `FR_IMP_09_AiParserServiceTests` (two versions, re-parse keeps the version) |
+| UX-13 / AC-144 | Done | `RecipeEditorPageModel.FormClass`, `SecondaryFormId`; `_EditorForm` bar button `form="discard-import"`; `Review.cshtml` (no wrapper, empty Discard form), `ReviewModel.ExtraPartial` only with an option; `site.css` | Web `AC_144_ReviewActionBarTests`; E2E `W3_W4_ImportTests.W4_the_review_bar_sits_inside_the_card_and_discards_from_the_bar` (bar inside the card, with and without `ai-parsed`) |
+
 ### Notes and open issues
 
 - **Owner testing notes (2026-11-24):**

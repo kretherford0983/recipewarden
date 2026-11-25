@@ -5,6 +5,17 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 
 ## 1.0.0 — unreleased
 
+### Versions under one title, Makes on import, and the review bar (ADR 0062)
+- A Markdown file with one title and versions under `## ` headings (an oil and a butter wing sauce) imports as one
+  draft per version, "Title (Version)"; a batch section inside a version is folded into its notes (BR-133).
+- Yields in loose words are read into Makes: "Approximately 1 1/2 cups of sauce" under a Yield heading is
+  "about 1 1/2 cups" (BR-134).
+- When an import does not say what it makes, Makes is prefilled with the ingredient estimate and saved as an estimate
+  unless you change it (BR-135).
+- The AI parser is asked for the stated yield and one recipe per version; re-parse keeps the matching version (BR-136).
+- Review page: the Save draft / Publish bar stays inside the form, the empty "Import" box is gone, and "Discard this
+  import" is in the bar (AC-144).
+
 ### Fixed: saving a recipe could fail on a busy server
 - The ingredient parser's group-heading check let a regex timeout escape, so a save could return an error when the
   host (or CI runner) was busy. A timeout now reads the line as an ingredient, and the parser allows 2 s, as the

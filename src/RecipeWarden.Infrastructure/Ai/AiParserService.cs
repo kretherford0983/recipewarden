@@ -23,10 +23,17 @@ public sealed class AiOptions
     public string ClaudeEndpoint { get; set; } = AiParserRules.ClaudeEndpoint;
 }
 
-/// <summary>The result of an AI parse: a recipe for review, or why there is none.</summary>
+/// <summary>
+/// The result of an AI parse: a recipe for review, or why there is none. <see cref="Recipes"/> holds every recipe or
+/// version in the reply (BR-136); <see cref="Recipe"/> is the first.
+/// </summary>
 public sealed record AiParseResult(ImportedRecipe? Recipe, string? Error, bool Attempted)
 {
+    public IReadOnlyList<ImportedRecipe> Recipes { get; init; } = Recipe is null ? [] : [Recipe];
+
     public static AiParseResult NotUsed(string reason) => new(null, reason, false);
+
+    public static AiParseResult Of(IReadOnlyList<ImportedRecipe> recipes) => new(recipes[0], null, true) { Recipes = recipes };
 }
 
 /// <summary>This month's usage for /admin and /admin/ai (FR-IMP-10).</summary>
@@ -131,16 +138,25 @@ public sealed class AiParserService(AppDbContext db, SettingsStore settings, Saf
             return new AiParseResult(null, call.Error, call.Attempted);
         }
 
-        // SEC-47: the reply is untrusted recipe-md; the first block that validates is taken, as plain text.
-        var block = AiReplyReader.Read(call.Text).FirstOrDefault(b => b.IsValid);
-        if (block is null)
+        // SEC-47: the reply is untrusted recipe-md; every block that validates is taken, as plain text (BR-136: one per
+        // recipe or version). A yield is kept only when it reads as an amount (BR-134); otherwise it is a remark.
+        var recipes = AiReplyReader.Read(call.Text).Where(b => b.IsValid).Select(b => Marked(b.Recipe!)).ToList();
+        if (recipes.Count == 0)
         {
             await MarkLastAsync(AiCallResult.Invalid, "No valid recipe-md in the reply", cancellationToken).ConfigureAwait(false);
             return new AiParseResult(null, "The AI reply did not contain a usable recipe, so the rules-based result is shown.", true);
         }
 
-        var recipe = block.Recipe! with { Remarks = [.. block.Recipe!.Remarks, AiParserRules.AiParsedNotice] };
-        return new AiParseResult(recipe, null, true);
+        return AiParseResult.Of(recipes);
+    }
+
+    private static ImportedRecipe Marked(ImportedRecipe recipe)
+    {
+        var yield = ImportRules.YieldAmount(recipe.Yield);
+        IReadOnlyList<string> remarks = yield is null && !string.IsNullOrWhiteSpace(recipe.Yield)
+            ? [.. recipe.Remarks, "Makes " + recipe.Yield, AiParserRules.AiParsedNotice]
+            : [.. recipe.Remarks, AiParserRules.AiParsedNotice];
+        return recipe with { Yield = yield, Remarks = remarks };
     }
 
     /// <summary>BR-130: why photos cannot be read now (off, not image-capable, capped), or null when they can.</summary>
@@ -182,7 +198,7 @@ public sealed class AiParserService(AppDbContext db, SettingsStore settings, Saf
             return new AiParseResult(null, "The AI reply did not contain a usable recipe. Try clearer photos, or type the recipe in.", true);
         }
 
-        return new AiParseResult(block.Recipe! with { Remarks = [.. block.Recipe!.Remarks, AiParserRules.AiParsedNotice] }, null, true);
+        return new AiParseResult(Marked(block.Recipe!), null, true);
     }
 
     /// <summary>ADR 0058 D8 "Test image reading": the built-in picture of a word, read with the saved settings.</summary>
