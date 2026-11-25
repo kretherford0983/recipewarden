@@ -8,4 +8,7 @@
     <PackageReference Include="DocumentFormat.OpenXml" />
     <PackageReference Include="PdfPig" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="RecipeWarden.Importers.Tests" />
+  </ItemGroup>
 </Project>
