@@ -104,6 +104,11 @@ such as Ollama on your network (e.g. `http://192.168.1.20:11434`, tick "on my ho
 optional monthly token cap, then **Test connection**. Only recipe text is sent; results always go to review
 (ADR 0042). The key is stored encrypted and is never shown again.
 
+**Photo import** (ADR 0058): with "This model can read images" ticked (on by default for Claude; for Ollama use a
+vision model such as `qwen2.5vl` or `llava`), **Manage → Import** gains **From photos**: 1 to 4 photos of a recipe
+card or page, sent without location or camera details. Press **Test image reading** to check the model. A photo of a
+card is about 2,500 tokens, so a two-sided card is roughly 7,000 tokens with the reply.
+
 ## Python worker (on by default)
 The package carries its own Python 3.13 and two libraries under `/opt/recipewarden/current/python` (ADR 0051): they
 suggest USDA matches on **Manage → Nutrition** and add a "Second reading" to imported ingredient lines. They run on

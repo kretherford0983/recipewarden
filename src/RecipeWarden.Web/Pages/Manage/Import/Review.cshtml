@@ -46,6 +46,21 @@
     <p class="notice error" role="alert">@Model.AiError</p>
 }
 
+@if (review.PhotoCount > 0)
+{
+    @* FR-IMP-13, W11 step 2: the photos the recipe was read from, to check each field against. *@
+    <section class="import-photos" aria-labelledby="photos-heading">
+        <h2 id="photos-heading">@(review.PhotoCount == 1 ? "The photo" : "The photos")</h2>
+        <ol class="photo-strip">
+            @for (var i = 0; i < review.PhotoCount; i++)
+            {
+                var src = $"/manage/import/{review.JobId}/review?handler=Photo&n={i}";
+                <li><a href="@src" target="_blank" rel="noopener"><img src="@src" alt="Photo @(i + 1) of the recipe" loading="lazy"></a></li>
+            }
+        </ol>
+    </section>
+}
+
 @if (Model.AiFields.Count > 0)
 {
     <div class="notice ai-parsed-notice" role="note">

@@ -120,6 +120,18 @@ public sealed class RecipeStep
     public string? Title { get; set; }
 }
 
+/// <summary>
+/// FR-IMP-13, BR-131, ADR 0058 D7: a photo kept from a photo import (a recipe card), in order. The image follows the
+/// recipe's access rule (ADR 0022) and goes when the recipe is purged.
+/// </summary>
+public sealed class RecipeCardImage
+{
+    public int Id { get; set; }
+    public int RecipeId { get; set; }
+    public int Position { get; set; }
+    public string ImageId { get; set; } = string.Empty;
+}
+
 /// <summary>Earlier published slugs that redirect to the current one (BR-02, ADR 0008).</summary>
 public sealed class RecipeSlugAlias
 {

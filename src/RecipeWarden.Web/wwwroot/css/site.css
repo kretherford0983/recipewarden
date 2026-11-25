@@ -768,6 +768,12 @@ table.conversions td input[name="aliases"] { min-width: 12rem; }
 /* Import (M4) */
 .import-box summary h2 { display: inline; font-size: 1.15rem; }
 .import-list li, .import-batch li { margin: .25rem 0; }
+/* FR-IMP-13, ADR 0058: photos on the review page and the recipe card on the recipe page. */
+.photo-strip, .recipe-cards ul { display: flex; flex-wrap: wrap; gap: .75rem; list-style: none; margin: .5rem 0 1rem; padding: 0; }
+.photo-strip img { display: block; max-height: 22rem; max-width: 100%; border: 1px solid var(--border); border-radius: var(--radius); }
+.recipe-cards { margin-top: .75rem; }
+.recipe-cards h3 { font-size: .95rem; margin: 0; }
+.recipe-cards img { display: block; max-height: 9rem; max-width: 100%; border: 1px solid var(--border); border-radius: var(--radius); }
 .import-warnings q { font-family: var(--mono); }
 .review-options { margin: 1rem 0; }
 form.discard { margin-top: 1rem; }

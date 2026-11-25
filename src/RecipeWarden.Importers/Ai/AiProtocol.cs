@@ -37,6 +37,58 @@ public static class AiProtocol
         return JsonSerializer.SerializeToUtf8Bytes(body);
     }
 
+    /// <summary>
+    /// FR-IMP-13, ADR 0058: the same turn with JPEG photos before the text, in order. Claude takes base64 image blocks;
+    /// OpenAI-compatible endpoints take <c>image_url</c> parts with a data URL. With no photos this is the text request.
+    /// </summary>
+    public static byte[] Request(AiProvider provider, string model, string system, string user, IReadOnlyList<byte[]> jpegs,
+        int maxTokens = AiParserRules.MaxOutputTokens)
+    {
+        ArgumentNullException.ThrowIfNull(jpegs);
+        if (jpegs.Count == 0)
+        {
+            return Request(provider, model, system, user, maxTokens);
+        }
+
+        var content = new JsonArray();
+        foreach (var jpeg in jpegs)
+        {
+            var data = Convert.ToBase64String(jpeg);
+            content.Add(provider == AiProvider.Claude
+                ? new JsonObject
+                {
+                    ["type"] = "image",
+                    ["source"] = new JsonObject { ["type"] = "base64", ["media_type"] = "image/jpeg", ["data"] = data },
+                }
+                : new JsonObject
+                {
+                    ["type"] = "image_url",
+                    ["image_url"] = new JsonObject { ["url"] = "data:image/jpeg;base64," + data },
+                });
+        }
+
+        content.Add(new JsonObject { ["type"] = "text", ["text"] = user });
+        JsonObject body = provider == AiProvider.Claude
+            ? new JsonObject
+            {
+                ["model"] = model,
+                ["max_tokens"] = maxTokens,
+                ["system"] = system,
+                ["messages"] = new JsonArray(new JsonObject { ["role"] = "user", ["content"] = content }),
+            }
+            : new JsonObject
+            {
+                ["model"] = model,
+                ["max_tokens"] = maxTokens,
+                ["temperature"] = 0,
+                ["stream"] = false,
+                ["messages"] = new JsonArray(
+                    new JsonObject { ["role"] = "system", ["content"] = system },
+                    new JsonObject { ["role"] = "user", ["content"] = content }),
+            };
+        return JsonSerializer.SerializeToUtf8Bytes(body);
+    }
+
     /// <summary>Authentication and version headers. The key is never logged (SEC-45).</summary>
     public static Dictionary<string, string> Headers(AiProvider provider, string? apiKey)
     {

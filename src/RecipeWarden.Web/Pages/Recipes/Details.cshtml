@@ -108,6 +108,19 @@
                         @if (r.SourceAuthor is not null) { <span> by @r.SourceAuthor</span><meta itemprop="author" content="@r.SourceAuthor"> }
                     </p>
                 }
+                @if (r.CardImageIds.Count > 0)
+                {
+                    @* FR-IMP-13, ADR 0058 D7: the card photos this recipe was imported from. *@
+                    <div class="recipe-cards">
+                        <h3>Recipe card</h3>
+                        <ul>
+                            @for (var i = 0; i < r.CardImageIds.Count; i++)
+                            {
+                                <li><a href="/media/@r.CardImageIds[i]" target="_blank" rel="noopener"><img src="/media/@r.CardImageIds[i]/thumb" alt="Recipe card, photo @(i + 1)" loading="lazy"></a></li>
+                            }
+                        </ul>
+                    </div>
+                }
             </section>
         </div>
         <aside class="recipe-tools" aria-label="Recipe tools">

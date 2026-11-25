@@ -1,6 +1,6 @@
 # RecipeWarden — requirements traceability
 
-Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.26. Keep in step with the spec and the test suite.
+Seeded from docs/spec.md section 10 (v0.2, 2026-11-17); in step with spec v0.28. Keep in step with the spec and the test suite.
 
 Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and tagged with `[Trait("Req", "FR-SCL-01")]`, so CI can print coverage per requirement and fail if any Must requirement has no test.
 
@@ -49,6 +49,7 @@ Test classes are named after requirement IDs (e.g. `FR_SCL_01_ScalingTests`) and
 | FR-NUT-07 | BR-116, BR-54; ADR 0051, 0052 | `FoodSuggestionRules` (Core), `IFoodSuggestionSource`, `PythonFoodSuggestionSource`, `FoodSuggestionService`, FoodSuggestion; `/manage/nutrition` | Core `FR_NUT_07_FoodSuggestionRulesTests`; Infra `FR_OPS_06_PythonWorkerTests`, `FR_NUT_02_NutritionServiceTests`; Web `FR_NUT_07_*`; pytest `test_commands.py` | AC-101, AC-102, AC-103 |
 | FR-IMP-11 | BR-118, BR-119; ADR 0051 | `SecondOpinionRules`, `ImportRules.SecondOpinionWarnings` (Core), `IIngredientSecondOpinion`, `ImportService.WarningsAsync`; review page | Core `FR_IMP_11_SecondOpinionRulesTests`; Infra `FR_IMP_11_CorpusDisagreementTests`; Web `FR_IMP_11_*` | AC-104 |
 | FR-IMP-12 (M10) | BR-117 | `ImportCompareRules.IsComplete` (Core) ready; the import order change is M10 | Core `AC_109_ImportCompareRulesTests` | AC-110, AC-111, AC-112 |
+| FR-IMP-13 | BR-128 to BR-131; SEC-48, SEC-50, SEC-52; ADR 0058 | `PhotoImportRules` (Core), `AiProtocol` image parts (Importers), `ImageEncoder.ForAi`, `AiParserService.ParsePhotosAsync`/`TestImagesAsync`, `ImportService.StartPhotosAsync`, ImportJob.PhotoCount/KeepPhotos, RecipeCardImage; `/manage/import` photo form, review photos, recipe card on the recipe page, `/admin/ai` image flag and test | Core `FR_IMP_13_PhotoImportRulesTests`; Importers `FR_IMP_13_AiProtocolImageTests`; Infra `FR_IMP_13_PhotoImportServiceTests`; Web `FR_IMP_13_PhotoImportPageTests` | AC-126, AC-127, AC-128, AC-129, AC-130 |
 | FR-OPS-06 | BR-119; SEC-90–95; NFR-10 | `PythonWorker`, `PythonWorkerHealth`, `PythonFeatures`, `PythonStartupCheck`; `/admin/health` Python section; CLI `python-selftest`, `import-compare` | Infra `SEC_92_PythonWorkerLimitsTests`, `SEC_93_WorkerContractTests`, `FR_OPS_06_PythonWorkerTests`, `AC_109_ImportCompareServiceTests`; Web `FR_OPS_06_PythonHealthPageTests`; Cli `FR_OPS_06_*`, `AC_109_*`; smoke-test; installer tests; pytest | AC-103, AC-105 to AC-109 |
 
 ## Status by milestone
@@ -484,3 +485,13 @@ rules, stored for search, "free of").
   - The seeded test database is larger (7,793 nutrient rows), so test runs take about 20 s longer locally.
   - Not exercised on the host yet: the M5→M6 migration and the 7,793-row seed on a real database, and allergen
     badges on the owner's own recipes (word rules may need tuning — ADR 0036 is for review).
+
+### M8b Photo import (ADR 0058; owner decisions 2026-11-24)
+
+| ID | Status | Implementation | Tests |
+| --- | --- | --- | --- |
+| FR-IMP-13 / AC-126, BR-130 | Done | photo form only when the parser is on and the model reads images; refused before sending otherwise | Infra `FR_IMP_13_PhotoImportServiceTests`; Web `FR_IMP_13_PhotoImportPageTests` |
+| AC-127, SEC-48 | Done | `ImageEncoder.ForAi` (upright, 1568 px, JPEG 85, no metadata); 4 MB body cap before connecting | Infra `FR_IMP_13_PhotoImportServiceTests` |
+| AC-128, BR-128 | Done | `AiProtocol` Claude `image` blocks and OpenAI `image_url` parts; Personal credit with the typed name | Importers `FR_IMP_13_AiProtocolImageTests`; Infra `FR_IMP_13_PhotoImportServiceTests` |
+| AC-129, BR-129, BR-131 | Done | RecipeCardImage; `/media` rule and orphan purge include card images; zip export; `[unclear]` amount check | Core `FR_IMP_13_PhotoImportRulesTests`; Infra `FR_IMP_13_PhotoImportServiceTests`; Web `FR_IMP_13_PhotoImportPageTests` |
+| AC-130 | Done | 1 to 4 photos, image allow-list, 10 MB, cap message | Infra `FR_IMP_13_PhotoImportServiceTests` |

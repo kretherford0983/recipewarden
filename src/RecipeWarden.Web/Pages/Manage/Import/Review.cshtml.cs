@@ -63,6 +63,10 @@ public sealed class ReviewModel(ImportService imports, TagService tags, Infrastr
     [BindProperty]
     public bool SaveAnyway { get; set; }
 
+    /// <summary>BR-131: "Save the card photo with the recipe" for a photo import (FR-IMP-13).</summary>
+    [BindProperty]
+    public bool KeepPhotos { get; set; }
+
     public bool NeedsDuplicateChoice { get; private set; }
 
     public override string FormAction => $"/manage/import/{JobId}/review";
@@ -80,6 +84,7 @@ public sealed class ReviewModel(ImportService imports, TagService tags, Infrastr
 
         Input = ToInput(Review!.Recipe);
         CopyImage = Review.CopyImage;
+        KeepPhotos = Review.KeepPhotos;
         if (Review.Status != ImportStatus.Review)
         {
             Message = AlreadyDone;
@@ -110,7 +115,9 @@ public sealed class ReviewModel(ImportService imports, TagService tags, Infrastr
             return Page();
         }
 
-        var result = await imports.SaveAsync(id, edit, CopyImage, SaveAnyway, Permissions.UserId(User), HttpContext.RequestAborted);
+        var result = Review.PhotoCount > 0
+            ? await imports.SaveAsync(id, edit, CopyImage, SaveAnyway, KeepPhotos, Permissions.UserId(User), HttpContext.RequestAborted)
+            : await imports.SaveAsync(id, edit, CopyImage, SaveAnyway, Permissions.UserId(User), HttpContext.RequestAborted);
         if (result.NeedsDuplicateChoice)
         {
             NeedsDuplicateChoice = true;
@@ -136,6 +143,12 @@ public sealed class ReviewModel(ImportService imports, TagService tags, Infrastr
             ? Redirect("/recipes/" + outcome.Slug + (image.Length > 0 ? "?" + image : string.Empty))
             : Redirect($"/manage/recipes/{outcome.Id}/edit?saved=draft" + (image.Length > 0 ? "&" + image : string.Empty));
     }
+
+    /// <summary>FR-IMP-13: a photo of this import (the copy sent to the AI), for Editors only (the /Manage folder).</summary>
+    public async Task<IActionResult> OnGetPhotoAsync([FromRoute] int id, int n) =>
+        await imports.PhotoPathAsync(id, n, HttpContext.RequestAborted) is { } path
+            ? PhysicalFile(path, "image/jpeg")
+            : NotFound();
 
     /// <summary>BR-125: a folded batch size becomes its own draft.</summary>
     public async Task<IActionResult> OnPostSplitAsync([FromRoute] int id, int index) =>

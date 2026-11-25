@@ -51,7 +51,7 @@ public sealed class ImageStore(AppDbContext db, DataOptions data, TimeProvider c
     }
 
     /// <summary>
-    /// ADR 0022: an image anyone may open belongs to a published recipe (finish image or step photo). Editors may
+    /// ADR 0022: an image anyone may open belongs to a published recipe (finish image, step photo or, ADR 0058, card). Editors may
     /// open any stored image. Anything else is "not found".
     /// </summary>
     public async Task<MediaFile?> FindAsync(string? id, bool thumb, bool canSeeAll, CancellationToken cancellationToken = default)
@@ -71,7 +71,9 @@ public sealed class ImageStore(AppDbContext db, DataOptions data, TimeProvider c
         {
             var published = await db.Recipes.AnyAsync(r => r.Status == RecipeStatus.Published
                     && (r.FinishImageId == id || r.Steps.Any(s => s.ImageId == id)), cancellationToken)
-                .ConfigureAwait(false);
+                .ConfigureAwait(false)
+                || await db.RecipeCardImages.AnyAsync(c => c.ImageId == id
+                    && db.Recipes.Any(r => r.Id == c.RecipeId && r.Status == RecipeStatus.Published), cancellationToken).ConfigureAwait(false); // ADR 0058 D7
             if (!published)
             {
                 return null;
@@ -98,6 +100,7 @@ public sealed class ImageStore(AppDbContext db, DataOptions data, TimeProvider c
 
         var used = (await db.Recipes.IgnoreQueryFilters().Where(r => r.FinishImageId != null).Select(r => r.FinishImageId!).ToListAsync(cancellationToken).ConfigureAwait(false))
             .Concat(await db.Steps.Where(s => s.ImageId != null).Select(s => s.ImageId!).ToListAsync(cancellationToken).ConfigureAwait(false))
+            .Concat(await db.RecipeCardImages.Select(c => c.ImageId).ToListAsync(cancellationToken).ConfigureAwait(false))
             .ToHashSet(StringComparer.Ordinal);
         var orphans = candidates.Where(c => !used.Contains(c.Id)).ToList();
         foreach (var orphan in orphans)

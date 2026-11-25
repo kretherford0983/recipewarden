@@ -41,6 +41,10 @@ public sealed record ImportReview(int JobId, ImportSourceKind Kind, string Sourc
 
     /// <summary>FR-IMP-09: the fields came from the AI parser and are marked on the review page.</summary>
     public bool ParsedByAi { get; init; }
+
+    /// <summary>FR-IMP-13: the photos the recipe was read from (shown on the review page) and whether to keep them.</summary>
+    public int PhotoCount { get; init; }
+    public bool KeepPhotos { get; init; }
 }
 
 public sealed record ImportSaveResult(SaveOutcome? Outcome, bool NeedsDuplicateChoice, string? ImageWarning)
@@ -136,6 +140,128 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
         var batch = await CreateBatchAsync(ImportSourceKind.Paste, page?.AbsoluteUri ?? "Pasted text", [(Encoding.UTF8.GetBytes(text), read.Recipes)],
             copyImage && page is not null, userId, cancellationToken).ConfigureAwait(false);
         return new ImportStart(batch.BatchId, batch.Jobs, null, false, []);
+    }
+
+    /// <summary>
+    /// FR-IMP-13, W11, BR-128 to BR-131, SEC-48, ADR 0058: 1 to 4 photos read by the AI parser's vision model. Nothing
+    /// is sent when photo import is unavailable (BR-130) or a photo fails validation (SEC-50, SEC-51). Only the SEC-48
+    /// JPEG copies are sent; they and the SEC-52 WebP copies are kept in the batch folder for 30 days, the upload is not.
+    /// </summary>
+    public async Task<ImportStart> StartPhotosAsync(IReadOnlyList<ImportFile> photos, string? sourceName, bool keepPhotos, string userId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(photos);
+        if (PhotoImportRules.CheckCount(photos.Count) is { } count)
+        {
+            return ImportStart.Fail(count);
+        }
+
+        if (await ai.PhotoImportUnavailableAsync(cancellationToken).ConfigureAwait(false) is { } reason)
+        {
+            return ImportStart.Fail(reason);
+        }
+
+        var name = string.IsNullOrWhiteSpace(sourceName) ? null : sourceName.Trim();
+        if (name is not null && (name.Length > SourceRules.MaxNameLength || name.Any(char.IsControl)))
+        {
+            return ImportStart.Fail($"The source name must be at most {SourceRules.MaxNameLength} characters on one line.");
+        }
+
+        var sent = new List<byte[]>();
+        var kept = new List<byte[]>();
+        foreach (var photo in photos)
+        {
+            var label = string.IsNullOrWhiteSpace(photo.FileName) ? "(no name)" : Path.GetFileName(photo.FileName);
+            var (upload, error) = await UploadValidator.ReadImageAsync(photo.Content, photo.FileName, photo.Length, cancellationToken).ConfigureAwait(false);
+            if (upload is null)
+            {
+                return ImportStart.Fail(label + ": " + error);
+            }
+
+            var (jpeg, aiError) = ImageEncoder.ForAi(upload.Bytes);
+            var (webp, keepError) = ImageEncoder.Encode(upload.Bytes);
+            if (jpeg is null || webp is null)
+            {
+                return ImportStart.Fail(label + ": " + (aiError ?? keepError));
+            }
+
+            sent.Add(jpeg);
+            kept.Add(webp.Full);
+        }
+
+        var parsed = await ai.ParsePhotosAsync(sent, AiPurpose.PhotoImport, cancellationToken).ConfigureAwait(false);
+        if (parsed.Recipe is null)
+        {
+            return ImportStart.Fail(parsed.Error ?? "The photos could not be read.");
+        }
+
+        var recipe = parsed.Recipe with { SourceType = SourceType.Personal, SourceName = name, SourceUrl = null, SourceAuthor = null, ImageUrl = null };
+        var batchId = NewId();
+        var folder = Path.Combine(data.ImportsDirectory, batchId);
+        Directory.CreateDirectory(folder);
+        for (var i = 0; i < sent.Count; i++)
+        {
+            await File.WriteAllBytesAsync(Path.Combine(folder, PhotoFile(i, "jpg")), sent[i], cancellationToken).ConfigureAwait(false);
+            await File.WriteAllBytesAsync(Path.Combine(folder, PhotoFile(i, "webp")), kept[i], cancellationToken).ConfigureAwait(false);
+        }
+
+        var candidates = await DuplicateCandidatesAsync([recipe], cancellationToken).ConfigureAwait(false);
+        var duplicate = ImportRules.FindDuplicate(recipe.Title, null, ImportReader.IngredientNames(recipe.Ingredients), candidates);
+        var now = clock.GetUtcNow();
+        var job = new ImportJob
+        {
+            BatchId = batchId,
+            SourceKind = ImportSourceKind.Photo,
+            SourceRef = name ?? (sent.Count == 1 ? "1 photo" : $"{sent.Count} photos"),
+            Status = ImportStatus.Review,
+            RawPath = batchId + "/" + PhotoFile(0, "jpg"),
+            ParsedJson = JsonSerializer.Serialize(recipe, Json),
+            WarningsJson = JsonSerializer.Serialize(await WarningsAsync(recipe, cancellationToken).ConfigureAwait(false), Json),
+            DuplicateOfRecipeId = duplicate?.RecipeId,
+            CreatedById = userId,
+            CreatedAt = now,
+            UpdatedAt = now,
+            ParsedByAi = true,
+            PhotoCount = sent.Count,
+            KeepPhotos = keepPhotos,
+        };
+        db.ImportJobs.Add(job);
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return new ImportStart(batchId, [job.Id], null, false, []);
+    }
+
+    /// <summary>FR-IMP-13: the photo the review page shows (the copy that was sent), or null.</summary>
+    public async Task<string?> PhotoPathAsync(int jobId, int index, CancellationToken cancellationToken = default)
+    {
+        var job = await db.ImportJobs.AsNoTracking().SingleOrDefaultAsync(j => j.Id == jobId, cancellationToken).ConfigureAwait(false);
+        if (job is null || index < 0 || index >= job.PhotoCount || !IsBatchId(job.BatchId))
+        {
+            return null;
+        }
+
+        var path = Path.Combine(data.ImportsDirectory, job.BatchId, PhotoFile(index, "jpg"));
+        return File.Exists(path) ? path : null;
+    }
+
+    private static string PhotoFile(int index, string extension) =>
+        string.Create(System.Globalization.CultureInfo.InvariantCulture, $"photo-{index}.{extension}");
+
+    /// <summary>FR-IMP-13, BR-131: the kept photos of a photo job, in order, or null when they are gone.</summary>
+    private async Task<List<byte[]>?> ReadPhotosAsync(ImportJob job, string extension, CancellationToken ct)
+    {
+        var photos = new List<byte[]>();
+        for (var i = 0; i < job.PhotoCount; i++)
+        {
+            var path = Path.Combine(data.ImportsDirectory, job.BatchId, PhotoFile(i, extension));
+            if (!IsBatchId(job.BatchId) || !File.Exists(path))
+            {
+                return null;
+            }
+
+            photos.Add(await File.ReadAllBytesAsync(path, ct).ConfigureAwait(false));
+        }
+
+        return photos;
     }
 
     /// <summary>FR-IMP-04, FR-IMP-05, W4: several files in one go; every file is validated (SEC-50, SEC-51).</summary>
@@ -259,19 +385,34 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
             return AiParserRules.Disabled;
         }
 
-        var raw = Path.Combine(data.ImportsDirectory, job.RawPath);
-        if (!File.Exists(raw))
+        Ai.AiParseResult parsed;
+        if (job.SourceKind == ImportSourceKind.Photo)
         {
-            return "The original text of this import is no longer kept (30 days).";
+            // BR-131: the kept SEC-48 copies are sent again; no new upload.
+            if (await ReadPhotosAsync(job, "jpg", cancellationToken).ConfigureAwait(false) is not { } photos)
+            {
+                return "The photos of this import are no longer kept (30 days).";
+            }
+
+            parsed = await ai.ParsePhotosAsync(photos, AiPurpose.Reparse, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            var raw = Path.Combine(data.ImportsDirectory, job.RawPath);
+            if (!File.Exists(raw))
+            {
+                return "The original text of this import is no longer kept (30 days).";
+            }
+
+            var text = ImportPlainText.From(await File.ReadAllBytesAsync(raw, cancellationToken).ConfigureAwait(false), job.SourceRef);
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return "There is no text to send to the AI parser.";
+            }
+
+            parsed = await ai.ParseAsync(text, AiPurpose.Reparse, cancellationToken).ConfigureAwait(false);
         }
 
-        var text = ImportPlainText.From(await File.ReadAllBytesAsync(raw, cancellationToken).ConfigureAwait(false), job.SourceRef);
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return "There is no text to send to the AI parser.";
-        }
-
-        var parsed = await ai.ParseAsync(text, AiPurpose.Reparse, cancellationToken).ConfigureAwait(false);
         if (parsed.Recipe is null)
         {
             return parsed.Error;
@@ -301,6 +442,10 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
     private async Task<IReadOnlyList<ImportWarning>> WarningsAsync(ImportedRecipe recipe, CancellationToken ct)
     {
         var warnings = ImportReader.Warnings(recipe).ToList();
+
+        // BR-129: what the model could not read in a photo is listed for the Editor to fix.
+        warnings.AddRange(new[] { recipe.Title, recipe.Ingredients, recipe.Steps, recipe.Notes }
+            .SelectMany(PhotoImportRules.UnclearLines).Select(l => new ImportWarning(PhotoImportRules.UnclearWarning, l)));
         var parses = ImportReader.IngredientParses(recipe.Ingredients);
         if (parses.Count == 0)
         {
@@ -349,14 +494,27 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
             .ToListAsync(cancellationToken).ConfigureAwait(false);
         var warnings = JsonSerializer.Deserialize<List<ImportWarning>>(job.WarningsJson, Json) ?? [];
         return new ImportReview(job.Id, job.SourceKind, job.SourceRef, job.Status, recipe, warnings, job.ImageUrl, job.CopyImage, duplicate,
-            job.CreatedRecipeId, batch.Count > 1 ? batch.Select(Summary).ToList() : []) { ParsedByAi = job.ParsedByAi };
+            job.CreatedRecipeId, batch.Count > 1 ? batch.Select(Summary).ToList() : [])
+        {
+            ParsedByAi = job.ParsedByAi,
+            PhotoCount = job.PhotoCount,
+            KeepPhotos = job.KeepPhotos,
+        };
     }
 
     /// <summary>
     /// Saves the reviewed recipe (ADR 0025). A possible duplicate needs <paramref name="saveAnyway"/> (AC-16). A web
     /// import keeps the credit it was imported with (BR-10); the image is copied only when ticked (BR-12, AC-11).
     /// </summary>
-    public async Task<ImportSaveResult> SaveAsync(int jobId, RecipeEdit edit, bool copyImage, bool saveAnyway, string userId,
+    public Task<ImportSaveResult> SaveAsync(int jobId, RecipeEdit edit, bool copyImage, bool saveAnyway, string userId,
+        CancellationToken cancellationToken = default) =>
+        SaveAsync(jobId, edit, copyImage, saveAnyway, null, userId, cancellationToken);
+
+    /// <summary>
+    /// As above; for a photo import (FR-IMP-13) <paramref name="keepPhotos"/> is "Save the card photo with the recipe"
+    /// (null keeps the import's choice), and an <c>[unclear]</c> left in an ingredient amount stops the save (BR-129).
+    /// </summary>
+    public async Task<ImportSaveResult> SaveAsync(int jobId, RecipeEdit edit, bool copyImage, bool saveAnyway, bool? keepPhotos, string userId,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(edit);
@@ -364,6 +522,15 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
         if (job is null || job.Status != ImportStatus.Review)
         {
             return ImportSaveResult.NotFound;
+        }
+
+        if (job.SourceKind == ImportSourceKind.Photo && PhotoImportRules.UnclearAmounts(edit.IngredientsText) is { Count: > 0 } unclear)
+        {
+            return new ImportSaveResult(new SaveOutcome
+            {
+                Status = SaveStatus.Invalid,
+                Errors = [new PublishProblem(RecipeField.Ingredients, PhotoImportRules.UnclearAmount + ": " + string.Join("; ", unclear))],
+            }, false, null);
         }
 
         if (job.DuplicateOfRecipeId is { } dupId && !saveAnyway
@@ -409,8 +576,14 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
         job.Status = ImportStatus.Saved;
         job.CreatedRecipeId = outcome.Id;
         job.CopyImage = copyImage;
+        job.KeepPhotos = keepPhotos ?? job.KeepPhotos;
         job.UpdatedAt = now;
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        if (job.SourceKind == ImportSourceKind.Photo && job.KeepPhotos)
+        {
+            await KeepCardPhotosAsync(job, outcome.Id, userId, cancellationToken).ConfigureAwait(false);
+        }
 
         string? imageWarning = null;
         if (copyImage && job.ImageUrl is { } imageUrl)
@@ -497,6 +670,22 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
         db.ImportJobs.RemoveRange(old);
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return old.Count;
+    }
+
+    /// <summary>BR-131, ADR 0058 D7: the kept SEC-52 copies become the recipe's card images, in order.</summary>
+    private async Task KeepCardPhotosAsync(ImportJob job, int recipeId, string userId, CancellationToken ct)
+    {
+        var photos = await ReadPhotosAsync(job, "webp", ct).ConfigureAwait(false) ?? [];
+        for (var i = 0; i < photos.Count; i++)
+        {
+            var (id, _) = await images.SaveAsync(photos[i], null, userId, ct).ConfigureAwait(false);
+            if (id is not null)
+            {
+                db.RecipeCardImages.Add(new RecipeCardImage { RecipeId = recipeId, Position = i, ImageId = id });
+            }
+        }
+
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     private async Task<string?> CopyImageAsync(int recipeId, string imageUrl, string userId, CancellationToken ct)

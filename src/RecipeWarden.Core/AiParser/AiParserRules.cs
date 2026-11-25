@@ -19,6 +19,9 @@ public enum AiPurpose
     Reparse,
     NutritionMapping,
     Test,
+
+    /// <summary>FR-IMP-13: photos read by the model (ADR 0058).</summary>
+    PhotoImport,
 }
 
 /// <summary>The outcome recorded for each call (FR-IMP-10).</summary>
@@ -35,6 +38,12 @@ public enum AiCallResult
 public sealed record AiSettings(bool Enabled, AiProvider Provider, string? Endpoint, string? Model, long? MonthlyTokenCap, bool AllowLan)
 {
     public static AiSettings Off { get; } = new(false, AiProvider.Claude, null, null, null, false);
+
+    /// <summary>FR-IMP-13, ADR 0058 D8: the Admin's "This model can read images"; null when never set.</summary>
+    public bool? ReadsImages { get; init; }
+
+    /// <summary>ADR 0058 D8: Claude models read images unless unticked; an OpenAI-compatible model only when ticked.</summary>
+    public bool CanReadImages => ReadsImages ?? Provider == AiProvider.Claude;
 }
 
 /// <summary>

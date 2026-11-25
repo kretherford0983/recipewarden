@@ -1,6 +1,6 @@
-# RecipeWarden — Specification v0.27
+# RecipeWarden — Specification v0.28
 
-Version 0.27 · 2026-11-24
+Version 0.28 · 2026-11-24
 
 ## 1. Overview
 
@@ -21,7 +21,7 @@ A self-hosted, single-household recipe manager, RecipeWarden, built on .NET 10 /
 - Multi-tenant or public sign-up. There is one household; accounts are created by an admin.
 - Native mobile apps. The site is responsive and installable as a PWA-lite (home-screen icon) only.
 - Meal planning calendars, pantry inventory tracking and grocery delivery integrations (candidates for v2).
-- OCR of scanned/image-only PDFs (text-based PDFs only in v1; see D-07).
+- OCR of scanned/image-only PDFs (text-based PDFs only in v1; see D-07). Photos can be imported through the AI parser (D-13); local OCR stays a v2 item.
 
 ### 1.3 Glossary
 
@@ -54,6 +54,7 @@ All twelve decisions were settled on 2026-11-17, and the spec reflects them. Any
 | D-10 | Shopping lists | Editors create, fill and delete lists; anyone on the site can view and check items off (one anonymous write with antiforgery and its own rate limit, ADR 0028). A list is removed 15 minutes after its last item is ticked; its name is remembered for "Start again". |
 | D-11 | Image library | SkiaSharp (MIT). |
 | D-12 | Backup destinations | PennyWarden model: the server owner mounts storage and lists allowed folders in config; `recipewarden apply-config` opens them in the service sandbox; each schedule writes to one listed folder (e.g. daily to local disk, weekly to the NAS share). Off-site copies happen outside the app (FR-BKP-08 to 15). |
+| D-13 | Photo import | Photos (recipe cards, printed pages) are read by the AI parser's vision model when the AI parser is on and its model can read images; no local OCR in v1 (ADR 0058). |
 
 PennyWarden's backup-destination requirements are adopted (sections 3.11, 4.7, 9.6). If other PennyWarden specs (installer, auth, logging) are added to the project, this spec defers to them where they overlap, unless a rule here is stricter.
 
@@ -89,6 +90,7 @@ Requirements carry stable IDs (FR = functional, NFR = non-functional) used by th
 | FR-IMP-10 | AI usage visibility: a log of each call (provider, model, tokens in/out, duration, result), a monthly token total on the admin dashboard, a "Test connection" button, and an optional monthly token cap after which AI parsing pauses and the rules-based parser is used. | S |
 | FR-IMP-11 | Second opinion on imported ingredients (ADR 0051): when the Python worker is available, each imported ingredient line is also read by the NLP parser; lines where the readings disagree on quantity, unit or food (BR-118) are marked on the review page with the other reading. The imported text is never changed automatically. | S |
 | FR-IMP-12 | (M10) Site-specific extraction: for a URL whose host has a site-specific scraper, the scraper's reading is used when the JSON-LD/microdata reading is missing or incomplete (BR-117); the review page names the method. | C |
+| FR-IMP-13 | (M8b, ADR 0058) Import from 1 to 4 photos (JPEG, PNG, WebP) through the AI parser (D-13): offered only when the AI parser is on and its model is marked as image-capable; photos are re-encoded without metadata before sending; the result validates as recipe-md v1 and goes to review with the photos shown; the photos can be kept with the recipe as recipe-card images (kept by default). | S |
 
 ### 3.3 Organization and search (ORG / SRCH)
 
@@ -267,6 +269,10 @@ These rules are enforced in the domain layer (not only the UI) and each has unit
 | BR-125 | Only the base batch ("single", else the one without a batch word) is imported. The other's differences from the base scaled by the ratio (ingredient lines off the ratio or in only one, servings, pan, times, steps, notes) go into the base's notes, and the review offers "Import it as its own recipe". |
 | BR-126 | Recipes whose titles still differ without a batch word are variations: always separate drafts. Two versions of one ingredient group ("Sauce (Side Dish)", "Sauce (Taco Topping)") get a review warning, not a change. |
 | BR-127 | Loose Markdown: dividers and in-file links are dropped; servings and times are read from bullets ("- **Prep:** 10 minutes", "Bake:"); a pan under Yield prefills the pan; a bold line before a numbered item, or a `###` heading holding one step, is that step's heading; indented bullets stay in their step; italics are removed; a Nutrition section becomes the imported panel. |
+| BR-128 | (FR-IMP-13) A photo import's credit is Personal with the optional source name typed on the import form (e.g. "Grandma Ruth's card") and no URL. |
+| BR-129 | (FR-IMP-13) The model writes `[unclear]` for what it cannot read; those lines are warnings on the review page. A recipe from a photo cannot be saved while an ingredient amount (the part before the unit or name) still holds `[unclear]`; elsewhere a leftover marker only warns. |
+| BR-130 | (FR-IMP-13) Photo import is unavailable, with a message saying why, when the AI parser is off, the model is not marked image-capable, or the monthly cap is reached; nothing is sent in any of these cases. |
+| BR-131 | (FR-IMP-13) The photos are sent in the order chosen, in one call; the import keeps the re-encoded photos for 30 days (FR-IMP-08) for "Re-parse with AI", and "Save the card photo with the recipe" (ticked by default) keeps them as the recipe's card images in that order. |
 
 ### 4.3 Scaling and conversion
 
@@ -459,14 +465,15 @@ The app is internet-reachable through the tunnel, so it is built as a public web
 | SEC-45 | API keys are encrypted at rest with ASP.NET Core Data Protection, write-only in the UI (shown as "set"), and never written to logs, audit details, AI exports or error pages. |
 | SEC-46 | Only recipe content is sent (the extracted import text, or ingredient names for mapping suggestions); never user, account, inventory, audit or settings data. |
 | SEC-47 | Model output is untrusted data: size-capped, parsed against the recipe-md schema, sanitized like any import (BR-13, SEC-22), and saved only after human review. The parser has no tools or actions, so instructions hidden in a source page cannot make it do anything but return text. |
+| SEC-48 | Photos sent to an AI provider are only re-encoded copies (orientation applied, no EXIF, GPS or other metadata, long edge at most 1568 px, JPEG); the original upload is never sent or stored. An AI request body is capped at 4 MB and checked before connecting. |
 
 ### 5.6 File uploads
 
 | ID | Rule |
 | --- | --- |
-| SEC-50 | Allow-list by extension and magic bytes: .md/.txt, .docx, .pdf, .jpg/.png/.webp. Macro formats (.docm) and legacy .doc are refused. |
+| SEC-50 | Allow-list by extension and magic bytes: .md/.txt, .docx, .pdf, .jpg/.png/.webp. Macro formats (.docm) and legacy .doc are refused. Photo import (FR-IMP-13) uses the image allow-list; HEIC is refused with a message asking for JPEG. |
 | SEC-51 | Size caps: documents 20 MB, images 10 MB; .docx decompressed size capped at 50 MB and 2,000 entries (zip-bomb guard). |
-| SEC-52 | Images are decoded and re-encoded (strips EXIF/GPS and any payload), resized to max 2400 px, stored under random names outside the web root, served through a controller with `X-Content-Type-Options: nosniff`. |
+| SEC-52 | Images are decoded and re-encoded (strips EXIF/GPS and any payload), resized to max 2400 px, stored under random names outside the web root, served through a controller with `X-Content-Type-Options: nosniff`. The same re-encoding applies to photos kept from a photo import (SEC-48). |
 | SEC-53 | PDFs are parsed for text only; embedded JavaScript, forms and attachments are ignored. |
 | SEC-54 | Restore archives are validated before extraction: no absolute paths or `..` entries (zip-slip), size caps, manifest checksums. |
 
@@ -605,6 +612,12 @@ The site should feel like a well-designed cookbook: calm, readable, fast, and us
 2. Paste into the AI assistant; discuss and iterate there.
 3. Copy the AI's final reply → Manage → Import AI response → paste → review the diff → Save as variant.
 
+**W11 — Import a recipe card from a photo (Editor)**
+
+1. Manage → Import → From photos → choose 1 to 4 photos in reading order (front, then back) → optionally name the source ("Grandma Ruth's card") → Read the photos.
+2. Review: the photos sit above the form, every field is marked AI-parsed and `[unclear]` lines are listed; fix them.
+3. Keep "Save the card photo with the recipe" ticked (or untick it) → Save.
+
 ## 7. Site layout
 
 Three zones: public reading pages, `/manage` for editors, `/admin` for admins. The access column is the source of truth for SEC-10's endpoint test.
@@ -635,8 +648,8 @@ Three zones: public reading pages, `/manage` for editors, `/admin` for admins. T
 | `/shopping/{id}/staples` | Staples walk-through: recipe staples, then the rest by location; adds restock items (FR-SHOP-05) | Editor |
 | `/manage/staples` | The household staples list: add, edit, remove (FR-SHOP-05) | Editor |
 | `/manage/recipes/new`, `/manage/recipes/{id}/edit` | Recipe editor | Editor |
-| `/manage/import` | Import from a URL, pasted text or HTML, or files (ADR 0024); imports waiting for review | Editor |
-| `/manage/import/{id}/review` | Review an import in the editor form, then save or discard (ADR 0025) | Editor |
+| `/manage/import` | Import from a URL, pasted text or HTML, files (ADR 0024) or photos when FR-IMP-13 applies (ADR 0058); imports waiting for review | Editor |
+| `/manage/import/{id}/review` | Review an import in the editor form, then save or discard (ADR 0025); a photo import's photos through `?handler=Photo&n=` (ADR 0058) | Editor |
 | `/manage/kitchen` | Kitchen inventory: add, presets, retire, restore (W5) | Editor |
 | `/manage/recipes/{id}/suggestions` | Dismiss or save a suggestion to the recipe (ADR 0017) | Editor |
 | `/manage/recipes/{id}/cooked` | "I made this": last cooked and a measured yield (ADR 0019) | Editor |
@@ -661,7 +674,7 @@ Three zones: public reading pages, `/manage` for editors, `/admin` for admins. T
 | /setup | First run: create admin or restore from backup | Setup token, only before first admin (SEC-15) |
 | /manage/nutrition | Unmatched ingredients, mapping, custom foods from labels | Editor |
 | `/manage/recipes/{id}/nutrition` | A recipe's nutrition: how each line counted, a manual panel, allergen overrides (ADR 0035, 0036) | Editor |
-| /admin/ai | AI parser settings, test connection, usage log and cap | Admin |
+| /admin/ai | AI parser settings, test connection, image-capable flag and image test (ADR 0058), usage log and cap | Admin |
 | /admin/nutrition-data | USDA dataset version and refresh upload | Admin |
 
 ### 7.3 Recipe page anatomy (desktop, top to bottom)
@@ -694,6 +707,7 @@ SQLite via EF Core 10 with code-first migrations applied at startup. Images live
 | IngredientGroup | Id, RecipeId, Name, SortOrder | "For the sauce". Optional. |
 | RecipeIngredient | Id, RecipeId, GroupId, SortOrder, RawText, Quantity, QuantityMax, QuantityText, UnitId, Name, FoodId, Preparation, State (raw/cooked/…), IsOptional, Note, ParseConfidence, Measure (Auto/Weight/AsWritten, BR-122) | RawText always kept (BR-04). Name is the parsed ingredient text, kept whether or not a Food matches (ADR 0009). FoodId is set on save by exact name or alias, and by a startup pass for unlinked lines; null when nothing matches (ADR 0013). |
 | Step | Id, RecipeId, SortOrder, Title, Text, ImageId, SectionName, TimerSeconds | Title is an optional step heading (ADR 0015). Timer parsed from text. A step photo follows its step across edits: same text, else same position (ADR 0023). |
+| RecipeCardImage | Id, RecipeId, Position, ImageId | FR-IMP-13, ADR 0058: photos kept from a photo import, in order; shown under the source, opened with the recipe's image rule (ADR 0022), deleted with the recipe. |
 | Image | Id (32 random hex), StoragePath, ContentType, Width, Height, Bytes, ThumbBytes, Sha256, AltText, SourceUrl, CreatedAt, CreatedById | Shared by finish and step images. WebP at most 2400 px plus a 640 px thumbnail under `<data>/media`; unused images are deleted after 24 hours (ADR 0022). |
 | RecipeTag | RecipeId, TagId | Composite PK. |
 | RecipeSlugAlias | Slug (PK), RecipeId, CreatedAt | Earlier published slugs; redirect to the current one (BR-02, ADR 0008). |
@@ -737,7 +751,7 @@ SQLite via EF Core 10 with code-first migrations applied at startup. Images live
 | ShoppingStapleCheck | ShoppingListId, ItemKey, Answer (Have/Need), At | BR-44. |
 | Staple | Id, FoodId (null for a household item), Name, NormalizedName (unique), Location, Restock, Section, LastRestockedAt, CreatedAt | FR-SHOP-05, ADR 0057. A food is a staple when Food.IsPantryStaple is set; this row holds its details. |
 | ShoppingListName | Id, Name, NormalizedName, LastUsedAt | Remembered names for "Start again" (ADR 0028). |
-| ImportJob | Id, BatchId, SourceKind (Url/Paste/Markdown/Text/Docx/Pdf), SourceRef, Status (Review/Saved/Discarded), RawPath, ParsedJson, WarningsJson, ImageUrl, CopyImage, DuplicateOfRecipeId, CreatedRecipeId, CreatedById, CreatedAt, UpdatedAt | One job per recipe found; a file's recipes share a BatchId. Jobs and raw payloads (`<data>/imports`) kept 30 days (FR-IMP-08, ADR 0024/0025). |
+| ImportJob | Id, BatchId, SourceKind (Url/Paste/Markdown/Text/Docx/Pdf/Photo), SourceRef, Status (Review/Saved/Discarded), RawPath, ParsedJson, WarningsJson, ImageUrl, CopyImage, PhotoCount, KeepPhotos, DuplicateOfRecipeId, CreatedRecipeId, CreatedById, CreatedAt, UpdatedAt | One job per recipe found; a file's recipes share a BatchId. Jobs and raw payloads (`<data>/imports`) kept 30 days (FR-IMP-08, ADR 0024/0025). A photo import keeps `photo-<n>.jpg` (the copy sent, SEC-48) and `photo-<n>.webp` (SEC-52) in its batch folder (ADR 0058). |
 | AspNet\* tables | Identity users, roles, claims, tokens | Standard Identity schema. |
 | UserPreference | UserId, Theme, Units, DefaultScale | Units: as written, US, metric or weight (ADR 0014). |
 | AuditEntry | Id, At, UserId, UserName, Action, EntityType, EntityId, Ip, DetailsJson | Append-only. UserName keeps the email (or "system", "anonymous", "cli:&lt;user&gt;") when an account is deleted; details hold changed property names, never values (ADR 0041). |
@@ -827,7 +841,7 @@ recipewarden/
 
 ### 9.3 Import pipeline
 
-1. **Acquire** — safe fetcher (SEC-40–43; a browser-like User-Agent, ADR 0024), pasted text or saved HTML when a site refuses (ADR 0024), or upload validator (SEC-50–53). Runs in the request; nothing in the background.
+1. **Acquire** — safe fetcher (SEC-40–43; a browser-like User-Agent, ADR 0024), pasted text or saved HTML when a site refuses (ADR 0024), or upload validator (SEC-50–53), or photos for the AI parser (FR-IMP-13: upload validator, then SEC-48 re-encoding; they go straight to the AI, D-13). Runs in the request; nothing in the background.
 2. **Extract** — format-specific extractor produces a raw recipe: title, text blocks, ingredient lines, step lines, images, metadata. URL order: JSON-LD `Recipe` → microdata → heuristics (headings containing Ingredients / Directions / Method / Instructions).
 3. **Normalize** — ingredient line parser (quantity incl. unicode fractions and ranges, unit via alias table, food via catalogue + fuzzy match, preparation, optional), ISO-8601 durations to minutes, servings from `recipeYield`.
 4. **Enrich** — allergen detection, nutrition (imported or calculated), tag suggestions from keywords and `recipeCategory`/`recipeCuisine`.
@@ -1008,6 +1022,7 @@ The repository is public (ADR 0005): GitHub-hosted Actions minutes are free and 
 8. **M6 Nutrition and allergens** — bundled SR Legacy data, calculated nutrition, imported and manual panels, allergen detection and overrides, the "free of" filter, the unmatched report, mapping, label foods, and the `nutrition-import` CLI. The upload page for a newer dataset is M7; AI mapping suggestions (FR-NUT-06) are M8 (ADR 0034 to 0036).
 9. **M7 Operations** — backups, schedule, retention, encryption and recovery kit, restore (ad hoc, CLI and at install), `/setup`, audit, users, settings, health and capacity dashboard, `/admin/nutrition-data`, installer restore, pre-upgrade backup and firewall rule (ADR 0037 to 0041). TOTP, `/account/password` and `/admin/ai` are M8.
 10. **M8 Hardening** — optional AI parser (FR-IMP-09/10, FR-NUT-06, ADR 0026, 0042), TOTP, `/account/password`, common-password list, remember me and the sign-in rate limit (ADR 0043), home recommendations FR-HOME-02 (ADR 0044), security test pass, accessibility pass and performance at 5,000 recipes (ADR 0045), v1.0 release (ADR 0046).
+10b. **M8b Photo import** (ADR 0058) — FR-IMP-13, BR-128 to BR-131, SEC-48: vision requests in AiProtocol for both providers, image-capable flag and image test on /admin/ai, photo upload and review, recipe-card images, W11. Built before M9 (owner, 2026-11-24).
 11. **M9 Python foundation and ingredient intelligence** (ADR 0051 to 0054) — bundled Python runtime and worker with CI and packaging, local mapping suggestions (FR-NUT-07), a second opinion on imported ingredient lines (FR-IMP-11), worker health and the Admin switch (FR-OPS-06), and `recipewarden import-compare` to measure M10; Foundation Foods and FNDDS ship with SR Legacy (ADR 0052); Ubuntu 22.04 dropped (ADR 0054).
 12. **M10 Site-specific URL scrapers** — FR-IMP-12 (BR-117), switched on only if `import-compare` shows a gain; otherwise closed with an ADR.
 
@@ -1056,6 +1071,7 @@ This matrix seeds `docs/traceability.md` in the repo. Test classes are named aft
 | FR-NUT-07 | BR-116, BR-54 | FoodSuggestion, `FoodSuggestionService`, Python matcher (ADR 0051, 0052); `/manage/nutrition` | Core, Infra, Web, pytest | AC-101, AC-102, AC-103 |
 | FR-IMP-11 | BR-118, BR-119 | `SecondOpinionRules`, `ImportService`, review page | Core, Infra (corpus), Web | AC-104 |
 | FR-IMP-12 (M10) | BR-117 | Site reader in the URL import order | M10 | AC-110 to AC-112 |
+| FR-IMP-13 | BR-128 to BR-131; SEC-48, SEC-50, SEC-52 | AiProtocol image parts, PhotoImportRules (Core), ImageEncoder.ForAi, ImportService.StartPhotosAsync, RecipeCardImage, `/manage/import` photo form, review photos, `/admin/ai` image test | Core PhotoImportRules; Importers AiProtocol; Infra PhotoImport; Web PhotoImport | AC-126 to AC-130 |
 | FR-OPS-06 | BR-119; SEC-90–95; NFR-10 | `PythonWorker`, health section, CLI `python-selftest`, `import-compare` | Infra, Web, Cli, pytest, smoke and installer tests | AC-103, AC-105 to AC-109 |
 | FR-BKP-08 to 15 | BR-60–62; SEC-70, SEC-74, SEC-75 | Backup:AllowedFolders, apply-config, systemd drop-in, BackupSchedule, marker check, encryption (9.6.1) | Cli.Tests ApplyConfig; Infra.Tests BackupDestination, Retention, Encryption; installer container tests | AC-86, AC-87, AC-88, AC-89 |
 
@@ -1084,6 +1100,11 @@ Each criterion is written Given / When / Then and becomes at least one automated
 | AC-120 | Given two recipes titled "Chocolate Custard" and "Vanilla Custard" with overlapping ingredients at double amounts, then both are imported as separate drafts. |
 | AC-17 | Given the AI parser is disabled, then no request is made to any AI host during any import (asserted by test). Given it is enabled with the Claude provider, when a blog-prose fixture with no structure is imported, then a draft with ingredients and steps reaches the review screen with AI-parsed fields marked, and nothing is saved until the user confirms. |
 | AC-18 | Given an OpenAI-compatible endpoint at 192.168.1.50:11434 is configured, then calls to it succeed while any other private address is still refused; the saved API key never appears in the UI, logs or audit; when the monthly cap is reached, AI parsing pauses with a message and the rules-based parser is used; a model reply containing HTML or script is stored as inert text. |
+| AC-126 | Given the AI parser is off, or on with a model not marked image-capable, then /manage/import shows no photo form, a posted photo import is refused with the reason, and no request is made to any AI host (asserted by test). |
+| AC-127 | Given a 4032×3024 JPEG with EXIF GPS and description tags and a rotate-90 orientation, when it is sent for photo import, then the image in the request is an upright JPEG with a long edge of at most 1568 px and no EXIF or other metadata (asserted on the captured request). |
+| AC-128 | Given the Claude provider and an invented two-sided card, when imported, then the request holds both images in order with the recipe-md instructions, and a draft reaches review with its fields marked AI-parsed, the photos shown and `[unclear]` lines warned; nothing is saved until the Editor confirms. With the OpenAI-compatible provider the request sends `image_url` data parts. |
+| AC-129 | Given a photo import saved with "Save the card photo" ticked, then the recipe has its card images in order, served through /media under the recipe's rule and included in the Markdown zip export; unticked, no card image is kept. Given `[unclear]` left in an ingredient amount, then saving is refused with the line named. |
+| AC-130 | Given five photos, a HEIC file, an 11 MB JPEG, or photos whose request would exceed 4 MB, then the import is refused with a clear message and no connection is made; given the monthly cap is reached, then photo import shows the cap message and sends nothing. |
 
 ### 11.2 Organization, viewing and output
 
@@ -1279,6 +1300,7 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
+- v0.28 (2026-11-24): Photo import through the AI parser (ADR 0058, milestone M8b before M9). D-13; FR-IMP-13; BR-128 to BR-131; SEC-48; SEC-50 and SEC-52 clarified; W11; AC-126 to AC-130; 7.2 import and /admin/ai; 8.2 RecipeCardImage; 8.5 ImportJob photo fields; 9.3 and 9.10.
 - v0.27 (2026-11-24): Owner testing (ADR 0055 to 0057). Kitchen form fields and scale resolution (BR-120, BR-121); per-ingredient weights (FR-TOOL-05, BR-122, BR-123); batch sizes and variations in one import file and Markdown clean-up (BR-124 to BR-127); staples: FR-SHOP-03 changed to "Check before you buy", new FR-SHOP-05 restock walk-through, BR-43 to BR-48. 7.2 adds `/manage/staples`, `/shopping/{id}/staples` and the Staple handler; 8.2 RecipeIngredient.Measure; 8.5 Staple, ShoppingStapleCheck and ShoppingLine columns; ACs 51 (revised), 52 to 54, 113 to 120, 125.
 - v0.26 (2026-11-24): M9 drafts (ADR 0051 to 0054). FR-IMP-11, FR-IMP-12 (M10), FR-NUT-07, FR-OPS-06; BR-116 to BR-119; new section 5.10 (SEC-90 to SEC-95); NFR-10; 11.8 AC-101 to AC-112; 9.1 Python adapters row; 9.10 M9 and M10. NFR-02 and AC-90 drop Ubuntu 22.04 (ADR 0054).
 - v0.25 (2026-11-24): UX-14 amendment — JSON-LD follows Safari HomeView and Google Recipe guidance (ADR 0050 amendment 1). Changelog renumbered (two v0.24 lines; v0.22 was on an unmerged branch).

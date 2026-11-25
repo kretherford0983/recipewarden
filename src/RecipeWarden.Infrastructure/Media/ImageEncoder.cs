@@ -24,6 +24,70 @@ public static class ImageEncoder
 
     public static (EncodedImage? Image, string? Error) Encode(byte[] bytes)
     {
+        var (upright, error) = DecodeUpright(bytes);
+        if (upright is null)
+        {
+            return (null, error);
+        }
+
+        using (upright)
+        {
+            var full = Resize(upright, MaxSide);
+            var thumb = Resize(upright, ThumbSide);
+            try
+            {
+                return (new EncodedImage(Webp(full), Webp(thumb), full.Width, full.Height), null);
+            }
+            finally
+            {
+                if (!ReferenceEquals(full, upright))
+                {
+                    full.Dispose();
+                }
+
+                if (!ReferenceEquals(thumb, upright))
+                {
+                    thumb.Dispose();
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// SEC-48, ADR 0058: the copy of a photo that is sent to the AI parser: upright, long edge at most
+    /// <paramref name="maxSide"/> px, a plain JPEG with no metadata (SkiaSharp writes none).
+    /// </summary>
+    public static (byte[]? Jpeg, string? Error) ForAi(byte[] bytes, int maxSide = Core.AiParser.PhotoImportRules.MaxSide,
+        int quality = Core.AiParser.PhotoImportRules.JpegQuality)
+    {
+        var (upright, error) = DecodeUpright(bytes);
+        if (upright is null)
+        {
+            return (null, error);
+        }
+
+        using (upright)
+        {
+            var small = Resize(upright, maxSide);
+            try
+            {
+                using var image = SKImage.FromBitmap(small);
+                using var encoded = image.Encode(SKEncodedImageFormat.Jpeg, quality);
+                return (encoded.ToArray(), null);
+            }
+            finally
+            {
+                if (!ReferenceEquals(small, upright))
+                {
+                    small.Dispose();
+                }
+            }
+        }
+    }
+
+    /// <summary>JPEG, PNG or WebP bytes → an upright bitmap (EXIF orientation applied), or why not.</summary>
+    private static (SKBitmap? Upright, string? Error) DecodeUpright(byte[] bytes)
+    {
         ArgumentNullException.ThrowIfNull(bytes);
         using var data = SKData.CreateCopy(bytes);
         using var codec = SKCodec.Create(data);
@@ -54,25 +118,7 @@ public static class ImageEncoder
             return (null, Unreadable);
         }
 
-        using var upright = Orient(decoded, codec.EncodedOrigin);
-        var full = Resize(upright, MaxSide);
-        var thumb = Resize(upright, ThumbSide);
-        try
-        {
-            return (new EncodedImage(Webp(full), Webp(thumb), full.Width, full.Height), null);
-        }
-        finally
-        {
-            if (!ReferenceEquals(full, upright))
-            {
-                full.Dispose();
-            }
-
-            if (!ReferenceEquals(thumb, upright))
-            {
-                thumb.Dispose();
-            }
-        }
+        return (Orient(decoded, codec.EncodedOrigin), null);
     }
 
     private static SKBitmap Resize(SKBitmap source, int maxSide)

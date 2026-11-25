@@ -11,6 +11,9 @@ public enum ImportSourceKind
     Text,
     Docx,
     Pdf,
+
+    /// <summary>FR-IMP-13: photos read by the AI parser (ADR 0058).</summary>
+    Photo,
 }
 
 /// <summary>How the recipe was found in the source (FR-IMP-01 order, then the file importers).</summary>

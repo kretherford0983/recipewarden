@@ -212,7 +212,9 @@ public sealed class RecipeService(AppDbContext db, TimeProvider clock, TagServic
             : null;
         var variants = await visible.AsNoTracking().Where(r => r.ParentRecipeId == recipe.Id).OrderBy(r => r.Title)
             .Select(r => new RecipeLink(r.Id, r.Slug, r.Title)).ToListAsync(cancellationToken).ConfigureAwait(false);
-        return new RecipeLookup(ToView(recipe, collections) with { Parent = parent, Variants = variants }, null);
+        var cards = await db.RecipeCardImages.AsNoTracking().Where(c => c.RecipeId == recipe.Id).OrderBy(c => c.Position).Select(c => c.ImageId)
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+        return new RecipeLookup(ToView(recipe, collections) with { Parent = parent, Variants = variants, CardImageIds = cards }, null);
     }
 
     /// <summary>FR-REC-05, ADR 0033: links a variant to the recipe it came from (no version change).</summary>

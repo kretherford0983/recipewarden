@@ -10,7 +10,8 @@
 @if (Model.Message is not null) { <div class="notice" role="status"><p>@Model.Message</p></div> }
 @if (Model.Error is not null) { <div class="form-errors" role="alert"><p>@Model.Error</p></div> }
 <p>Optional, and off until you turn it on. When the regular import cannot find a recipe's structure (blog prose, messy PDFs), or
-    when an Editor presses <strong>Re-parse with AI</strong>, only the recipe's text is sent to the service below. The answer always
+    when an Editor presses <strong>Re-parse with AI</strong>, only the recipe's text is sent to the service below. When the model can read
+    images, Editors can also import photos of a recipe card; only re-encoded copies without location or camera details are sent. The answer always
     comes back to the review page and nothing is saved until a person saves it. It can also suggest nutrition matches from the
     local food data. Export for AI does not use this.</p>
 
@@ -30,6 +31,12 @@
         <label for="ai-model">Model</label>
         <input id="ai-model" name="model" value="@s.Model" maxlength="@AiParserRules.MaxModelLength" placeholder="claude-haiku-5-5 or llama3.1" required>
     </div>
+    <div class="field checkbox">
+        @* ADR 0058 D8: checked by default for Claude; a local model only when it is a vision model. The hidden "false" follows the box. *@
+        <input id="ai-images" name="readsImages" type="checkbox" value="true" checked="@s.CanReadImages">
+        <input type="hidden" name="readsImages" value="false">
+        <label for="ai-images">This model can read images (allows importing recipe photos; for a local model, use a vision model such as qwen2.5vl or llava)</label>
+    </div>
     <div class="field">
         <label for="ai-key">API key @(Model.HasKey ? "(set — leave empty to keep it)" : "(not set)")</label>
         <input id="ai-key" name="apiKey" type="password" autocomplete="off" value="">
@@ -42,6 +49,7 @@
     <div class="actions">
         <button type="submit">Save</button>
         <button type="submit" formaction="/admin/ai?handler=Test">Test connection (saved settings)</button>
+        <button type="submit" formaction="/admin/ai?handler=TestImages">Test image reading (saved settings)</button>
     </div>
 </form>
 
