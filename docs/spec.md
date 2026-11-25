@@ -1,6 +1,6 @@
-# RecipeWarden — Specification v0.30
+# RecipeWarden — Specification v0.31
 
-Version 0.30 · 2026-11-25
+Version 0.31 · 2026-11-25
 
 ## 1. Overview
 
@@ -273,6 +273,7 @@ These rules are enforced in the domain layer (not only the UI) and each has unit
 | BR-129 | (FR-IMP-13) The model writes `[unclear]` for what it cannot read; those lines are warnings on the review page. A recipe from a photo cannot be saved while an ingredient amount (the part before the unit or name) still holds `[unclear]`; elsewhere a leftover marker only warns. |
 | BR-130 | (FR-IMP-13) Photo import is unavailable, with a message saying why, when the AI parser is off, the model is not marked image-capable, or the monthly cap is reached; nothing is sent in any of these cases. |
 | BR-131 | (FR-IMP-13) The photos are sent in the order chosen, in one call; the import keeps the re-encoded photos for 30 days (FR-IMP-08) for "Re-parse with AI", and "Save the card photo with the recipe" (ticked by default) keeps them as the recipe's card images in that order. |
+| BR-132 | (ADR 0056 amendment 1) When an import lists two or more versions of one ingredient group ("Sauce (Side Dish)", "Sauce (Taco Topping)"), the review warns and offers: keep one version and drop the others; keep one and move the others to the notes as a list; or split into one draft per version, titled "Title (Version)", each with the shared groups. The warning goes when it is resolved. |
 
 ### 4.3 Scaling and conversion
 
@@ -307,6 +308,8 @@ These rules are enforced in the domain layer (not only the UI) and each has unit
 | BR-121 | A scale's resolution is its smallest step, from the "Max … x [step]" label; a bare number is grams; at most 50 g. Units are g and oz (ml and fl oz modes assume water; lb is shown from oz). |
 | BR-122 | Each ingredient line has a measure: Auto (BR-22), Weight or As written. Applying a scale suggestion weighs the ticked lines and stores As written on the unticked ones; Show me weighs ticked lines for that view only. A choice follows its line while the line's text is unchanged. |
 | BR-123 | A weight under five steps of the scale shows "Small amount for this scale: weigh onto a zeroed plate, or use …" with the spoon amount; it never blocks the choice. |
+| BR-56 | (ADR 0018 amendment 1) A measuring cup, spoon or jug can list its markings, one set per line ("4 cups by 1/2", "1 quart by 1/3", "1000 ml by 100", "1/8 to 1 cup by 1/8" for an adjustable cup); at most 4 sets of 48 marks. The planner treats each mark as one fill and uses at most one mark per amount, with fixed measures for the rest; with the same number of fills, fixed measures win. Marks a fixed measure already gives add nothing. |
+| BR-57 | (ADR 0018 amendment 1) One measure of each size is enough; My Kitchen says so. Retiring a measure that is the only active one giving a size asks first, listing the sizes lost; sizes another tool still gives are named with that tool after the retire. |
 
 ### 4.5 Shopping lists
 
@@ -1101,6 +1104,7 @@ Each criterion is written Given / When / Then and becomes at least one automated
 | AC-117 | Given a Markdown file with five custard variations, then five drafts are made, each with servings, prep and cook times, headed steps from its `###` headings, its nutrition panel, and no table of contents, dividers or Markdown marks. |
 | AC-118 | Given a file with a recipe's single and double batch, then one draft "Kansas Corn Bake" is made with servings 6–8, pan 8x12 and five headed steps; its notes hold the double batch's pan, times, steps and doneness notes; the review offers "Import it as its own recipe", which makes the second draft. |
 | AC-119 | Given a recipe whose steps are headed by bold lines and whose ingredients hold two versions of a sauce, then five headed steps are made, indented bullets stay in step 5, italics are removed, and the review warns about the two sauces. |
+| AC-137 | Given the street corn import with "Sauce (Side Dish)" and "Sauce (Taco Topping)", when the reviewer keeps Side Dish and chooses split, then two drafts "… (Side Dish)" and "… (Taco Topping)" are in the batch, each with the corn group and one sauce and no warning; keep-only leaves no Taco Topping lines; move-to-notes lists them in the notes. |
 | AC-120 | Given two recipes titled "Chocolate Custard" and "Vanilla Custard" with overlapping ingredients at double amounts, then both are imported as separate drafts. |
 | AC-17 | Given the AI parser is disabled, then no request is made to any AI host during any import (asserted by test). Given it is enabled with the Claude provider, when a blog-prose fixture with no structure is imported, then a draft with ingredients and steps reaches the review screen with AI-parsed fields marked, and nothing is saved until the user confirms. |
 | AC-18 | Given an OpenAI-compatible endpoint at 192.168.1.50:11434 is configured, then calls to it succeed while any other private address is still refused; the saved API key never appears in the UI, logs or audit; when the monthly cap is reached, AI parsing pauses with a message and the rules-based parser is used; a model reply containing HTML or script is stored as inert text. |
@@ -1133,6 +1137,8 @@ Each criterion is written Given / When / Then and becomes at least one automated
 | AC-31 | Given "I have 3 lb chicken" on a recipe calling for 1.5 lb, then the factor 2x is applied. |
 | AC-32 | Given a standard US spoon/cup set and no scale, when 3/4 cup is scaled 1.5x, then it shows "1 cup + 2 Tbsp" (exact 1 1/8 cups). |
 | AC-33 | Given a scale (1 g resolution) in inventory and a baking recipe calling for 2 cups flour, then flour shows "250 g" with "2 cups" as secondary; with no density for an ingredient, its original volume is kept. |
+| AC-135 | Given an Adjust-A-Cup marked "1/8 to 1 cup by 1/8" and the standard set, when a recipe needs 5/8 cup stock, then it shows "⅝ cup" (one fill) rather than "½ cup + 2 Tbsp"; markings that do not read are refused with an example. |
+| AC-136 | Given the only ½ Tbsp, when it is retired, then the page asks first and names ½ Tbsp as lost; Retire anyway retires it. Given a ¼ cup also marked on a jug, when the ¼ cup is retired, then it retires at once and says ¼ cup is still covered by the jug. |
 | AC-34 | Given "a pinch of salt" scaled 10x, then it shows "about 5/8 tsp (\~10 pinches)" using the nearest available spoons; "salt to taste" never changes. |
 | AC-35 | Given "4 cups cooked shredded chicken", then a note shows the raw boneless estimate as a range with its basis, and the shopping list uses the raw amount. |
 | AC-36 | Given 3 eggs scaled 1.5x, then the display is "4 eggs + 1 yolk" or "4 1/2 eggs (4 eggs + 2 Tbsp beaten)" per the rule, never "4.5 eggs". |
@@ -1308,6 +1314,7 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
+- v0.31 (2026-11-25): BR-56 — markings on cups, spoons and jugs, used by the display planner (ADR 0018 amendment 1); AC-135. BR-57 — one measure of each size is enough; retiring the only measure of a size asks first (ADR 0018 amendment 1); AC-136. BR-132 — two versions of an ingredient group: keep one and drop, move to notes, or split (ADR 0056 amendment 1, D3 accepted); AC-137.
 - v0.30 (2026-11-25): BR-55 — an allergen check that cannot finish never reports a line as allergen-free (ADR 0036 amendment 1); AC-132. BR-49 — editable kitchen locations for staples (ADR 0057 amendment 1); AC-133. UX-15 — favicon, app icons and an installable web app manifest (ADR 0060); AC-134; 7.2 manifest and icon routes.
 - v0.29 (2026-11-24): M10 site readers (ADR 0059): FR-IMP-12 and BR-117 revised (Admin switch `Import.SiteReaders`, off by default, replaces the config value); AC-131; 7.2 /admin/health; 9.10 M10.
 - v0.28 (2026-11-24): Photo import through the AI parser (ADR 0058, milestone M8b before M9). D-13; FR-IMP-13; BR-128 to BR-131; SEC-48; SEC-50 and SEC-52 clarified; W11; AC-126 to AC-130; 7.2 import and /admin/ai; 8.2 RecipeCardImage; 8.5 ImportJob photo fields; 9.3 and 9.10.

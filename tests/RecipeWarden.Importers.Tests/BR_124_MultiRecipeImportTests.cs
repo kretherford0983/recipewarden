@@ -129,6 +129,19 @@ public sealed class BR_124_MultiRecipeImportTests
         corn.Ingredients!.ShouldContain("Sauce (Taco Topping):");
         corn.Remarks.ShouldHaveSingleItem().ShouldContain("Two versions of “Sauce”");
         HasNoMarkup(corn);
+
+        // BR-132, AC-137: the owner's file resolves into a side dish and a taco topping, both with the corn group.
+        BatchRules.Versions(corn.Ingredients, "Sauce").ShouldBe(["Side Dish", "Taco Topping"]);
+        var (side, split) = BatchRules.ResolveVersions(corn, "Sauce", "Side Dish", VersionChoice.Split);
+        side.Title.ShouldBe("Skillet Mexican Street Corn (Side Dish)");
+        side.Remarks.ShouldBeEmpty();
+        side.Ingredients!.ShouldContain("3 tbsp avacado mayonnaise");
+        side.Ingredients!.ShouldNotContain("Taco Topping");
+        var taco = split.ShouldHaveSingleItem();
+        taco.Title.ShouldBe("Skillet Mexican Street Corn (Taco Topping)");
+        taco.Ingredients!.ShouldContain("2 (16 ounce) packages frozen corn");
+        taco.Ingredients!.ShouldContain("1/4 cup avacado mayonnaise");
+        taco.Ingredients!.ShouldNotContain("Side Dish");
     }
 
     [Fact]

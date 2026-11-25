@@ -156,6 +156,13 @@ public sealed class ReviewModel(ImportService imports, TagService tags, Infrastr
             ? Redirect($"/manage/import/{newId}/review")
             : NotFound();
 
+    /// <summary>BR-132: keep one version of an ingredient group; drop, move to notes or split the others.</summary>
+    public async Task<IActionResult> OnPostVersionsAsync([FromRoute] int id, string? name, string? keep, string? choice) =>
+        Enum.GetNames<VersionChoice>().Contains(choice, StringComparer.Ordinal)
+        && await imports.ResolveVersionsAsync(id, name, keep, Enum.Parse<VersionChoice>(choice!), HttpContext.RequestAborted) is { } kept
+            ? Redirect($"/manage/import/{kept}/review")
+            : NotFound();
+
     public async Task<IActionResult> OnPostDiscardAsync([FromRoute] int id) =>
         await imports.DiscardAsync(id, HttpContext.RequestAborted) ? Redirect("/manage/import") : NotFound();
 

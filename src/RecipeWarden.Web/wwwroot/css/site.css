@@ -399,11 +399,15 @@ label.inline, .inline { display: inline-flex; align-items: center; gap: .45rem; 
 .chip { font-weight: 550; border-radius: 6px; }
 
 /* Notices and status */
-.notice, .ai-parsed-notice {
+.notice, .ai-parsed-notice, .guide {
   display: block; border: 1px solid var(--info-border); border-left: 4px solid var(--info-fg); background: var(--info-bg); color: var(--text);
   padding: .65rem .9rem; margin: 0 0 1rem; border-radius: var(--radius);
 }
-.notice p:last-child { margin-bottom: 0; }
+.notice p:last-child, .guide p:last-child { margin-bottom: 0; }
+/* BR-57, BR-132: panels that ask for a choice stand out from the plain notices. */
+.guide.confirm-retire, .guide.versions { border-color: var(--warn-border); border-left-color: var(--warn-fg); background: var(--warn-bg); }
+.guide fieldset { border: 0; padding: 0; margin: 0 0 .5rem; }
+.guide fieldset label { display: block; }
 .notice a { color: var(--info-fg); font-weight: 600; }
 .form-errors, .error-summary, .restore-report {
   border: 1px solid var(--err-border); border-left: 4px solid var(--err-fg); background: var(--err-bg); color: var(--err-fg);

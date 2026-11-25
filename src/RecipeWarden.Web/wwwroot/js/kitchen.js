@@ -8,7 +8,7 @@
       if (!select) { return; }
       var update = function () {
         var o = select.options[select.selectedIndex].dataset;
-        var show = { size: o.size === "True", units: o.units === "True", fill: o.fill === "True" };
+        var show = { size: o.size === "True", units: o.units === "True", fill: o.fill === "True", markings: o.markings === "True" };
         form.querySelectorAll("[data-kitchen-part]").forEach(function (el) {
           el.hidden = !show[el.getAttribute("data-kitchen-part")];
         });

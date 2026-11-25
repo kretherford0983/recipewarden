@@ -7,6 +7,19 @@ using RecipeWarden.Core.Recipes;
 
 namespace RecipeWarden.Core.Import;
 
+/// <summary>BR-132: what to do with the versions of an ingredient group that are not kept.</summary>
+public enum VersionChoice
+{
+    /// <summary>Keep one version; drop the others.</summary>
+    KeepOnly,
+
+    /// <summary>Keep one version; move the others to the notes.</summary>
+    MoveToNotes,
+
+    /// <summary>One recipe per version.</summary>
+    Split,
+}
+
 /// <summary>A batch size of a recipe that was folded into the base recipe's notes on import (BR-125).</summary>
 public sealed record FoldedBatch(ImportedRecipe Recipe, string Note, string Remark);
 
@@ -207,11 +220,90 @@ public static partial class BatchRules
             .ToList();
     }
 
+    /// <summary>The versions of <paramref name="name"/> in an ingredient list ("Side Dish", "Taco Topping"), in order.</summary>
+    public static IReadOnlyList<string> Versions(string? ingredients, string name) =>
+        Groups(ingredients).Select(g => VersionOf(g.Heading, name)).Where(v => v is not null).Select(v => v!).ToList();
+
+    /// <summary>
+    /// Owner decision D3 (ADR 0056 amendment 1, BR-132): resolves two versions of one ingredient group. The recipe keeps
+    /// <paramref name="keep"/>; the other versions are dropped, moved to the notes, or (for a split) returned as a
+    /// second recipe each, titled "Title (Version)". The warning goes away.
+    /// </summary>
+    public static (ImportedRecipe Kept, IReadOnlyList<ImportedRecipe> Split) ResolveVersions(ImportedRecipe recipe, string name, string keep,
+        VersionChoice choice)
+    {
+        ArgumentNullException.ThrowIfNull(recipe);
+        var groups = Groups(recipe.Ingredients);
+        var versions = groups.Select(g => (Group: g, Version: VersionOf(g.Heading, name))).ToList();
+        if (!versions.Any(v => string.Equals(v.Version, keep, StringComparison.OrdinalIgnoreCase)))
+        {
+            return (recipe, []);
+        }
+
+        string Text(Func<(Group Group, string? Version), bool> include) =>
+            string.Join('\n', versions.Where(include).SelectMany(v => v.Group.Heading is null ? v.Group.Lines : [v.Group.Heading, .. v.Group.Lines]));
+
+        bool IsOther((Group Group, string? Version) v) => v.Version is not null && !string.Equals(v.Version, keep, StringComparison.OrdinalIgnoreCase);
+        var kept = recipe with
+        {
+            Ingredients = Text(v => !IsOther(v)),
+            Remarks = recipe.Remarks.Where(r => !r.StartsWith("Two versions of", StringComparison.Ordinal)).ToList(),
+        };
+
+        var others = versions.Where(IsOther).ToList();
+        switch (choice)
+        {
+            case VersionChoice.MoveToNotes:
+                var moved = string.Join("\n\n", others.Select(o => o.Group.Heading + "\n" + string.Join('\n', o.Group.Lines.Select(l => "- " + l))));
+                return (kept with { Notes = string.IsNullOrWhiteSpace(kept.Notes) ? moved : kept.Notes + "\n\n" + moved }, []);
+            case VersionChoice.Split:
+                var split = others.Select(o => o.Version!).Distinct(StringComparer.OrdinalIgnoreCase).Select(version => kept with
+                {
+                    Title = (recipe.Title ?? string.Empty).Trim() + " (" + version + ")",
+                    Ingredients = Text(v => v.Version is null || string.Equals(v.Version, version, StringComparison.OrdinalIgnoreCase)),
+                }).ToList();
+                return (kept with { Title = (recipe.Title ?? string.Empty).Trim() + " (" + keep + ")" }, split);
+            default:
+                return (kept, []);
+        }
+    }
+
+    private sealed record Group(string? Heading, List<string> Lines);
+
+    private static List<Group> Groups(string? ingredients)
+    {
+        var groups = new List<Group> { new(null, []) };
+        foreach (var line in (ingredients ?? string.Empty).Split('\n').Select(l => l.TrimEnd()).Where(l => l.Trim().Length > 0))
+        {
+            if (line.EndsWith(':') && !line.Any(char.IsDigit))
+            {
+                groups.Add(new Group(line.Trim(), []));
+            }
+            else
+            {
+                groups[^1].Lines.Add(line.Trim());
+            }
+        }
+
+        return groups.Where(g => g.Heading is not null || g.Lines.Count > 0).ToList();
+    }
+
+    private static string? VersionOf(string? heading, string name)
+    {
+        if (heading is null)
+        {
+            return null;
+        }
+
+        var m = Bracketed().Match(heading.TrimEnd(':').Trim());
+        return m.Success && string.Equals(m.Groups["base"].Value.Trim(), name, StringComparison.OrdinalIgnoreCase) ? m.Groups["q"].Value.Trim() : null;
+    }
+
     public static string AlternativeGroupsRemark(IReadOnlyList<string> names)
     {
         ArgumentNullException.ThrowIfNull(names);
         return "Two versions of " + string.Join(" and ", names.Select(n => "“" + n + "”"))
-               + " are listed: keep the one you make most and move the other to the notes, or shopping lists and nutrition count both.";
+               + " are listed: choose the one to keep (drop the other, move it to the notes, or split into separate recipes), or shopping lists and nutrition count both.";
     }
 
     /// <summary>"2×", "1.5×".</summary>

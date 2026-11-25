@@ -14,6 +14,8 @@ public sealed class KitchenTools
     private KitchenTools(IReadOnlyList<KitchenToolInfo> measures, KitchenToolInfo? scale, bool assumed, IReadOnlyList<KitchenToolInfo> all)
     {
         Measures = measures;
+        Markings = MeasureScales.Markings(all).Where(m => !measures.Any(f => decimal.Round(f.CapacityMl!.Value, 4) == decimal.Round(m.CapacityMl!.Value, 4)))
+            .ToList();
         Scale = scale;
         IsAssumedStandard = assumed;
         All = all;
@@ -21,6 +23,9 @@ public sealed class KitchenTools
 
     /// <summary>Spoons and cups, largest first.</summary>
     public IReadOnlyList<KitchenToolInfo> Measures { get; }
+
+    /// <summary>BR-56: markings on active cups, jugs and adjustable measures that no fixed measure already gives.</summary>
+    public IReadOnlyList<KitchenToolInfo> Markings { get; }
 
     /// <summary>The finest active scale, or null.</summary>
     public KitchenToolInfo? Scale { get; }

@@ -218,6 +218,7 @@ public sealed class KitchenService(AppDbContext db, TimeProvider clock)
         entity.ResolutionAmount = tool.Resolution;
         entity.ResolutionUnitId = await UnitIdAsync(tool.ResolutionUnit, cancellationToken).ConfigureAwait(false);
         entity.SupportedUnits = tool.SupportedUnits is { Count: > 0 } units ? string.Join(',', units) : null;
+        entity.Markings = MeasureScales.Store(tool.Scales);
         entity.PanShape = tool.PanShape;
         entity.PanWidth = tool.PanWidth;
         entity.PanLength = tool.PanShape is PanShape.Round or PanShape.Square ? tool.PanWidth : tool.PanLength;
@@ -232,7 +233,7 @@ public sealed class KitchenService(AppDbContext db, TimeProvider clock)
     internal static KitchenToolInfo Info(KitchenTool t) => new(
         t.Id, t.Name, t.ToolType, t.CapacityAmount, t.CapacityUnit?.Code, t.ResolutionAmount, t.ResolutionUnit?.Code,
         t.SupportedUnits?.Split(',', StringSplitOptions.RemoveEmptyEntries), t.QuantityOwned, t.DefaultFillPct,
-        t.PanShape, t.PanWidth, t.PanLength, t.IsActive);
+        t.PanShape, t.PanWidth, t.PanLength, t.IsActive) { Scales = MeasureScales.Load(t.Markings) };
 
     private static bool SameTool(KitchenToolInfo a, KitchenToolInfo b) =>
         a.Type == b.Type && a.CapacityUnit == b.CapacityUnit && a.CapacityAmount is { } x && b.CapacityAmount is { } y

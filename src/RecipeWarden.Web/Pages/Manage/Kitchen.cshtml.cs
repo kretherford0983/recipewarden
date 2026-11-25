@@ -21,6 +21,9 @@ public sealed class KitchenToolInput
 
     public int Quantity { get; set; } = 1;
     public string? FillPct { get; set; }
+
+    /// <summary>BR-56: markings, one set per line ("4 cups by 1/2").</summary>
+    public string? Markings { get; set; }
 }
 
 /// <summary>
@@ -32,15 +35,28 @@ public sealed class KitchenModel(KitchenService kitchen) : PageModel
     public IReadOnlyList<KitchenToolRow> Tools { get; private set; } = [];
     public int Version { get; private set; }
     public string? Message { get; private set; }
+
+    /// <summary>BR-57: a retire waiting for confirmation, with the sizes it would take away.</summary>
+    public (KitchenToolInfo Tool, IReadOnlyList<string> Lost)? ConfirmRetire { get; private set; }
     public IReadOnlyList<string> Errors { get; private set; } = [];
 
     [BindProperty]
     public KitchenToolInput Input { get; set; } = new();
 
-    public async Task OnGetAsync(string? done)
+    public async Task OnGetAsync(string? done, int? tool)
     {
         Message = done switch { "added" => "Added.", "saved" => "Saved.", "retired" => "Retired.", "restored" => "Back in use.", _ => null };
         await LoadAsync();
+        if (done == "retired" && Tools.FirstOrDefault(r => r.Tool.Id == tool) is { } retired)
+        {
+            // BR-57: which of its sizes another tool still gives.
+            var (_, covered) = MeasureScales.IfRetired(retired.Tool, Tools.Where(r => r.Tool.IsActive).Select(r => r.Tool));
+            if (covered.Count > 0)
+            {
+                Message += " " + string.Join("; ", covered.Select(c => c.Size + " is still covered by " + c.By)) + ".";
+            }
+        }
+
     }
 
     public async Task<IActionResult> OnPostAddAsync()
@@ -78,7 +94,34 @@ public sealed class KitchenModel(KitchenService kitchen) : PageModel
         return result.NotFound ? NotFound() : Redirect("/manage/kitchen?done=added");
     }
 
-    public async Task<IActionResult> OnPostRetireAsync(int id) => await ActiveAsync(id, false);
+    /// <summary>
+    /// BR-57: retiring a measure that is the only one giving a size asks first ("Retiring this leaves you without
+    /// ⅓ cup"); otherwise it retires and says which sizes another tool still covers.
+    /// </summary>
+    public async Task<IActionResult> OnPostRetireAsync(int id, bool confirm = false)
+    {
+        var rows = await kitchen.ListAsync(HttpContext.RequestAborted);
+        if (rows.FirstOrDefault(r => r.Tool.Id == id) is not { } row)
+        {
+            return NotFound();
+        }
+
+        var (lost, covered) = MeasureScales.IfRetired(row.Tool, rows.Where(r => r.Tool.IsActive).Select(r => r.Tool));
+        if (lost.Count > 0 && !confirm)
+        {
+            ConfirmRetire = (row.Tool, lost);
+            await LoadAsync();
+            return Page();
+        }
+
+        var result = await kitchen.SetActiveAsync(id, false, UserId, HttpContext.RequestAborted);
+        if (result.NotFound)
+        {
+            return NotFound();
+        }
+
+        return Redirect("/manage/kitchen?done=retired&tool=" + id.ToString(CultureInfo.InvariantCulture));
+    }
 
     public async Task<IActionResult> OnPostRestoreAsync(int id) => await ActiveAsync(id, true);
 
@@ -114,7 +157,7 @@ public sealed class KitchenModel(KitchenService kitchen) : PageModel
         }
 
         return KitchenRules.FromInput(input.Type, input.Name, input.Size, input.Shows.Where(u => u is "g" or "oz").ToList(),
-            input.Quantity, fill);
+            input.Quantity, fill, input.Markings);
     }
 
     private async Task<IActionResult> FailAsync(IReadOnlyList<string> errors)

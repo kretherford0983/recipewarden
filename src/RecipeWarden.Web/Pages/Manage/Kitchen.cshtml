@@ -11,6 +11,27 @@
     you fit a recipe to a container or scale a baked recipe. Appliances and thermometers are kept for your records.
     Inventory version @Model.Version.</p>
 <script src="~/js/kitchen.js" asp-append-version="true" defer></script>
+<aside class="guide kitchen-guide" aria-label="How My Kitchen works">
+    @* BR-57: what the app needs from this page. *@
+    <p><strong>One of each size is enough.</strong> Recipes use any size you have, whatever you measure it with: a 1 cup
+        measure, the 1 cup line on a jug, or an adjustable cup set to 1 cup. Listing more than one tool for the same size
+        (the 1 cup measure <em>and</em> the jug's 1 cup line) keeps that size available if you retire one and haven't added
+        its replacement yet.</p>
+</aside>
+@if (Model.ConfirmRetire is { } pending)
+{
+    <section class="guide confirm-retire" role="alert" aria-labelledby="confirm-retire-heading">
+        <h2 id="confirm-retire-heading">Retire @(string.IsNullOrWhiteSpace(pending.Tool.Name) ? KitchenRules.Describe(pending.Tool) : pending.Tool.Name)?</h2>
+        <p>Retiring this leaves you without @string.Join(", ", pending.Lost). Recipes will make those amounts from other sizes
+            (or say so), until you add a replacement.</p>
+        <form method="post" action="/manage/kitchen?handler=Retire" class="inline-form" asp-antiforgery="true">
+            <input type="hidden" name="id" value="@pending.Tool.Id">
+            <input type="hidden" name="confirm" value="true">
+            <button type="submit" class="primary">Retire anyway</button>
+        </form>
+        <a class="button-link" href="/manage/kitchen">Cancel</a>
+    </section>
+}
 @if (Model.Message is not null) { <p class="notice" role="status">@Model.Message</p> }
 @if (Model.Errors.Count > 0)
 {
@@ -45,7 +66,7 @@
                     @foreach (var t in Enum.GetValues<ToolType>())
                     {
                         var f = KitchenRules.FieldsFor(t);
-                        <option value="@t" selected="@(Model.Input.Type == t)" data-size="@f.Size" data-units="@f.ScaleUnits" data-fill="@f.Fill"
+                        <option value="@t" selected="@(Model.Input.Type == t)" data-size="@f.Size" data-units="@f.ScaleUnits" data-fill="@f.Fill" data-markings="@f.Markings"
                                 data-size-label="@f.SizeLabel" data-size-hint="@f.SizeHint" data-size-placeholder="@f.SizePlaceholder">@KitchenModel.Label(t)</option>
                     }
                 </select>
@@ -68,6 +89,13 @@
             </div>
         </div>
         <p id="add-size-hint" class="hint" data-kitchen-part="size" data-kitchen-size-hint hidden="@(!addFields.Size)">@addFields.SizeHint</p>
+        <div class="field" data-kitchen-part="markings" hidden="@(!addFields.Markings)">
+            <label for="add-markings">Markings <span class="hint">(optional)</span></label>
+            <textarea id="add-markings" name="Input.Markings" rows="3" maxlength="300" aria-describedby="add-markings-hint"
+                      placeholder="4 cups by 1/2&#10;1 quart by 1/3&#10;1000 ml by 100">@Model.Input.Markings</textarea>
+            <p id="add-markings-hint" class="hint">For a jug or cup with lines on the side, or an adjustable cup or spoon: one line per
+                set of markings. @MeasureScales.Help Recipes then use a marking as one measure (1½ cups instead of 1 cup + ½ cup).</p>
+        </div>
         <fieldset class="field" data-kitchen-part="units" hidden="@(!addFields.ScaleUnits)">
             <legend>The scale shows</legend>
             <label><input type="checkbox" name="Input.Shows" value="g" checked> g</label>
@@ -118,6 +146,11 @@
                                 {
                                     <label for="fill-@t.Id">Fill %</label>
                                     <input id="fill-@t.Id" name="Input.FillPct" value="@KitchenModel.Fill(t.DefaultFillPct)" size="4">
+                                }
+                                @if (ef.Markings)
+                                {
+                                    <label for="markings-@t.Id">Markings</label>
+                                    <textarea id="markings-@t.Id" name="Input.Markings" rows="2" maxlength="300" placeholder="4 cups by 1/2">@MeasureScales.Format(t.Scales)</textarea>
                                 }
                                 @if (ef.ScaleUnits)
                                 {

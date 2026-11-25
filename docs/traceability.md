@@ -337,6 +337,9 @@ rules, stored for search, "free of").
 | --- | --- | --- | --- |
 | BR-55 / AC-132 | Done | `AllergenRules.TryDetect`, `Unchecked`, 2 s limit | Core `BR_55_AllergenFailSafeTests` |
 | BR-49 / AC-133 | Done | `StapleRules.EditLocations`, `ParseLocations`, `DefaultFor`; setting `Shopping.StapleLocations`; `StapleService.LocationsAsync`/`SaveLocationsAsync`; location editor on `/manage/staples` | Core `BR_49_KitchenLocationTests`; Web `FR_SHOP_05_StaplePageTests` |
+| BR-56 / AC-135 | Done | `MeasureScale`, `MeasureScales` (Core), `KitchenToolInfo.Scales`, `KitchenTools.Markings`, `DisplayPlanner` marking fills; `KitchenTool.Markings` (migration `KitchenMarkings`); markings field on `/manage/kitchen` | Core `BR_56_GraduatedMeasureTests`; Web `BR_56_GraduatedMeasurePageTests` |
+| BR-57 / AC-136 | Done | `MeasureScales.Sizes`, `IfRetired`; one-of-each note and retire confirmation on `/manage/kitchen` | Core `BR_56_GraduatedMeasureTests`; Web `BR_56_GraduatedMeasurePageTests`, `FR_TOOL_01_KitchenPageTests` |
+| BR-132 / AC-137 | Done | `BatchRules.Versions`, `ResolveVersions`, `VersionChoice` (Core); `ImportService.ResolveVersionsAsync`; Versions handler on the review page | Core `BR_132_IngredientVersionTests`; Importers `BR_124_MultiRecipeImportTests` (street corn); Web `BR_132_IngredientVersionPageTests` |
 | UX-15 / AC-134 | Done | `build/icons/*.svg`, `build/icons.sh`, wwwroot icons, `_AppIcons`, `AppManifest` (Core), `/manifest.webmanifest`, maintenance page icon | Core `UX_15_AppManifestTests`; Web `UX_15_AppIconTests`, `AC_70_AuthMatrixTests`; E2E `UX_15_InstallableTests` (Chrome's installability check) |
 
 ### Notes and open issues
