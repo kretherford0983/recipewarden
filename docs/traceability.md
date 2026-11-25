@@ -318,7 +318,7 @@ rules, stored for search, "free of").
 | SEC-93 | Done | `WorkerContract` (strict JSON, value checks); FDC ids resolved locally; text only, Razor-encoded | Infra `SEC_93_WorkerContractTests` (`tests/contracts`) |
 | SEC-94 | Done | release is root-owned and read-only (installer); `-B` writes no bytecode | installer tests `py_readonly` |
 | AC-107 | Done | `python-selftest` after install, upgrade and rollback | `test-install.sh`, `test-install-systemd.sh` |
-| AC-109 | Done | `ImportCompareRules`, `ImportCompareService`, CLI `import-compare` | Core, Infra and Cli `AC_109_*` |
+| AC-109 | Done | `ImportCompareRules`, `ImportCompareService` (`RunAsync`, `CompareUrlAsync`), CLI `import-compare [--url …]` | Core, Infra and Cli `AC_109_*` (incl. `AC_109_ImportCompareUrl*`) |
 | NFR-10 | Package budget checked in smoke-test (68 MiB compressed in CI against 90 MiB); host timings to measure after install | `build/smoke-test.sh` | Infra `One_hundred_lines_…` (reports the time) |
 
 ### Owner testing, 2026-11-24 (ADR 0055 to 0057; PR into `develop` — owner review of ADR 0055, 0056 D3, 0057 D6/D7)

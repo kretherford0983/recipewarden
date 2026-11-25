@@ -1228,7 +1228,7 @@ Each criterion is written Given / When / Then and becomes at least one automated
 | AC-106 | (M9) Given the network is unavailable to the worker, then `python-selftest` passes from the built package (models bundled), and an attempted connection fails inside the worker. |
 | AC-107 | (M9) Given each installer matrix image, when the package is installed, upgraded and rolled back, then `recipewarden python-selftest` passes after each step. |
 | AC-108 | (M9) Given a Python dependency with a disallowed licence or a known vulnerability, then CI fails. |
-| AC-109 | (M9) `recipewarden import-compare` reports, for each saved URL import, the .NET method, whether a site scraper exists and how the two readings differ; it reads only `<data>/imports` and writes nothing. |
+| AC-109 | (M9) `recipewarden import-compare` reports, for each saved URL import, the .NET method, whether a site scraper exists and how the two readings differ; it reads only `<data>/imports` and writes nothing. With `--url <address>` (repeatable; owner, 2026-11-25) it fetches each page once through SafeFetcher (SEC-40 to SEC-42) and compares it the same way, saving nothing; a page it cannot fetch is reported with the reason and the paste route. |
 | AC-110 | (M10) Given a supported host whose page has no complete JSON-LD/microdata recipe, then the import uses the site scraper, shows "Site reader" as the method, and credits the source as usual. |
 | AC-111 | (M10) Given a page whose JSON-LD result is complete, then the .NET result is used even if a site scraper exists. |
 | AC-112 | (M10) The site scraper only ever receives HTML from SafeFetcher or paste; a test proves no fetch is attempted. |
@@ -1314,6 +1314,7 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
+- v0.31 amendment (2026-11-25): AC-109 widened: `import-compare --url` compares a given page (owner: to try sites whose imports failed).
 - v0.31 (2026-11-25): BR-56 — markings on cups, spoons and jugs, used by the display planner (ADR 0018 amendment 1); AC-135. BR-57 — one measure of each size is enough; retiring the only measure of a size asks first (ADR 0018 amendment 1); AC-136. BR-132 — two versions of an ingredient group: keep one and drop, move to notes, or split (ADR 0056 amendment 1, D3 accepted); AC-137.
 - v0.30 (2026-11-25): BR-55 — an allergen check that cannot finish never reports a line as allergen-free (ADR 0036 amendment 1); AC-132. BR-49 — editable kitchen locations for staples (ADR 0057 amendment 1); AC-133. UX-15 — favicon, app icons and an installable web app manifest (ADR 0060); AC-134; 7.2 manifest and icon routes.
 - v0.29 (2026-11-24): M10 site readers (ADR 0059): FR-IMP-12 and BR-117 revised (Admin switch `Import.SiteReaders`, off by default, replaces the config value); AC-131; 7.2 /admin/health; 9.10 M10.
