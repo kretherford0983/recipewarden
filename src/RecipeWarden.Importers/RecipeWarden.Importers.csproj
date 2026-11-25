@@ -1,6 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- URL, Markdown, Docx and PDF importers (M4). Empty in M0. -->
+  <!-- Ingredient-line parser (M1); URL, Markdown, Docx and PDF importers (M4). -->
   <ItemGroup>
     <ProjectReference Include="..\RecipeWarden.Core\RecipeWarden.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="AngleSharp" />
+    <PackageReference Include="DocumentFormat.OpenXml" />
+    <PackageReference Include="PdfPig" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="RecipeWarden.Importers.Tests" />
   </ItemGroup>
 </Project>

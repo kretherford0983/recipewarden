@@ -1,0 +1,276 @@
+@model RecipeWarden.Web.Pages.Manage.Recipes.RecipeEditorPageModel
+@using RecipeWarden.Core.Recipes
+@using RecipeWarden.Core.Measurement
+@using RecipeWarden.Importers.Ingredients
+@* FR-REC-02, W2. UX-08: errors are summarized at the top and linked to their fields. *@
+@if (Model.Message is not null)
+{
+    <p class="notice" role="status">@Model.Message</p>
+}
+@if (Model.PublishProblems.Count > 0)
+{
+    <ul class="notice" aria-label="Needed before publishing">
+        @foreach (var p in Model.PublishProblems)
+        {
+            <li><a href="#@(RecipeWarden.Web.Pages.Manage.Recipes.RecipeInput.FieldName(p.Field).Replace('.', '_'))">@p.Message</a></li>
+        }
+    </ul>
+}
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="error-summary" role="alert" tabindex="-1">
+        <h2>Please fix the following</h2>
+        <ul>
+            @foreach (var (key, entry) in ViewData.ModelState.Where(e => e.Value!.Errors.Count > 0))
+            {
+                foreach (var error in entry!.Errors)
+                {
+                    <li><a href="#@key.Replace('.', '_')">@error.ErrorMessage</a></li>
+                }
+            }
+        </ul>
+    </div>
+}
+@if (Model.Differences.Count > 0)
+{
+    <table class="diff">
+        <caption>Your version and the saved version</caption>
+        <thead><tr><th scope="col">Field</th><th scope="col">Yours</th><th scope="col">Saved</th></tr></thead>
+        <tbody>
+            @foreach (var d in Model.Differences)
+            {
+                <tr><th scope="row">@d.Field</th><td class="pre">@d.Mine</td><td class="pre">@d.Theirs</td></tr>
+            }
+        </tbody>
+    </table>
+}
+
+<form method="post" action="@Model.FormAction" class="@(Model.FormClass is { } formClass ? "editor " + formClass : "editor")" id="recipe-editor" asp-antiforgery="true">
+    <input type="hidden" asp-for="Input.Version">
+
+    <div class="field">
+        <label asp-for="Input.Title">Title</label>
+        <input asp-for="Input.Title" maxlength="@PublishRules.MaxTitleLength" required>
+        <span asp-validation-for="Input.Title" class="field-error"></span>
+    </div>
+
+    <div class="field">
+        <label asp-for="Input.Description">Description <span class="hint">(Markdown)</span></label>
+        <textarea asp-for="Input.Description" rows="3" maxlength="@RecipeEdit.MaxDescriptionLength"></textarea>
+        <span asp-validation-for="Input.Description" class="field-error"></span>
+    </div>
+
+    <div class="field-row">
+        <div class="field">
+            <label asp-for="Input.Servings">Servings</label>
+            <input asp-for="Input.Servings" type="text" placeholder="6 or 6-8" maxlength="40">
+            <span asp-validation-for="Input.Servings" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Input.PrepTime">Prep time</label>
+            <input asp-for="Input.PrepTime" type="text" placeholder="15 or 10-15 min" maxlength="40">
+            <span asp-validation-for="Input.PrepTime" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Input.CookTime">Cook time</label>
+            <input asp-for="Input.CookTime" type="text" placeholder="1 hr 15 min" maxlength="40">
+            <span asp-validation-for="Input.CookTime" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Input.TotalTime">Total time</label>
+            <input asp-for="Input.TotalTime" type="text" placeholder="1-1.5 hours" maxlength="40">
+            <span asp-validation-for="Input.TotalTime" class="field-error"></span>
+        </div>
+    </div>
+    <p class="hint">Servings and times can be ranges (6-8, 20-25 min). Times take minutes or hours (1 hr 15 min). Leave total empty to add prep and cook.</p>
+
+    @* ADR 0016, UX-13 (owner feedback 2026-11-23): a dropdown multi-select. Closed, it shows the chosen tags as chips;
+       open, a filter box and compact checkboxes grouped by type. Works without JavaScript (details/summary). *@
+    @{ var chosenTags = Model.TagGroups.SelectMany(g => g.Tags).Where(t => Model.IsTicked(t.Id)).Select(t => t.Name).ToList(); }
+    <fieldset class="field tag-picker" id="Input_Tags_picker">
+        <legend>Tags</legend>
+        <span asp-validation-for="Input.Tags" class="field-error"></span>
+        <details class="multiselect" data-multiselect>
+            <summary>
+                <span class="multiselect-value" data-multiselect-value>
+                    @if (chosenTags.Count == 0)
+                    {
+                        <span class="placeholder">Choose tags</span>
+                    }
+                    else
+                    {
+                        @foreach (var name in chosenTags) { <span class="chip">@name</span> }
+                    }
+                </span>
+            </summary>
+            <div class="multiselect-panel">
+                <input type="search" class="tag-filter" data-tag-filter hidden placeholder="Filter tags" aria-label="Filter tags" autocomplete="off">
+                @foreach (var group in Model.TagGroups)
+                {
+                    <div class="tag-group" data-tag-group>
+                        <p class="tag-group-label">@group.Label</p>
+                        <div class="tag-options">
+                            @foreach (var t in group.Tags)
+                            {
+                                <label><input type="checkbox" name="Input.TagIds" value="@t.Id" checked="@Model.IsTicked(t.Id)"> @t.Name</label>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </details>
+        <div class="field">
+            <label asp-for="Input.Tags">New tags <span class="hint">(comma-separated)</span></label>
+            <input asp-for="Input.Tags" autocomplete="off">
+        </div>
+    </fieldset>
+
+    <div class="field">
+        <label asp-for="Input.Ingredients">Ingredients <span class="hint">(one per line)</span></label>
+        <textarea asp-for="Input.Ingredients" rows="10" class="lines" data-reorder="ingredients"
+                  hx-post="@Model.FormAction?handler=Parse" hx-trigger="input changed delay:800ms, load"
+                  hx-target="#ingredient-preview" hx-include="this"></textarea>
+        <span asp-validation-for="Input.Ingredients" class="field-error"></span>
+        @* FR-REC-01 ingredient groups, explained with an example (owner feedback 2026-11-23). *@
+        <details class="field-help">
+            <summary>Grouping ingredients (for example, crust and filling)</summary>
+            <p>Type a heading on its own line, ending in a colon. The lines under it are that group, until the next heading.</p>
+            <pre class="example">For the crust:
+1 cup flour
+1/2 cup butter, softened
+For the filling:
+3 eggs
+1 cup sugar</pre>
+            <p>The recipe then shows two short lists headed “For the crust” and “For the filling”. A heading has no amount
+                and at most eight words; “For the …” lines of three to five words work without the colon.</p>
+        </details>
+        <div id="ingredient-preview" class="ingredient-preview" aria-live="polite"></div>
+        @if (Model.SavedMeasures is { } saved)
+        {
+            var measureLines = IngredientLineParser.ParseList(Model.Input.Ingredients).Where(l => !l.IsHeading)
+                .Select(l => l.Ingredient!.RawText).Distinct(StringComparer.Ordinal).ToList();
+            if (measureLines.Count > 0)
+            {
+                @* BR-122: per-line measure choice; Auto follows BR-22. *@
+                <details class="field-help measure-choices" open="@(saved.Count > 0)">
+                    <summary>Measure by weight or as written (when you have a scale)</summary>
+                    <p class="hint">Auto weighs dry foods and baking recipes once a scale is saved to the recipe. By weight
+                        weighs that line whenever a scale is in My Kitchen (for example pepper ground onto a zeroed plate);
+                        As written keeps spoons and cups. A choice stays with its line while the line's text is unchanged.</p>
+                    <table class="list">
+                        <thead><tr><th scope="col">Ingredient</th><th scope="col">Measure</th></tr></thead>
+                        <tbody>
+                        @for (var i = 0; i < measureLines.Count; i++)
+                        {
+                            var choice = saved.TryGetValue(LineMeasureRules.Key(measureLines[i]), out var m) ? m : LineMeasure.Auto;
+                            <tr>
+                                <th scope="row"><label for="measure-@i">@measureLines[i]</label></th>
+                                <td>
+                                    <input type="hidden" name="Input.MeasureLine" value="@measureLines[i]">
+                                    <select id="measure-@i" name="Input.MeasureChoice">
+                                        <option value="Auto" selected="@(choice == LineMeasure.Auto)">Auto</option>
+                                        <option value="Weight" selected="@(choice == LineMeasure.Weight)">By weight</option>
+                                        <option value="AsWritten" selected="@(choice == LineMeasure.AsWritten)">As written</option>
+                                    </select>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </details>
+            }
+        }
+    </div>
+
+    <div class="field">
+        <label asp-for="Input.Steps">Steps <span class="hint">(one per line; pasted numbering is removed. In a numbered list, lines under an item stay in that step, and <code>1. **Heading**</code> gives the step a heading)</span></label>
+        <textarea asp-for="Input.Steps" rows="10" class="lines" data-reorder="steps"></textarea>
+        <span asp-validation-for="Input.Steps" class="field-error"></span>
+    </div>
+
+    <div class="field">
+        <label asp-for="Input.Notes">Notes <span class="hint">(Markdown)</span></label>
+        <textarea asp-for="Input.Notes" rows="4" maxlength="@RecipeEdit.MaxNotesLength"></textarea>
+        <span asp-validation-for="Input.Notes" class="field-error"></span>
+    </div>
+
+    <div class="field-row">
+        <div class="field">
+            <label asp-for="Input.Yield">Makes <span class="hint">(for fitting containers, e.g. 12 fl oz)</span></label>
+            <input asp-for="Input.Yield" maxlength="40">
+            <span asp-validation-for="Input.Yield" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Input.FinishedDensity">Finished density <span class="hint">(g/ml, only for a yield in weight)</span></label>
+            <input asp-for="Input.FinishedDensity" inputmode="decimal" maxlength="12">
+            <span asp-validation-for="Input.FinishedDensity" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Input.Pan">Pan <span class="hint">(e.g. 9x13, 9-inch round)</span></label>
+            <input asp-for="Input.Pan" maxlength="40">
+            <span asp-validation-for="Input.Pan" class="field-error"></span>
+            @if (Model.PanFromSteps) { <span class="hint">Found in the steps; change or clear it if that's not the pan.</span> }
+        </div>
+    </div>
+
+    <div class="field checkbox">
+        <input asp-for="Input.IsPrecision">
+        <label asp-for="Input.IsPrecision">Baking / precision recipe <span class="hint">(tighter rounding when scaling)</span></label>
+    </div>
+
+    @if (Model.CreditLocked)
+    {
+        <fieldset class="source">
+            <legend>Source</legend>
+            <p>From <a href="@Model.Input.SourceUrl" rel="noopener noreferrer nofollow" target="_blank">@(Model.Input.SourceName ?? Model.Input.SourceUrl)</a>@if (!string.IsNullOrEmpty(Model.Input.SourceAuthor)) { <text> by @Model.Input.SourceAuthor</text> }.</p>
+            <p class="hint">The credit for a web recipe is kept as imported (BR-10).</p>
+            <input type="hidden" asp-for="Input.SourceType">
+        </fieldset>
+    }
+    else
+    {
+    <fieldset class="source">
+        <legend>Source</legend>
+        <div class="field">
+            <label asp-for="Input.SourceType">Type</label>
+            <select asp-for="Input.SourceType">
+                <option value="Manual">Typed in</option>
+                <option value="Personal">Personal / family</option>
+                <option value="Web">From a website</option>
+                @if (Model.Input.SourceType == SourceType.File) { <option value="File">Imported file</option> }
+            </select>
+            <span asp-validation-for="Input.SourceType" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Input.SourceName">Name</label>
+            <input asp-for="Input.SourceName" maxlength="@SourceRules.MaxNameLength">
+            <span asp-validation-for="Input.SourceName" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Input.SourceUrl">Address</label>
+            <input asp-for="Input.SourceUrl" type="url" maxlength="@SourceRules.MaxUrlLength" placeholder="https://">
+            <span asp-validation-for="Input.SourceUrl" class="field-error"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Input.SourceAuthor">Author</label>
+            <input asp-for="Input.SourceAuthor" maxlength="@SourceRules.MaxNameLength">
+            <span asp-validation-for="Input.SourceAuthor" class="field-error"></span>
+        </div>
+    </fieldset>
+    }
+
+    @if (Model.ExtraPartial is not null)
+    {
+        <partial name="@Model.ExtraPartial" model="Model" />
+    }
+
+    <div class="actions sticky-actions">
+        <button type="submit" name="Action" value="draft">Save draft</button>
+        <button type="submit" name="Action" value="publish" class="primary">Publish</button>
+        @if (Model.SecondaryFormId is { } secondaryForm)
+        {
+            <button type="submit" form="@secondaryForm" formnovalidate class="push-end">@Model.SecondaryFormLabel</button>
+        }
+    </div>
+</form>
+<script src="~/js/editor.js" asp-append-version="true" defer></script>

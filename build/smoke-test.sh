@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# Starts the packaged app from a clean environment and checks it reports the expected version.
+# Usage: build/smoke-test.sh <package .tar.gz> <expected version>
+set -euo pipefail
+package="$1"; expected="$2"
+work="$(mktemp -d)"
+port=5089
+trap 'kill "$pid" 2>/dev/null || true; rm -rf "$work"' EXIT
+
+tar -xzf "$package" -C "$work"
+app=$(find "$work" -maxdepth 1 -mindepth 1 -type d | head -1)
+mkdir -p "$work/data"
+cat > "$work/config.json" <<JSON
+{ "Data": { "Directory": "$work/data" },
+  "Kestrel": { "Endpoints": { "Http": { "Url": "http://127.0.0.1:$port" } } },
+  "Serilog": { "WriteTo": [ { "Name": "Console" } ] } }
+JSON
+
+# Production environment, configured like an installed service (config path from RECIPEWARDEN_CONFIG).
+env -i HOME="$work" PATH=/usr/bin:/bin ASPNETCORE_ENVIRONMENT=Production RECIPEWARDEN_CONFIG="$work/config.json" \
+  "$app/web/RecipeWarden.Web" > "$work/web.log" 2>&1 &
+pid=$!
+
+for _ in $(seq 1 60); do
+  [[ $(curl -fs "http://127.0.0.1:$port/health" 2>/dev/null) == ok ]] && break
+  kill -0 "$pid" 2>/dev/null || { cat "$work/web.log"; echo "::error::app exited"; exit 1; }
+  sleep 1
+done
+[[ $(curl -fs "http://127.0.0.1:$port/health") == ok ]] || { cat "$work/web.log"; echo "::error::/health did not answer ok"; exit 1; }
+
+curl -fs "http://127.0.0.1:$port/" | grep -q "RecipeWarden $expected<" \
+  || { echo "::error::home page does not show version $expected"; exit 1; }
+
+cli_version=$("$app/cli/recipewarden" --version)
+[[ ${cli_version%%+*} == "$expected" ]] || { echo "::error::CLI reports '$cli_version', expected $expected"; exit 1; }
+# The health command also judges the build machine's disk (BR-81), so only the database line decides here.
+health_out=$("$app/cli/recipewarden" --config "$work/config.json" health || true)
+echo "$health_out"
+grep -q "quick_check: ok" <<<"$health_out" || { echo "::error::CLI health did not find a sound database"; exit 1; }
+
+# ADR 0051: the bundled Python worker passes its self-test with no network at all (AC-106), and fits NFR-10's budget.
+offline() {
+  if unshare -rn true 2>/dev/null; then unshare -rn "$@"
+  elif sudo -n unshare -n true 2>/dev/null; then sudo -n unshare -n setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups "$@"
+  elif [[ -n ${GITHUB_ACTIONS:-} ]]; then echo "::error::cannot create a network namespace for the offline check"; return 1
+  else echo "warning: no network namespace available here; running the Python self-test with network" >&2; "$@"
+  fi
+}
+py_out=$(offline env -i HOME="$work" PATH=/usr/bin:/bin "$app/cli/recipewarden" --config "$work/config.json" python-selftest 2>&1) || true
+echo "$py_out"
+grep -q "Self-test: passed" <<<"$py_out" || { echo "::error::the bundled Python worker failed its offline self-test (AC-106)"; exit 1; }
+py_bytes=$(tar -C "$app" -czf - python | wc -c)
+budget=$((90 * 1024 * 1024))
+echo "Python runtime: $((py_bytes / 1048576)) MiB compressed (NFR-10 budget 90 MiB)"
+(( py_bytes <= budget )) || { echo "::error::the Python runtime is $py_bytes bytes compressed, over the NFR-10 budget"; exit 1; }
+
+echo "Smoke test passed: web and CLI report $expected; the Python worker works offline"

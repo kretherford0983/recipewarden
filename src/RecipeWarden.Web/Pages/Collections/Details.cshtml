@@ -1,0 +1,39 @@
+@page "/collections/{slug}"
+@model RecipeWarden.Web.Pages.Collections.DetailsModel
+@using RecipeWarden.Web.Content
+@{
+    ViewData["Title"] = Model.Collection!.Name;
+}
+<p class="breadcrumb"><a href="/collections">Collections</a> ›</p>
+<h1>@Model.Collection.Name</h1>
+<p class="toolbar recipe-actions">
+    <a class="button-link" href="/collections/@(Model.Collection.Slug)/export.zip" download>Download (Markdown + images)</a>
+    <a class="button-link" href="/collections/@(Model.Collection.Slug)/export-ai">Export for AI</a>
+</p>
+@if (Model.Collection.Description is not null)
+{
+    <div class="prose">@MarkdownRenderer.Render(Model.Collection.Description)</div>
+}
+@if (Model.CanEdit)
+{
+    <p class="toolbar"><a class="button-link" href="/manage/collections?c=@Model.Collection.Slug">Edit this collection</a></p>
+}
+@if (Model.Collection.Recipes.Count == 0)
+{
+    <section class="empty-state"><p>This collection has no recipes yet.</p></section>
+}
+else
+{
+    <ol class="recipe-grid">
+        @foreach (var r in Model.Collection.Recipes)
+        {
+            <li class="recipe-card">
+                @if (r.ImageId is not null) { <img class="thumb" src="/media/@r.ImageId/thumb" alt="" loading="lazy"> }
+                <a href="/recipes/@r.Slug"><h2>@r.Title</h2></a>
+                @if (r.Status == RecipeWarden.Core.Recipes.RecipeStatus.Draft) { <span class="badge">Draft</span> }
+                @if (r.Summary is not null) { <p>@r.Summary</p> }
+                @if (r.TotalMinutes is not null) { <p class="meta">@r.TimeText</p> }
+            </li>
+        }
+    </ol>
+}

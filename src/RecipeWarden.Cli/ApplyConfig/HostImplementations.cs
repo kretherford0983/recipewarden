@@ -39,6 +39,10 @@ internal sealed class Systemctl(string executable = "systemctl") : ISystemd
 
     public Task<bool> RestartAsync(string unit, CancellationToken cancellationToken) => RunAsync(["restart", unit], cancellationToken);
 
+    public Task<bool> StopAsync(string unit, CancellationToken cancellationToken) => RunAsync(["stop", unit], cancellationToken);
+
+    public Task<bool> StartAsync(string unit, CancellationToken cancellationToken) => RunAsync(["start", unit], cancellationToken);
+
     private async Task<bool> RunAsync(string[] args, CancellationToken cancellationToken)
     {
         var psi = new ProcessStartInfo(executable) { UseShellExecute = false };

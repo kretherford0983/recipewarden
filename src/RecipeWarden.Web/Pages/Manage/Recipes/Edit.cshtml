@@ -1,0 +1,72 @@
+@page "/manage/recipes/{id:int}/edit"
+@model RecipeWarden.Web.Pages.Manage.Recipes.EditModel
+@{
+    ViewData["Title"] = "Edit " + Model.Input.Title;
+}
+<p class="breadcrumb"><a href="/recipes/@Model.Slug">@Model.Input.Title</a> ›</p>
+<h1>Edit recipe</h1>
+<partial name="_EditorForm" model="Model" />
+
+@* ADR 0022, ADR 0023: photos are their own uploads, so they never touch the form's version (BR-06). *@
+<section id="photos" class="photos" aria-labelledby="photos-heading">
+    <h2 id="photos-heading">Photos</h2>
+    @if (Model.PhotoError is not null)
+    {
+        <p class="error-summary" role="alert">@Model.PhotoError</p>
+    }
+    <p class="hint">JPEG, PNG or WebP, up to 10 MB. Photos are resized and their location data removed.</p>
+
+    <h3>Finished dish</h3>
+    <div class="photo-row">
+        @if (Model.FinishImageId is not null)
+        {
+            <img class="thumb" src="/media/@Model.FinishImageId/thumb" alt="Finished dish">
+            <form method="post" action="/manage/recipes/@Model.Id/edit?handler=RemoveFinishImage" asp-antiforgery="true">
+                <button type="submit">Remove</button>
+            </form>
+        }
+        <form method="post" action="/manage/recipes/@Model.Id/edit?handler=FinishImage" enctype="multipart/form-data" asp-antiforgery="true">
+            <label for="finish-photo">@(Model.FinishImageId is null ? "Add a photo" : "Replace")</label>
+            <input id="finish-photo" name="photo" type="file" accept=".jpg,.jpeg,.png,.webp" required>
+            <button type="submit">Upload</button>
+        </form>
+    </div>
+
+    @if (Model.StepPhotos.Count > 0)
+    {
+        <h3>Steps</h3>
+        <ol class="step-photos">
+            @foreach (var p in Model.StepPhotos)
+            {
+                <li>
+                    <p>@if (p.Title is not null) { <strong>@p.Title</strong> } @p.Text</p>
+                    <div class="photo-row">
+                        @if (p.ImageId is not null)
+                        {
+                            <img class="thumb" src="/media/@p.ImageId/thumb" alt="Step @(p.Index + 1)">
+                            <form method="post" action="/manage/recipes/@Model.Id/edit?handler=RemoveStepPhoto" asp-antiforgery="true">
+                                <input type="hidden" name="step" value="@p.Index">
+                                <button type="submit">Remove</button>
+                            </form>
+                        }
+                        <form method="post" action="/manage/recipes/@Model.Id/edit?handler=StepPhoto" enctype="multipart/form-data" asp-antiforgery="true">
+                            <input type="hidden" name="step" value="@p.Index">
+                            <label for="step-photo-@p.Index">@(p.ImageId is null ? "Add photo" : "Replace") <span class="visually-hidden">for step @(p.Index + 1)</span></label>
+                            <input id="step-photo-@p.Index" name="photo" type="file" accept=".jpg,.jpeg,.png,.webp" required>
+                            <button type="submit">Upload</button>
+                        </form>
+                    </div>
+                </li>
+            }
+        </ol>
+        <p class="hint">A photo stays with its step when you edit the steps (same text, else the same position).</p>
+    }
+</section>
+
+<section class="danger-zone" aria-labelledby="delete-heading">
+    <h2 id="delete-heading">Delete</h2>
+    <p>Deleted recipes go to the trash and can be restored for 30 days.</p>
+    <form method="post" action="/manage/recipes/@Model.Id/edit?handler=Delete" asp-antiforgery="true">
+        <button type="submit" class="danger">Move to trash</button>
+    </form>
+</section>

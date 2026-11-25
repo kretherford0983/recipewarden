@@ -21,6 +21,9 @@ public sealed class AC_70_AuthMatrixTests(RecipeWardenFactory factory) : IClassF
         SignedIn,
         Editor,
         Admin,
+
+        /// <summary>SEC-15: /setup needs the installer's one-time token and is 404 otherwise (SEC_15_SetupPageTests).</summary>
+        SetupToken,
     }
 
     /// <summary>Section 7.2, restricted to the routes that exist so far.</summary>
@@ -28,16 +31,82 @@ public sealed class AC_70_AuthMatrixTests(RecipeWardenFactory factory) : IClassF
     {
         ["/"] = Access.Anonymous,
         ["/health"] = Access.Anonymous,
+        ["/manifest.webmanifest"] = Access.Anonymous, // UX-15, ADR 0060
         ["/error"] = Access.Anonymous,          // SEC-73 generic error page (not listed in 7.2; see traceability notes)
         ["/account/login"] = Access.Anonymous,
         ["/account/logout"] = Access.SignedIn,
         ["/account/theme"] = Access.SignedIn,   // FR-UI-01 profile theme (POST only)
         ["/manage"] = Access.Editor,
         ["/admin"] = Access.Admin,
+
+        // M1 (section 7.2)
+        ["/recipes"] = Access.Anonymous,
+        ["/recipes/{slug}"] = Access.Anonymous,
+        ["/search"] = Access.Anonymous,
+        ["/tags/{slug}"] = Access.Anonymous,
+        ["/collections"] = Access.Anonymous,
+        ["/collections/{slug}"] = Access.Anonymous,
+        ["/manage/recipes/new"] = Access.Editor,
+        ["/manage/recipes/{id:int}/edit"] = Access.Editor,
+        ["/manage/trash"] = Access.Editor,
+        ["/manage/tags"] = Access.Editor,
+        ["/manage/collections"] = Access.Editor,
+
+        // M2 (section 7.2)
+        ["/manage/conversions"] = Access.Editor,
+        ["/account/preferences"] = Access.SignedIn, // FR-UI-02 profile units and default scale (POST only)
+
+        // M3 (section 7.2; ADR 0017, ADR 0019: editor writes live under /manage)
+        ["/manage/kitchen"] = Access.Editor,
+        ["/manage/recipes/{id:int}/cooked"] = Access.Editor,
+        ["/manage/recipes/{id:int}/suggestions"] = Access.Editor,
+
+        // M4 (section 7.2; ADR 0022: /media is anonymous for published recipes' images only, checked by the page)
+        ["/manage/import"] = Access.Editor,
+        ["/manage/import/{id:int}/review"] = Access.Editor,
+        ["/media/{id}/{variant?}"] = Access.Anonymous,
+
+        // M5 (section 7.2; ADR 0028: lists are anonymous to view and tick, editing handlers need Editor; ADR 0031)
+        ["/recipes/{slug}/cook"] = Access.Anonymous,
+        ["/recipes/{slug}/print"] = Access.Anonymous,
+        ["/recipes/{slug}/export.{format}"] = Access.Anonymous,
+        ["/recipes/export.zip"] = Access.Anonymous,
+        ["/collections/{slug}/export.zip"] = Access.Anonymous,
+        ["/shopping"] = Access.Anonymous,
+        ["/shopping/{id:int}"] = Access.Anonymous,
+        ["/shopping/new"] = Access.Editor,
+        ["/shopping/{id:int}/staples"] = Access.Editor, // FR-SHOP-05 walk-through adds items
+        ["/manage/staples"] = Access.Editor,
+
+        // M5b (section 7.2; ADR 0033: Export for AI is GET only and anonymous; AI replies are imported by editors)
+        ["/recipes/{slug}/export-ai"] = Access.Anonymous,
+        ["/recipes/export-ai"] = Access.Anonymous,
+        ["/collections/{slug}/export-ai"] = Access.Anonymous,
+        ["/manage/import/ai-response"] = Access.Editor,
+
+        // M6 (section 7.2; ADR 0034 to 0036)
+        ["/manage/recipes/{id:int}/nutrition"] = Access.Editor,
+        ["/manage/nutrition"] = Access.Editor,
+
+        // M7 (section 7.2; ADR 0037 to 0041)
+        ["/admin/users"] = Access.Admin,
+        ["/admin/audit"] = Access.Admin,
+        ["/admin/settings"] = Access.Admin,
+        ["/admin/backups"] = Access.Admin,
+        ["/admin/health"] = Access.Admin,
+        ["/admin/nutrition-data"] = Access.Admin,
+        ["/health/ready"] = Access.Anonymous,
+        ["/setup"] = Access.SetupToken,
+
+        // M8 (section 7.2; ADR 0042, 0043)
+        ["/admin/ai"] = Access.Admin,
+        ["/account/2fa"] = Access.SignedIn,
+        ["/account/password"] = Access.SignedIn,
+        ["/account/login-2fa"] = Access.Anonymous, // SEC-04: the second step; it needs the first step's cookie to do anything
     };
 
     public static TheoryData<string> ProtectedRoutes() =>
-        new(Expected.Where(e => e.Value != Access.Anonymous).Select(e => e.Key));
+        new(Expected.Where(e => e.Value is not (Access.Anonymous or Access.SetupToken)).Select(e => e.Key));
 
     public static TheoryData<string> AnonymousRoutes() =>
         new(Expected.Where(e => e.Value == Access.Anonymous).Select(e => e.Key));
@@ -78,8 +147,9 @@ public sealed class AC_70_AuthMatrixTests(RecipeWardenFactory factory) : IClassF
     [MemberData(nameof(ProtectedRoutes))]
     public async Task Anonymous_page_request_redirects_to_sign_in(string route)
     {
+        await factory.SeedSamplesAsync();
         using var client = factory.CreateHttpsClient();
-        var response = await client.GetAsync(route, TestContext.Current.CancellationToken);
+        var response = await client.GetAsync(WebTestHelpers.SampleUrl(route), TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
         response.Headers.Location!.ToString().ShouldStartWith("https://localhost/account/login?ReturnUrl=");
@@ -89,8 +159,9 @@ public sealed class AC_70_AuthMatrixTests(RecipeWardenFactory factory) : IClassF
     [MemberData(nameof(ProtectedRoutes))]
     public async Task Anonymous_htmx_request_gets_401(string route)
     {
+        await factory.SeedSamplesAsync();
         using var client = factory.CreateHttpsClient();
-        using var request = new HttpRequestMessage(HttpMethod.Get, route);
+        using var request = new HttpRequestMessage(HttpMethod.Get, WebTestHelpers.SampleUrl(route));
         request.Headers.Add("HX-Request", "true");
         var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
@@ -101,8 +172,9 @@ public sealed class AC_70_AuthMatrixTests(RecipeWardenFactory factory) : IClassF
     [MemberData(nameof(ProtectedRoutes))]
     public async Task Anonymous_post_is_refused_before_anything_runs(string route)
     {
+        await factory.SeedSamplesAsync();
         using var client = factory.CreateHttpsClient();
-        using var request = new HttpRequestMessage(HttpMethod.Post, route) { Content = new StringContent("") };
+        using var request = new HttpRequestMessage(HttpMethod.Post, WebTestHelpers.SampleUrl(route)) { Content = new StringContent("") };
         request.Headers.Add("HX-Request", "true");
         var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
@@ -113,8 +185,9 @@ public sealed class AC_70_AuthMatrixTests(RecipeWardenFactory factory) : IClassF
     [MemberData(nameof(AnonymousRoutes))]
     public async Task Anonymous_routes_are_reachable_without_sign_in(string route)
     {
+        await factory.SeedSamplesAsync();
         using var client = factory.CreateHttpsClient();
-        var response = await client.GetAsync(route, TestContext.Current.CancellationToken);
+        var response = await client.GetAsync(WebTestHelpers.SampleUrl(route), TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
@@ -136,9 +209,13 @@ public sealed class AC_70_AuthMatrixTests(RecipeWardenFactory factory) : IClassF
     [Trait("Req", "FR-AUTH-02")]
     public async Task Editor_can_open_editor_routes()
     {
+        await factory.SeedSamplesAsync();
         using var editor = await factory.SignInAsync("editor-matrix2@example.com", AppRoles.Editor);
-        var response = await editor.GetAsync("/manage", TestContext.Current.CancellationToken);
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        foreach (var route in Expected.Where(e => e.Value == Access.Editor).Select(e => e.Key))
+        {
+            var response = await editor.GetAsync(WebTestHelpers.SampleUrl(route), TestContext.Current.CancellationToken);
+            response.StatusCode.ShouldBe(HttpStatusCode.OK, route);
+        }
     }
 
     [Fact]

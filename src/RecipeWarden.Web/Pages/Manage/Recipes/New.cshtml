@@ -1,0 +1,8 @@
+@page "/manage/recipes/new"
+@model RecipeWarden.Web.Pages.Manage.Recipes.NewModel
+@{
+    ViewData["Title"] = "New recipe";
+}
+<h1>New recipe</h1>
+<partial name="_EditorForm" model="Model" />
+<p class="hint">Save the recipe first, then add a finished-dish photo and step photos on its edit page.</p>

@@ -1,0 +1,32 @@
+{
+ "v": 1,
+ "ok": true,
+ "engine": {
+  "worker": "1.0.0",
+  "python": "3.13.18",
+  "libs": {
+   "ingredient-parser-nlp": "2.10.0",
+   "recipe-scrapers": "15.14.0"
+  }
+ },
+ "result": {
+  "supported_host": false,
+  "found": true,
+  "title": "Lemon Lentil Soup",
+  "ingredients": [
+   "1 cup red lentils",
+   "6 cups vegetable broth"
+  ],
+  "instructions": [
+   "Simmer 30 minutes."
+  ],
+  "yields": "6 servings",
+  "total_minutes": 55,
+  "prep_minutes": null,
+  "cook_minutes": null,
+  "author": null,
+  "description": null,
+  "image_url": null,
+  "site_name": null
+ }
+}

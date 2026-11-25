@@ -1,0 +1,488 @@
+@page "/recipes/{slug}"
+@model RecipeWarden.Web.Pages.Recipes.DetailsModel
+@using RecipeWarden.Core.Measurement
+@using RecipeWarden.Core.Recipes
+@using RecipeWarden.Infrastructure.Measurement
+@using RecipeWarden.Web.Content
+@{
+    var r = Model.Recipe!;
+    var sc = Model.Scaled!;
+    var scalable = sc.Ingredients.SelectMany(g => g.Lines).Where(l => l.CanScaleFrom).ToList();
+    var containers = Model.Containers?.Containers ?? (IReadOnlyList<RecipeWarden.Core.Kitchen.KitchenToolInfo>)[];
+    var unitsForYield = r.YieldUnitCode is { } yc ? UnitCatalog.FindByCode(yc) : null;
+    var yieldNow = r.YieldAmount is { } ya && unitsForYield is not null ? AmountText.Format(ya, unitsForYield) : null;
+    var yieldShown = Model.Containers?.Yield is { } fy
+        ? (fy.IsEstimate ? "about " : "") + AmountText.Format(fy.Ml / UnitCatalog.FindByCode("floz")!.ToBase, UnitCatalog.FindByCode("floz")!)
+        : "";
+    ViewData["Title"] = r.Title;
+    // UX-14: the head says this page is an article, with a plain-text description (reader modes and link previews).
+    ViewData["OgType"] = "article";
+    ViewData["Description"] = RecipeWarden.Core.Recipes.CardSummary.From(r.Description);
+}
+@* UX-14, ADR 0048: the recipe is the article (schema.org Recipe); tools are asides, which reader modes leave out. *@
+<article class="recipe" aria-labelledby="recipe-title" itemscope itemtype="https://schema.org/Recipe">
+    <p class="breadcrumb"><a href="/recipes">Browse</a> ›</p>
+    @if (r.Status == RecipeStatus.Draft)
+    {
+        <p class="notice" role="status">Draft — only editors can see this recipe until it is published.</p>
+    }
+    <header class="recipe-head">
+        <div class="recipe-titlebar">
+            <h1 id="recipe-title">@r.Title</h1><meta itemprop="name" content="@r.Title">
+            @if (Model.CanEdit)
+            {
+                <aside class="toolbar recipe-tools" aria-label="Editor tools">
+                    <a class="button-link" href="/manage/recipes/@r.Id/edit">Edit</a>
+                    <a class="button-link" href="/manage/recipes/@r.Id/nutrition">Nutrition and allergens</a>
+                </aside>
+            }
+        </div>
+        @if (r.Tags.Count > 0)
+        {
+            <meta itemprop="keywords" content="@string.Join(", ", r.Tags.Select(t => t.Name))">
+            <ul class="tags" aria-label="Tags">
+                @foreach (var t in r.Tags) { <li><a href="/tags/@t.Slug">@t.Name</a></li> }
+            </ul>
+        }
+        @if (Model.Nutrition is { Allergens.Count: > 0 } n)
+        {
+            @* FR-ALG-01, ADR 0036 *@
+            <ul class="allergens" aria-label="Allergens (estimated)">
+                @foreach (var (code, status) in n.Allergens.OrderBy(a => a.Key))
+                {
+                    <li class="allergen @(status == RecipeWarden.Core.Nutrition.AllergenStatus.MayContain ? "may" : "contains")">@RecipeWarden.Core.Nutrition.AllergenRules.Label(code)@(status == RecipeWarden.Core.Nutrition.AllergenStatus.MayContain ? " (may contain)" : "")</li>
+                }
+            </ul>
+        }
+    </header>
+
+    @if (Model.ImageCopyFailed)
+    {
+        <p class="notice" role="status">@RecipeWarden.Infrastructure.Import.ImportService.ImageNotCopied. You can add a photo on the edit page.</p>
+    }
+
+    <div id="recipe-body" class="recipe-body">
+        @{
+            var viewQuery = Model.ViewQuery();
+            var customFactor = sc.Factor != 1m && !ScaleRules.Presets.Contains(sc.Factor);
+            // UX-13 (owner feedback): "More scaling options" is always closed when the page loads; recipe.js keeps it
+            // open across in-place updates. The summary names the options from it that are in use.
+            var moreActive = new List<string>();
+            if (sc.Units != DisplayUnits.AsWritten) { moreActive.Add("Units: " + DisplayUnitsRules.Label(sc.Units)); }
+            if (Model.TargetServings is { } servingsTarget) { moreActive.Add("Serves " + DetailsModel.Number(servingsTarget)); }
+            else if (customFactor || ScaleRules.OtherPresets.Contains(sc.Factor)) { moreActive.Add(ScaleRules.Label(sc.Factor)); }
+            if (Model.FitRequested) { moreActive.Add("Fit to container"); }
+        }
+        @* UX-14: description, tools, lists and notes share this block, so reader modes take them together. *@
+        <div class="recipe-hero @(r.FinishImageId is not null ? "has-image" : null)">
+            @if (r.FinishImageId is not null)
+            {
+                <img class="finish-image" src="/media/@r.FinishImageId" alt="@r.Title" itemprop="image">
+            }
+            <section class="recipe-meta" aria-label="About this recipe">
+                @if (r.Description is not null)
+                {
+                    <div class="prose" itemprop="description">@MarkdownRenderer.Render(r.Description)</div>
+                }
+                <dl class="facts stats">
+                    <div class="stat"><dt><partial name="_Icon" model="@("servings")" />Servings</dt>
+                        <dd>@ServingsRules.Format(r.Servings, r.ServingsMax)@(r.ServingsEstimated ? " (estimated)" : "")</dd><meta itemprop="recipeYield" content="@ServingsRules.Format(r.Servings, r.ServingsMax)"></div>
+                    @if (r.PrepMinutes is not null) { <div class="stat"><dt><partial name="_Icon" model="@("clock")" />Prep</dt><dd>@TimeText.Format(r.PrepMinutes, r.PrepMinutesMax)</dd><meta itemprop="prepTime" content="PT@(r.PrepMinutes)M"></div> }
+                    @if (r.CookMinutes is not null) { <div class="stat"><dt><partial name="_Icon" model="@("cook")" />Cook</dt><dd>@TimeText.Format(r.CookMinutes, r.CookMinutesMax)</dd><meta itemprop="cookTime" content="PT@(r.CookMinutes)M"></div> }
+                    @if (r.TotalMinutes is not null) { <div class="stat"><dt><partial name="_Icon" model="@("clock")" />Total</dt><dd>@TimeText.Format(r.TotalMinutes, r.TotalMinutesMax)</dd><meta itemprop="totalTime" content="PT@(r.TotalMinutes)M"></div> }
+                    @if (r.IsPrecision) { <div class="stat"><dt><partial name="_Icon" model="@("scale")" />Type</dt><dd>Baking / precision</dd></div> }
+                </dl>
+                @if (r.SourceName is not null || r.SourceUrl is not null)
+                {
+                    @* BR-10: credit and link cannot be hidden. Source URLs are http(s) only (SourceRules). *@
+                    <p class="source-credit">
+                        Source:
+                        @if (r.SourceUrl is not null)
+                        {
+                            <a href="@r.SourceUrl" rel="noopener noreferrer nofollow">@(r.SourceName ?? r.SourceUrl)</a>
+                        }
+                        else
+                        {
+                            <span>@r.SourceName</span>
+                        }
+                        @if (r.SourceAuthor is not null) { <span> by @r.SourceAuthor</span><meta itemprop="author" content="@r.SourceAuthor"> }
+                    </p>
+                }
+                @if (r.CardImageIds.Count > 0)
+                {
+                    @* FR-IMP-13, ADR 0058 D7: the card photos this recipe was imported from. *@
+                    <div class="recipe-cards">
+                        <h3>Recipe card</h3>
+                        <ul>
+                            @for (var i = 0; i < r.CardImageIds.Count; i++)
+                            {
+                                <li><a href="/media/@r.CardImageIds[i]" target="_blank" rel="noopener"><img src="/media/@r.CardImageIds[i]/thumb" alt="Recipe card, photo @(i + 1)" loading="lazy"></a></li>
+                            }
+                        </ul>
+                    </div>
+                }
+            </section>
+        </div>
+        <aside class="recipe-tools" aria-label="Recipe tools">
+        <nav class="recipe-actions" aria-label="Print, cook and export">
+            @* ADR 0031: each takes this view's scale, units and weights. *@
+            <a class="button-link primary" href="/recipes/@r.Slug/cook@(viewQuery)">Cook mode</a>
+            <a class="button-link" href="/recipes/@r.Slug/print@(viewQuery)">Print</a>
+            <details class="menu">
+                <summary>Export</summary>
+                <ul class="menu-items">
+                    <li><a href="/recipes/@r.Slug/export.md@(viewQuery)" download>Markdown</a></li>
+                    <li><a href="/recipes/@r.Slug/export.zip@(viewQuery)" download>Markdown + images</a></li>
+                    <li><a href="/recipes/@r.Slug/export-ai">Export for AI</a></li>
+                    @if (Model.CanEdit) { <li><a href="/manage/import/ai-response?parent=@r.Slug">Import AI response</a></li> }
+                </ul>
+            </details>
+            @if (Model.CanEdit)
+            {
+                <a class="button-link" href="/manage/recipes/@r.Id/cooked">I made this</a>
+            }
+        </nav>
+
+        @* FR-SCL-01/02, FR-UI-02, 7.3 item 3, ADR 0014: plain GET forms; htmx swaps this block and updates the URL.
+           UX-13 (owner feedback): quick presets and "Make this my default" in the row; the rest one per line under "More". *@
+        <section class="scale-toolbar" aria-label="Scale and units">
+            <div class="scale-quick">
+                <form method="get" action="/recipes/@r.Slug" class="scale-presets" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
+                      hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
+                    <input type="hidden" name="units" value="@DisplayUnitsRules.ToValue(sc.Units)">
+                    <span class="toolbar-label" id="scale-label">Scale</span>
+                    <span role="group" aria-labelledby="scale-label">
+                        @foreach (var p in ScaleRules.QuickPresets)
+                        {
+                            <button type="submit" name="scale" value="@ScaleRules.ToQuery(p)" aria-pressed="@(sc.Factor == p ? "true" : "false")">@ScaleRules.Label(p)</button>
+                        }
+                    </span>
+                </form>
+                <button type="button" class="save-default small" hidden data-units="@DisplayUnitsRules.ToValue(sc.Units)"
+                        data-scale="@ScaleRules.ToQuery(sc.Factor)" data-signed-in="@(User.Identity?.IsAuthenticated == true ? "true" : "false")">
+                    Make this my default
+                </button>
+            </div>
+            <details class="scale-more">
+                <summary>More scaling options @if (moreActive.Count > 0) { <span class="more-active">@string.Join(" · ", moreActive)</span> }</summary>
+                <div class="scale-lines">
+                    <form method="get" action="/recipes/@r.Slug" class="scale-line scale-presets" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
+                          hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
+                        <input type="hidden" name="units" value="@DisplayUnitsRules.ToValue(sc.Units)">
+                        <span class="line-label" id="other-scale-label">Other sizes</span>
+                        <span class="line-controls" role="group" aria-labelledby="other-scale-label">
+                            @foreach (var p in ScaleRules.OtherPresets)
+                            {
+                                <button type="submit" name="scale" value="@ScaleRules.ToQuery(p)" aria-pressed="@(sc.Factor == p ? "true" : "false")">@ScaleRules.Label(p)</button>
+                            }
+                        </span>
+                    </form>
+                    <form method="get" action="/recipes/@r.Slug" class="scale-line" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
+                          hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
+                        <input type="hidden" name="units" value="@DisplayUnitsRules.ToValue(sc.Units)">
+                        <label class="line-label" for="custom-scale">Custom</label>
+                        <span class="line-controls">
+                            <input id="custom-scale" name="scale" inputmode="decimal" size="5" maxlength="@ScaleRules.MaxTextLength"
+                                   placeholder="e.g. 2.5" value="@(customFactor ? DetailsModel.Number(sc.Factor) : null)">
+                            <button type="submit">Scale</button>
+                        </span>
+                    </form>
+                    <form method="get" action="/recipes/@r.Slug" class="scale-line" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
+                          hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
+                        <input type="hidden" name="units" value="@DisplayUnitsRules.ToValue(sc.Units)">
+                        <label class="line-label" for="target-servings">Servings</label>
+                        <span class="line-controls">
+                            <input id="target-servings" name="servings" inputmode="decimal" size="4" maxlength="@ScaleRules.MaxTextLength"
+                                   value="@(Model.TargetServings is { } ts ? DetailsModel.Number(ts) : null)">
+                            <button type="submit">Set</button>
+                        </span>
+                    </form>
+                    <form method="get" action="/recipes/@r.Slug" class="scale-line" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
+                          hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true" data-submit-on-change>
+                        @if (sc.Factor != 1m) { <input type="hidden" name="scale" value="@ScaleRules.ToQuery(sc.Factor)"> }
+                        <label class="line-label" for="units">Units</label>
+                        <span class="line-controls">
+                            <select id="units" name="units">
+                                @foreach (var u in Enum.GetValues<DisplayUnits>())
+                                {
+                                    <option value="@DisplayUnitsRules.ToValue(u)" selected="@(u == sc.Units)">@DisplayUnitsRules.Label(u)</option>
+                                }
+                            </select>
+                            <button type="submit" class="no-js-only">Show</button>
+                        </span>
+                    </form>
+                    @if (scalable.Count > 0)
+                    {
+                        <form method="get" action="/recipes/@r.Slug" class="scale-line" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
+                              hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
+                            <input type="hidden" name="units" value="@DisplayUnitsRules.ToValue(sc.Units)">
+                            <span class="line-label">Scale from what I have</span>
+                            <span class="line-controls">
+                                <label for="have-amount" class="visually-hidden">I have</label>
+                                <input id="have-amount" name="have" size="8" maxlength="@RecipeScaler.MaxHaveLength" placeholder="I have… 3 lb" required
+                                       value="@Request.Query["have"]">
+                                <label for="have-line">of</label>
+                                <select id="have-line" name="from">
+                                    @foreach (var l in scalable)
+                                    {
+                                        <option value="@l.Index" selected="@(Request.Query["from"] == l.Index.ToString(System.Globalization.CultureInfo.InvariantCulture))">@l.RawText</option>
+                                    }
+                                </select>
+                                <button type="submit">Scale</button>
+                            </span>
+                        </form>
+                    }
+                    @* FR-SCL-04/05, ADR 0019: a GET like any scale (BR-114); the yield typed here is not saved. *@
+                    <form method="get" action="/recipes/@r.Slug" class="scale-line fit-container" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
+                          hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
+                        <input type="hidden" name="units" value="@DisplayUnitsRules.ToValue(sc.Units)">
+                        <span class="line-label">Fit to container</span>
+                        <span class="line-controls">
+                            @if (containers.Count > 0)
+                            {
+                                <label for="fit-tool" class="visually-hidden">Container</label>
+                                <select id="fit-tool" name="fit">
+                                    <option value="">Type a capacity →</option>
+                                    @foreach (var c in containers)
+                                    {
+                                        <option value="@c.Id" selected="@(Model.FitToolId == c.Id)">@c.Name</option>
+                                    }
+                                </select>
+                            }
+                            <label for="fit-capacity">Capacity</label>
+                            <input id="fit-capacity" name="capacity" size="8" maxlength="40" placeholder="16 fl oz" value="@Model.FitCapacity">
+                            <label for="fit-count">How many</label>
+                            <input id="fit-count" name="count" type="number" min="1" max="20" value="@(Model.FitCount ?? 1)">
+                            <label for="fit-fill">Fill %</label>
+                            <input id="fit-fill" name="fill" size="4" inputmode="decimal" placeholder="90" value="@Model.FitFill">
+                            <label for="fit-yield">It makes</label>
+                            <input id="fit-yield" name="yield" size="8" maxlength="40" value="@Model.TypedYield"
+                                   placeholder="@(yieldNow ?? "e.g. 12 fl oz")">
+                            <button type="submit">Fit</button>
+                        </span>
+                    </form>
+                    @if (containers.Count > 0)
+                    {
+                        <form method="get" action="/recipes/@r.Slug" class="scale-line" hx-get="/recipes/@r.Slug" hx-target="#recipe-body"
+                              hx-select="#recipe-body" hx-swap="outerHTML" hx-push-url="true">
+                            @if (sc.Factor != 1m && !Model.FitRequested) { <input type="hidden" name="scale" value="@ScaleRules.ToQuery(sc.Factor)"> }
+                            <input type="hidden" name="units" value="@DisplayUnitsRules.ToValue(sc.Units)">
+                            <label class="line-label" for="howmany">How many will this make?</label>
+                            <span class="line-controls">
+                                <select id="howmany" name="howmany">
+                                    @foreach (var c in containers) { <option value="@c.Id" selected="@(Model.HowManyToolId == c.Id)">@c.Name</option> }
+                                </select>
+                                <button type="submit">Show</button>
+                            </span>
+                        </form>
+                    }
+                </div>
+            </details>
+        </section>
+        </aside>
+
+        <div class="scale-status" role="status" aria-live="polite">
+            @if (Model.ScaleMessage is not null) { <p class="notice">@Model.ScaleMessage</p> }
+            @if (sc.Factor != 1m)
+            {
+                <p class="scaled-note">
+                    Scaled @ScaleRules.Label(sc.Factor)@(Model.ScaleSource is null ? "" : " (" + Model.ScaleSource + ")"):
+                    serves @ServingsRules.Format(sc.Servings, sc.ServingsMax).
+                    The saved recipe is unchanged. <a href="@Model.Link(1m, DisplayUnits.AsWritten)">Show as written</a>
+                </p>
+            }
+            @if (sc.TimeNote is not null) { <p class="notice">@sc.TimeNote</p> }
+            @if (Model.JustCooked) { <p class="notice">Saved: marked as made today.</p> }
+            @if (sc.AssumedToolsNote is not null) { <p class="hint">@sc.AssumedToolsNote</p> }
+            @if (Model.FitMessage is not null) { <p class="notice">@Model.FitMessage</p> }
+            @if (Model.Fit?.Fill is { } fill)
+            {
+                <p class="scaled-note">
+                    Makes @(yieldShown) → @fill.
+                    @if (Model.Containers?.Yield is { IsEstimate: true } est)
+                    {
+                        <span>(The yield is an estimate@(est.Excluded.Count > 0 ? "; not counted: " + string.Join(", ", est.Excluded) : "").)</span>
+                    }
+                </p>
+                @if (Model.Fit.Note is not null) { <p class="notice">@Model.Fit.Note</p> }
+                @if (sc.RoundingWarning is not null) { <p class="notice">@sc.RoundingWarning</p> }
+            }
+            @if (Model.HowMany is { Length: > 0 } howMany) { <p class="scaled-note">This makes @howMany.</p> }
+            @if (Model.HowManyToolId is not null && Model.HowMany is null && Model.Containers?.Error is { } howError) { <p class="notice">@howError</p> }
+        </div>
+
+        <aside class="recipe-tools" aria-label="Shopping list and suggestions">
+        @if (Model.CanEdit)
+        {
+            @* FR-SHOP-01: adds the recipe at the scale shown. *@
+            <form class="inline-form add-to-list" method="post" action="/shopping/new?handler=AddRecipe" asp-antiforgery="true">
+                <input type="hidden" name="slug" value="@r.Slug">
+                <input type="hidden" name="scale" value="@ScaleRules.ToQuery(sc.Factor)">
+                <label for="shopping-list">Add to shopping list</label>
+                <select id="shopping-list" name="listId">
+                    @foreach (var l in Model.ShoppingLists) { <option value="@l.Id">@l.Name</option> }
+                    <option value="">New list…</option>
+                </select>
+                <label for="new-list-name" class="visually-hidden">New list name</label>
+                <input id="new-list-name" name="newName" maxlength="@RecipeWarden.Core.Shopping.ShoppingRules.MaxListNameLength" placeholder="New list name">
+                <button type="submit">Add@(sc.Factor != 1m ? " at " + ScaleRules.Label(sc.Factor) : "")</button>
+            </form>
+            @if (Model.AddedList is { } added)
+            {
+                <p class="notice" role="status">Added to <a href="/shopping/@added.Id">@added.Name</a>.</p>
+            }
+        }
+
+        @foreach (var offer in sc.Suggestions)
+        {
+            @* FR-TOOL-04, ADR 0017: worked out on this view; nothing is saved by reading it. BR-122: line by line. *@
+            var formId = "suggestion-" + offer.Key.Replace(":", "-", StringComparison.Ordinal);
+            <section class="suggestion-banner" role="region" aria-label="Suggestion">
+                <p id="@formId-label">@offer.Message</p>
+                <p class="hint">Untick any you would rather measure with spoons and cups.</p>
+                <ul class="suggestion-lines" aria-labelledby="@formId-label">
+                    @foreach (var l in offer.Lines)
+                    {
+                        <li><label><input type="checkbox" name="@(Model.CanEdit ? "line" : "w")" value="@l.Index" checked
+                                          form="@(Model.CanEdit ? formId + "-save" : formId + "-show")" data-suggestion-line="@formId">
+                            @l.Before → @l.After</label></li>
+                    }
+                </ul>
+                <form id="@formId-show" method="get" action="@Model.ShowMePath" class="inline-form" data-show-me="@formId">
+                    @foreach (var q in Model.KeptQuery()) { <input type="hidden" name="@q.Key" value="@q.Value"> }
+                    @if (Model.CanEdit) { <input type="hidden" name="weights" value="show" data-show-lines> }
+                    <button type="submit">Show me</button>
+                </form>
+                @if (Model.CanEdit)
+                {
+                    <form id="@formId-save" method="post" action="/manage/recipes/@r.Id/suggestions?handler=Apply" class="inline-form" asp-antiforgery="true">
+                        <input type="hidden" name="key" value="@offer.Key">
+                        <input type="hidden" name="picked" value="true">
+                        <button type="submit" class="primary">Save to recipe</button>
+                    </form>
+                    <form method="post" action="/manage/recipes/@r.Id/suggestions?handler=Dismiss" class="inline-form" asp-antiforgery="true">
+                        <input type="hidden" name="key" value="@offer.Key">
+                        <button type="submit">Dismiss</button>
+                    </form>
+                }
+            </section>
+        }
+        @if (sc.ShowingWeights)
+        {
+            <p class="notice">Showing weights for this view. @(Model.CanEdit ? "Save to recipe to keep them." : "")</p>
+        }
+        </aside>
+
+        @if (sc.Pan is { } pan && sc.PanOptions.Count > 0)
+        {
+            @* FR-MEAS-07, ADR 0020 *@
+            <section class="pan-options" aria-label="Pan sizes">
+                <p>Pan: @RecipeWarden.Core.Kitchen.PanRules.Describe(pan)@(sc.PanFromSteps ? " (from the steps)" : ""). At @ScaleRules.Label(sc.Factor), these hold about the same:</p>
+                <ul>@foreach (var o in sc.PanOptions) { <li>@o.Text</li> }</ul>
+            </section>
+        }
+
+        <div class="recipe-columns">
+            <section class="ingredients" aria-labelledby="ingredients-heading">
+                <h2 id="ingredients-heading">Ingredients</h2>
+                @foreach (var g in sc.Ingredients)
+                {
+                    @if (g.Name is not null) { <h3>@g.Name</h3> }
+                    <ul>
+                        @foreach (var line in g.Lines)
+                        {
+                            <li class="@(line.Changed ? "converted" : null)" title="@(line.Changed && line.Explanation is not null ? line.Explanation : null)">
+                                @* UX-14: the line is a paragraph, as on recipe sites Safari Reader accepts. *@
+                                <p class="ingredient-line"><span itemprop="recipeIngredient">@line.Text</span>@if (line.NeedsReview && Model.CanEdit)
+                                {
+                                    <text> </text><span class="badge warn" title="The parser was unsure about this line; check it in the editor">check</span>
+                                }@if (line.Secondary is not null) { <text> </text><span class="secondary">(@line.Secondary)</span> }@if (line.Hint is not null) { <span class="hint">@line.Hint</span> }</p>
+                                @if (line.YieldNote is not null) { <p class="smart-note">@line.YieldNote</p> }
+                                @* UX-06: what was written, in words (readable on a phone, unlike a tooltip). *@
+                                @if (line.Changed) { <span class="written">Written: @line.RawText</span> }
+                            </li>
+                        }
+                    </ul>
+                }
+            </section>
+            <section class="steps" aria-labelledby="steps-heading">
+                <h2 id="steps-heading">Steps</h2>
+                @foreach (var s in sc.Steps)
+                {
+                    @if (s.Name is not null) { <h3>@s.Name</h3> }
+                    <ol>
+                        @foreach (var step in s.Steps)
+                        {
+                            <li itemprop="recipeInstructions">
+                                @if (step.Title is not null) { <strong class="step-title">@step.Title</strong> }
+                                <p>@step.Text</p>
+                                @if (step.ImageId is not null) { <img class="step-image" src="/media/@step.ImageId" alt="" loading="lazy"> }
+                            </li>
+                        }
+                    </ol>
+                }
+            </section>
+        </div>
+
+        @if (r.Notes is not null)
+        {
+            <section class="notes" aria-labelledby="notes-heading">
+                <h2 id="notes-heading">Notes</h2>
+                <div class="prose">@MarkdownRenderer.Render(r.Notes)</div>
+            </section>
+        }
+    </div>
+
+
+    @if (Model.Nutrition is { } nutrition)
+    {
+        <partial name="_NutritionPanel" model="nutrition" />
+    }
+
+    @if (r.Parent is { } parent)
+    {
+        <p class="variant-of">Variant of <a href="/recipes/@parent.Slug">@parent.Title</a></p>
+    }
+    @if (r.Variants.Count > 0)
+    {
+        <p class="variants">Variants:
+            @for (var i = 0; i < r.Variants.Count; i++)
+            {
+                <a href="/recipes/@r.Variants[i].Slug">@r.Variants[i].Title</a>@(i < r.Variants.Count - 1 ? ", " : "")
+            }
+        </p>
+    }
+
+    @if (r.Collections.Count > 0)
+    {
+        <p class="in-collections">In:
+            @for (var i = 0; i < r.Collections.Count; i++)
+            {
+                <a href="/collections/@r.Collections[i].Slug">@r.Collections[i].Name</a>@(i < r.Collections.Count - 1 ? ", " : "")
+            }
+        </p>
+    }
+
+    <aside class="recipe-tools" aria-label="Collections">
+    @if (Model.CanEdit && Model.AvailableCollections.Count > 0)
+    {
+        <form class="inline-form" method="post" action="/manage/collections?handler=AddRecipe" asp-antiforgery="true">
+            <input type="hidden" name="recipeId" value="@r.Id">
+            <input type="hidden" name="returnSlug" value="@r.Slug">
+            <label for="add-to-collection">Add to collection</label>
+            <select id="add-to-collection" name="collectionId">
+                @foreach (var c in Model.AvailableCollections) { <option value="@c.Id">@c.Name</option> }
+            </select>
+            <button type="submit">Add</button>
+        </form>
+    }
+    </aside>
+    @* UX-14, ADR 0050: the recipe as schema.org JSON-LD data (never run; escaped by RecipeJsonLd). *@
+    @* "!" keeps the script tag helper out, so the type is written as is (it would encode the "+"). *@
+    @{
+        // Calories only from a complete estimate (a partial one would understate them).
+        var jsonLdCalories = Model.Nutrition?.Panel is { IsPartial: false, PerServing.Calories: { } kcal } ? kcal : (decimal?)null;
+    }
+    <!script type="application/ld+json">@RecipeWarden.Web.Content.RecipeJsonLd.Html(r, $"{Request.Scheme}://{Request.Host}", jsonLdCalories)</!script>
+</article>
+<script src="~/js/recipe.js" asp-append-version="true" defer></script>

@@ -34,6 +34,20 @@ internal sealed class FakeSystemd : ISystemd
 
     public bool ReloadSucceeds { get; set; } = true;
 
+    public bool StartSucceeds { get; set; } = true;
+
+    public Task<bool> StopAsync(string unit, CancellationToken cancellationToken)
+    {
+        Calls.Add("stop " + unit);
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> StartAsync(string unit, CancellationToken cancellationToken)
+    {
+        Calls.Add("start " + unit);
+        return Task.FromResult(StartSucceeds);
+    }
+
     public Task<bool> DaemonReloadAsync(CancellationToken cancellationToken)
     {
         Calls.Add("daemon-reload");

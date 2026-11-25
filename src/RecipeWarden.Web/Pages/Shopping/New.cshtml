@@ -1,0 +1,14 @@
+@page "/shopping/new"
+@model RecipeWarden.Web.Pages.Shopping.NewModel
+@{
+    ViewData["Title"] = "New shopping list";
+}
+<h1>New shopping list</h1>
+@if (Model.Error is not null) { <p class="notice error" role="alert">@Model.Error</p> }
+<form class="inline-form" method="post" asp-antiforgery="true">
+    <label for="list-name">Name</label>
+    <input id="list-name" name="Name" required maxlength="@RecipeWarden.Core.Shopping.ShoppingRules.MaxListNameLength" value="@Model.Name" placeholder="Saturday">
+    <label><input type="checkbox" name="StaplesCheck" value="true"> Start with a staples check</label>
+    <button type="submit" class="primary">Start list</button>
+</form>
+<p><a href="/shopping">All lists</a></p>

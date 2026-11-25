@@ -11,10 +11,13 @@ rules (BR-, SEC-, UX-) and acceptance criteria (AC-) are referenced in code, tes
 - Target: Linux x64 headless, self-contained build, systemd service `recipewarden` behind Cloudflare Tunnel;
   bind IP/port set at install (loopback, or the host's LAN IP when cloudflared runs in a separate container)
 - Optional AI parser (off by default): Claude API or an OpenAI-compatible endpoint, via plain HttpClient
+- Python adapters (ADR 0051): bundled CPython 3.13 runs `rw_worker` (python/, uv-locked) as a short-lived, offline
+  process behind Core interfaces; .NET stays the parser of record and every Python feature falls back to it
 
 ## How we work
 1. Before coding, restate the requirement IDs in scope and list the acceptance criteria you will satisfy.
 2. Write or update tests first. Every AC gets at least one automated test tagged [Trait("Req", "<ID>")].
+   Tests must be parallel-safe and fast (docs/testing.md): no shared mutable state, no sleeps, one factory per class.
 3. Implement the smallest change that passes. Keep Core free of I/O.
 4. Run the full test suite. Never skip, weaken or delete a test to make it pass; if a test is wrong,
    explain why and get agreement first.
@@ -32,7 +35,9 @@ rules (BR-, SEC-, UX-) and acceptance criteria (AC-) are referenced in code, tes
 - Business rules live in Core with unit tests, not in Razor pages.
 - No new package without stating its licence; permissive licences only.
 - Warnings are errors. Nullable is on. No TODOs left without an issue reference.
-- Private GitHub repo on Pro: keep CI under ~8 minutes; no CodeQL (not available); use the CI gates in 9.9.
+- Public GitHub repo (ADR 0005): keep CI under ~8 minutes; use the CI gates in 9.9; never a self-hosted runner.
+  Never commit secrets, real household data, emails or IPs beyond documentation examples.
+- Server-side commands and docs use bash, curl, tar and sha256sum only; never the GitHub CLI (section 9.5).
 
 ## When unsure
 If the spec is silent or contradictory, stop and ask, proposing 2-3 options with a recommendation.
@@ -40,13 +45,21 @@ Record decisions as short ADRs in docs/adr/NNNN-title.md.
 
 ## Commit and PR style
 Conventional commits referencing IDs, e.g. "feat(scaling): FR-SCL-01 custom factor (AC-30)".
-One milestone (section 9.10) per branch; PR description lists IDs, ACs, and test evidence.
+Branch flow (docs/branching.md, ADR 0004): `feature/*` from `develop` → PR into `develop` (squash) → PR
+`develop` → `main` (merge commit) after the dev build is tested. One milestone (section 9.10) per feature branch,
+e.g. `feature/m1-recipes`. PR description lists IDs, ACs, and test evidence. Add a CHANGELOG.md line per change.
 
 ## Repo commands
 - Build: `dotnet build RecipeWarden.slnx` (warnings are errors)
 - All tests with coverage gates: `build/test.sh`
 - One project: `dotnet test --project tests/RecipeWarden.Web.Tests`
+- Browser tests (Playwright, W1/W2): `build/e2e.sh`; without Playwright's browser use `RW_E2E_BROWSER=/path/to/chrome build/e2e.sh`
 - Vulnerable packages: `build/check-vulnerable.sh`
-- Installer tests (root, in a container): `docker run --rm -v "$PWD:/src:ro" debian:12 bash /src/tests/installer/test-install.sh`
+- Python worker (ADR 0051; needs uv): `build/python.sh dev` (environment, run by build/test.sh), `build/python.sh check`
+  (ruff, pytest, licences, pip-audit); `build/package.sh` bundles the runtime (offline: `RW_PYTHON_RUNTIME=<dir>`)
+- Installer tests (root, in a container; package from build/package.sh):
+  `docker run --rm -v "$PWD:/src:ro" -v "$PWD/dist:/dist:ro" debian:12 bash -c "apt-get update -qq && apt-get install -y -qq curl >/dev/null && bash /src/tests/installer/test-install.sh /dist/recipewarden-<v>-linux-x64.tar.gz"`
+  With systemd (CI runner or a VM): `sudo bash tests/installer/test-install-systemd.sh dist/recipewarden-<v>-linux-x64.tar.gz`
 - New migration: `dotnet tool restore && dotnet ef migrations add <Name> -p src/RecipeWarden.Infrastructure -s src/RecipeWarden.Infrastructure -o Data/Migrations`
 - Secret-scan hook: `git config core.hooksPath .githooks`
+- Package + smoke test locally: `build/package.sh 0.1.0-dev.0 dist && build/smoke-test.sh dist/recipewarden-0.1.0-dev.0-linux-x64.tar.gz 0.1.0-dev.0`

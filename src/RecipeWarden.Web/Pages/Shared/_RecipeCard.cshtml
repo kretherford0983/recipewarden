@@ -1,0 +1,25 @@
+@model (RecipeWarden.Infrastructure.Recipes.RecipeCard Card, int Level)
+@* ADR 0047, UX-13: photo-first recipe card; the title link covers the whole card. *@
+@{ var r = Model.Card; }
+<li class="recipe-card">
+    @if (r.ImageId is not null)
+    {
+        <img class="thumb" src="/media/@r.ImageId/thumb" alt="" loading="lazy">
+    }
+    else
+    {
+        <div class="thumb-empty"><partial name="_Icon" model="@("logo")" /></div>
+    }
+    <div class="card-body">
+        <a href="/recipes/@r.Slug">@if (Model.Level == 2) { <h2>@r.Title</h2> } else { <h3>@r.Title</h3> }</a>
+        @if (r.Status == RecipeWarden.Core.Recipes.RecipeStatus.Draft) { <span class="badge warn">Draft</span> }
+        @if (r.Summary is not null) { <p class="summary">@r.Summary</p> }
+        @if (r.TotalMinutes is not null || r.Rating is not null)
+        {
+            <p class="meta">
+                @if (r.TotalMinutes is not null) { <span><partial name="_Icon" model="@("clock")" />@r.TimeText</span> }
+                @if (r.Rating is int stars) { <span aria-label="Rated @stars of 5">@(new string('★', stars))</span> }
+            </p>
+        }
+    </div>
+</li>

@@ -144,6 +144,76 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.AiCallLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("At")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DurationMs")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("InputTokens")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("OutputTokens")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Result")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("At");
+
+                    b.ToTable("AiCallLogs");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.AppSetting", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("AppSettings");
+                });
+
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.AppUser", b =>
                 {
                     b.Property<string>("Id")
@@ -208,13 +278,2178 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.AuditEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("At")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DetailsJson")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EntityId")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EntityType")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Ip")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("At");
+
+                    b.HasIndex("EntityType", "EntityId");
+
+                    b.ToTable("AuditEntries");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.BackupRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("Bytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CompletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DestinationFolder")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Encrypted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("KeyFingerprint")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ScheduleId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Sha256")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StartedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StartedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StartedAt");
+
+                    b.HasIndex("ScheduleId", "Status");
+
+                    b.ToTable("BackupRecords");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.BackupSchedule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Cron")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DestinationFolder")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("KeepDaily")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("KeepLast")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("KeepMonthly")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("KeepWeekly")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LastRunAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NextRetryAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NextRunAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RetryAttempt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UpdatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BackupSchedules");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.CollectionRecipe", b =>
+                {
+                    b.Property<int>("CollectionId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("RecipeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("CollectionId", "RecipeId");
+
+                    b.HasIndex("RecipeId");
+
+                    b.ToTable("CollectionRecipes");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Food", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("DefaultPurchaseUnitId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("DensityGPerMl")
+                        .HasColumnType("REAL");
+
+                    b.Property<int?>("FdcId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Form")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsPantryStaple")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("NutrientRefId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("PackageName")
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("PackageSize")
+                        .HasColumnType("REAL");
+
+                    b.Property<int?>("PackageUnitId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("PluralName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StoreSection")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedById")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DefaultPurchaseUnitId");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique();
+
+                    b.HasIndex("NutrientRefId");
+
+                    b.HasIndex("PackageUnitId");
+
+                    b.ToTable("Foods");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.FoodAlias", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Alias")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("FoodId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("NormalizedAlias")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FoodId");
+
+                    b.HasIndex("NormalizedAlias")
+                        .IsUnique();
+
+                    b.ToTable("FoodAliases");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.FoodSuggestion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("Confidence")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DataType")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DatasetVersion")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DismissedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DismissedById")
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EngineVersion")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("FdcId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("NutrientRefId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NutrientRefId");
+
+                    b.HasIndex("NormalizedName", "EngineVersion", "DatasetVersion")
+                        .IsUnique();
+
+                    b.ToTable("FoodSuggestions");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.HealthCheckResult", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CheckName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DurationMs")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RanAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CheckName", "RanAt");
+
+                    b.ToTable("HealthCheckResults");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Image", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AltText")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Bytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StoragePath")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("ThumbBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.ToTable("Images");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ImportJob", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("BatchId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("CopyImage")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("CreatedRecipeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("DuplicateOfRecipeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("KeepPhotos")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("ParsedByAi")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ParsedJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PhotoCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("RawPath")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceKind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceRef")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("WarningsJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatchId");
+
+                    b.HasIndex("CreatedRecipeId");
+
+                    b.HasIndex("DuplicateOfRecipeId");
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.ToTable("ImportJobs");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.IngredientGroup", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RecipeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipeId", "SortOrder");
+
+                    b.ToTable("IngredientGroups");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.InventorySnapshot", b =>
+                {
+                    b.Property<int>("Version")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ToolsJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Version");
+
+                    b.ToTable("InventorySnapshots");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.InventoryVersion", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ChangedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("InventoryVersions");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.KitchenTool", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AddedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("CapacityAmount")
+                        .HasColumnType("REAL");
+
+                    b.Property<int?>("CapacityUnitId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double>("DefaultFillPct")
+                        .HasColumnType("REAL");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Markings")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("PanLength")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("PanShape")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("PanWidth")
+                        .HasColumnType("REAL");
+
+                    b.Property<int>("QuantityOwned")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("ResolutionAmount")
+                        .HasColumnType("REAL");
+
+                    b.Property<int?>("ResolutionUnitId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("RetiredAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SupportedUnits")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ToolType")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedById")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CapacityUnitId");
+
+                    b.HasIndex("ResolutionUnitId");
+
+                    b.HasIndex("IsActive", "ToolType");
+
+                    b.ToTable("KitchenTools");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.NutrientDataset", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Added")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AppliedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AppliedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileSha256")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Foods")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Removed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Updated")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("NutrientDatasets");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.NutrientRef", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("Calories")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("CarbsG")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("CholesterolMg")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DataType")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DatasetVersion")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("DensityGPerMl")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("FatG")
+                        .HasColumnType("REAL");
+
+                    b.Property<int?>("FdcId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("FiberG")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("NormalizedDescription")
+                        .IsRequired()
+                        .HasMaxLength(600)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PortionsJson")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("ProteinG")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("RemovedInVersion")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("SatFatG")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("SodiumMg")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("SugarG")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("UpdatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FdcId")
+                        .IsUnique();
+
+                    b.HasIndex("NormalizedDescription");
+
+                    b.ToTable("NutrientRefs");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.NutritionFacts", b =>
+                {
+                    b.Property<int>("RecipeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Source")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("Calories")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("CarbsG")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("CholesterolMg")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("FatG")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("FiberG")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("ProteinG")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("SatFatG")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("SodiumMg")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("SugarG")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("UpdatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedById")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("RecipeId", "Source");
+
+                    b.ToTable("NutritionFacts");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Recipe", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("CookMinutes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("CookMinutesMax")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeletedById")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FinishImageId")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("FinishedDensityGPerMl")
+                        .HasColumnType("REAL");
+
+                    b.Property<int>("InventoryVersionSeen")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsPrecision")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LastCookedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(10000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("PanLength")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("PanShape")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("PanWidth")
+                        .HasColumnType("REAL");
+
+                    b.Property<int?>("ParentRecipeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("PrepMinutes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("PrepMinutesMax")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("Rating")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double>("Servings")
+                        .HasColumnType("REAL");
+
+                    b.Property<bool>("ServingsEstimated")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("ServingsMax")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceAuthor")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceImportedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceName")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("TotalMinutes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("TotalMinutesMax")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UpdatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedById")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("YieldAmount")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("YieldSource")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("YieldText")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("YieldUnitId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("FinishImageId");
+
+                    b.HasIndex("ParentRecipeId");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.HasIndex("Title");
+
+                    b.HasIndex("TotalMinutes");
+
+                    b.HasIndex("YieldUnitId");
+
+                    b.HasIndex("Status", "DeletedAt");
+
+                    b.ToTable("Recipes");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeAllergen", b =>
+                {
+                    b.Property<int>("RecipeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Allergen")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Origin")
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("RecipeId", "Allergen", "Origin");
+
+                    b.HasIndex("Allergen", "Status");
+
+                    b.ToTable("RecipeAllergens");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeCardImage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ImageId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("RecipeId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ImageId");
+
+                    b.HasIndex("RecipeId", "Position");
+
+                    b.ToTable("RecipeCardImages");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeCollection", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UpdatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedById")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique();
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("Collections");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeIngredient", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("FoodId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("GroupId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsOptional")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Measure")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Auto");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double>("ParseConfidence")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("Preparation")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("Quantity")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("QuantityMax")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("QuantityText")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RawText")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RecipeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("State")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("UnitId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FoodId");
+
+                    b.HasIndex("GroupId");
+
+                    b.HasIndex("Name");
+
+                    b.HasIndex("UnitId");
+
+                    b.HasIndex("RecipeId", "SortOrder");
+
+                    b.ToTable("RecipeIngredients");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeSlugAlias", b =>
+                {
+                    b.Property<string>("Slug")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RecipeId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Slug");
+
+                    b.HasIndex("RecipeId");
+
+                    b.ToTable("RecipeSlugAliases");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeStep", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ImageId")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RecipeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SectionName")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("TimerSeconds")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ImageId");
+
+                    b.HasIndex("RecipeId", "SortOrder");
+
+                    b.ToTable("Steps");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeSuggestionState", b =>
+                {
+                    b.Property<int>("RecipeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SuggestionKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("At")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ById")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("InventoryVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("RecipeId", "SuggestionKey");
+
+                    b.ToTable("RecipeSuggestionStates");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeTag", b =>
+                {
+                    b.Property<int>("RecipeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TagId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("RecipeId", "TagId");
+
+                    b.HasIndex("TagId");
+
+                    b.ToTable("RecipeTags");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.SeedRun", b =>
+                {
+                    b.Property<string>("Name")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AppliedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Name");
+
+                    b.ToTable("SeedRuns");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ShoppingCheck", b =>
+                {
+                    b.Property<int>("ShoppingListId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ItemKey")
+                        .HasMaxLength(202)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CheckedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ShoppingListId", "ItemKey");
+
+                    b.ToTable("ShoppingChecks");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ShoppingLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("Amount")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("AmountMax")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("CountUnit")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("FoodId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsRestock")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsStaple")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Kind")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ListRecipeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("RawText")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Section")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ShoppingListId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FoodId");
+
+                    b.HasIndex("ListRecipeId");
+
+                    b.HasIndex("ShoppingListId", "Position");
+
+                    b.ToTable("ShoppingLines");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ShoppingList", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FinishedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FinishedAt");
+
+                    b.ToTable("ShoppingLists");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ShoppingListName", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LastUsedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LastUsedAt");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique();
+
+                    b.ToTable("ShoppingListNames");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ShoppingListRecipe", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AddedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("RecipeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double>("Scale")
+                        .HasColumnType("REAL");
+
+                    b.Property<int>("ShoppingListId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipeId");
+
+                    b.HasIndex("ShoppingListId");
+
+                    b.ToTable("ShoppingListRecipes");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ShoppingStapleCheck", b =>
+                {
+                    b.Property<int>("ShoppingListId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ItemKey")
+                        .HasMaxLength(202)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Answer")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("At")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ShoppingListId", "ItemKey");
+
+                    b.ToTable("ShoppingStapleChecks");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Staple", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("FoodId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LastRestockedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Restock")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Section")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FoodId")
+                        .IsUnique();
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique();
+
+                    b.ToTable("Staples");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.StorageSnapshot", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("BackupBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("BackupVolumeFree")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("BackupVolumeTotal")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("DataVolumeFree")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("DataVolumeTotal")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("DbBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("FreePages")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("ImportBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("LogBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("MediaBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("TakenAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("WalBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TakenAt");
+
+                    b.ToTable("StorageSnapshots");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Tag", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TagType")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique();
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("Tags");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Unit", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Aliases")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsVague")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PluralName")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("System")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double>("ToBase")
+                        .HasColumnType("REAL");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("Units");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Aliases = "teaspoon|teaspoons|tsp|tsps|tsp.|teasp|teasp.",
+                            Code = "tsp",
+                            IsVague = false,
+                            Kind = "Volume",
+                            Name = "tsp",
+                            PluralName = "tsp",
+                            System = "US",
+                            ToBase = 4.9289215937500002
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Aliases = "tablespoon|tablespoons|tbsp|tbsps|tbsp.|tbs|tbs.|tbl|tbl.|tblsp|tblsp.",
+                            Code = "tbsp",
+                            IsVague = false,
+                            Kind = "Volume",
+                            Name = "Tbsp",
+                            PluralName = "Tbsp",
+                            System = "US",
+                            ToBase = 14.78676478125
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Aliases = "cup|cups|c.",
+                            Code = "cup",
+                            IsVague = false,
+                            Kind = "Volume",
+                            Name = "cup",
+                            PluralName = "cups",
+                            System = "US",
+                            ToBase = 236.58823649999999
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Aliases = "fl oz|fl. oz.|fl.oz.|fl oz.|fl. oz|fluid ounce|fluid ounces|floz",
+                            Code = "floz",
+                            IsVague = false,
+                            Kind = "Volume",
+                            Name = "fl oz",
+                            PluralName = "fl oz",
+                            System = "US",
+                            ToBase = 29.573529562499999
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Aliases = "pint|pints|pt|pt.|pts",
+                            Code = "pint",
+                            IsVague = false,
+                            Kind = "Volume",
+                            Name = "pint",
+                            PluralName = "pints",
+                            System = "US",
+                            ToBase = 473.17647299999999
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Aliases = "quart|quarts|qt|qt.|qts",
+                            Code = "quart",
+                            IsVague = false,
+                            Kind = "Volume",
+                            Name = "quart",
+                            PluralName = "quarts",
+                            System = "US",
+                            ToBase = 946.35294599999997
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Aliases = "gallon|gallons|gal|gal.",
+                            Code = "gallon",
+                            IsVague = false,
+                            Kind = "Volume",
+                            Name = "gallon",
+                            PluralName = "gallons",
+                            System = "US",
+                            ToBase = 3785.4117839999999
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Aliases = "ml|ml.|milliliter|milliliters|millilitre|millilitres",
+                            Code = "ml",
+                            IsVague = false,
+                            Kind = "Volume",
+                            Name = "ml",
+                            PluralName = "ml",
+                            System = "Metric",
+                            ToBase = 1.0
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Aliases = "liter|liters|litre|litres|ltr",
+                            Code = "l",
+                            IsVague = false,
+                            Kind = "Volume",
+                            Name = "l",
+                            PluralName = "l",
+                            System = "Metric",
+                            ToBase = 1000.0
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Aliases = "g|g.|gram|grams|gm|gms|gr",
+                            Code = "g",
+                            IsVague = false,
+                            Kind = "Mass",
+                            Name = "g",
+                            PluralName = "g",
+                            System = "Metric",
+                            ToBase = 1.0
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Aliases = "kg|kg.|kilogram|kilograms|kilo|kilos",
+                            Code = "kg",
+                            IsVague = false,
+                            Kind = "Mass",
+                            Name = "kg",
+                            PluralName = "kg",
+                            System = "Metric",
+                            ToBase = 1000.0
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Aliases = "oz|oz.|ounce|ounces",
+                            Code = "oz",
+                            IsVague = false,
+                            Kind = "Mass",
+                            Name = "oz",
+                            PluralName = "oz",
+                            System = "US",
+                            ToBase = 28.349523125000001
+                        },
+                        new
+                        {
+                            Id = 13,
+                            Aliases = "lb|lb.|lbs|lbs.|pound|pounds",
+                            Code = "lb",
+                            IsVague = false,
+                            Kind = "Mass",
+                            Name = "lb",
+                            PluralName = "lb",
+                            System = "US",
+                            ToBase = 453.59237000000002
+                        },
+                        new
+                        {
+                            Id = 14,
+                            Aliases = "pinch|pinches",
+                            Code = "pinch",
+                            IsVague = true,
+                            Kind = "Vague",
+                            Name = "pinch",
+                            PluralName = "pinches",
+                            System = "Either",
+                            ToBase = 0.30805759960938001
+                        },
+                        new
+                        {
+                            Id = 15,
+                            Aliases = "dash|dashes",
+                            Code = "dash",
+                            IsVague = true,
+                            Kind = "Vague",
+                            Name = "dash",
+                            PluralName = "dashes",
+                            System = "Either",
+                            ToBase = 0.61611519921875002
+                        },
+                        new
+                        {
+                            Id = 16,
+                            Aliases = "smidgen|smidgens|smidge",
+                            Code = "smidgen",
+                            IsVague = true,
+                            Kind = "Vague",
+                            Name = "smidgen",
+                            PluralName = "smidgens",
+                            System = "Either",
+                            ToBase = 0.15402879980469
+                        },
+                        new
+                        {
+                            Id = 17,
+                            Aliases = "drop|drops",
+                            Code = "drop",
+                            IsVague = true,
+                            Kind = "Vague",
+                            Name = "drop",
+                            PluralName = "drops",
+                            System = "Either",
+                            ToBase = 0.050000000000000003
+                        },
+                        new
+                        {
+                            Id = 18,
+                            Aliases = "handful|handfuls",
+                            Code = "handful",
+                            IsVague = true,
+                            Kind = "Vague",
+                            Name = "handful",
+                            PluralName = "handfuls",
+                            System = "Either",
+                            ToBase = 0.0
+                        },
+                        new
+                        {
+                            Id = 19,
+                            Aliases = "can|cans|tin|tins",
+                            Code = "can",
+                            IsVague = false,
+                            Kind = "Count",
+                            Name = "can",
+                            PluralName = "cans",
+                            System = "Either",
+                            ToBase = 1.0
+                        },
+                        new
+                        {
+                            Id = 20,
+                            Aliases = "jar|jars",
+                            Code = "jar",
+                            IsVague = false,
+                            Kind = "Count",
+                            Name = "jar",
+                            PluralName = "jars",
+                            System = "Either",
+                            ToBase = 1.0
+                        },
+                        new
+                        {
+                            Id = 21,
+                            Aliases = "package|packages|pkg|pkg.|pkgs|packet|packets|pack|packs",
+                            Code = "package",
+                            IsVague = false,
+                            Kind = "Count",
+                            Name = "package",
+                            PluralName = "packages",
+                            System = "Either",
+                            ToBase = 1.0
+                        },
+                        new
+                        {
+                            Id = 22,
+                            Aliases = "envelope|envelopes",
+                            Code = "envelope",
+                            IsVague = false,
+                            Kind = "Count",
+                            Name = "envelope",
+                            PluralName = "envelopes",
+                            System = "Either",
+                            ToBase = 1.0
+                        },
+                        new
+                        {
+                            Id = 23,
+                            Aliases = "bag|bags",
+                            Code = "bag",
+                            IsVague = false,
+                            Kind = "Count",
+                            Name = "bag",
+                            PluralName = "bags",
+                            System = "Either",
+                            ToBase = 1.0
+                        },
+                        new
+                        {
+                            Id = 24,
+                            Aliases = "box|boxes",
+                            Code = "box",
+                            IsVague = false,
+                            Kind = "Count",
+                            Name = "box",
+                            PluralName = "boxes",
+                            System = "Either",
+                            ToBase = 1.0
+                        },
+                        new
+                        {
+                            Id = 25,
+                            Aliases = "bottle|bottles",
+                            Code = "bottle",
+                            IsVague = false,
+                            Kind = "Count",
+                            Name = "bottle",
+                            PluralName = "bottles",
+                            System = "Either",
+                            ToBase = 1.0
+                        },
+                        new
+                        {
+                            Id = 26,
+                            Aliases = "container|containers",
+                            Code = "container",
+                            IsVague = false,
+                            Kind = "Count",
+                            Name = "container",
+                            PluralName = "containers",
+                            System = "Either",
+                            ToBase = 1.0
+                        },
+                        new
+                        {
+                            Id = 27,
+                            Aliases = "stick|sticks",
+                            Code = "stick",
+                            IsVague = false,
+                            Kind = "Count",
+                            Name = "stick",
+                            PluralName = "sticks",
+                            System = "Either",
+                            ToBase = 1.0
+                        },
+                        new
+                        {
+                            Id = 28,
+                            Aliases = "clove|cloves",
+                            Code = "clove",
+                            IsVague = false,
+                            Kind = "Count",
+                            Name = "clove",
+                            PluralName = "cloves",
+                            System = "Either",
+                            ToBase = 1.0
+                        },
+                        new
+                        {
+                            Id = 29,
+                            Aliases = "slice|slices",
+                            Code = "slice",
+                            IsVague = false,
+                            Kind = "Count",
+                            Name = "slice",
+                            PluralName = "slices",
+                            System = "Either",
+                            ToBase = 1.0
+                        },
+                        new
+                        {
+                            Id = 30,
+                            Aliases = "sprig|sprigs",
+                            Code = "sprig",
+                            IsVague = false,
+                            Kind = "Count",
+                            Name = "sprig",
+                            PluralName = "sprigs",
+                            System = "Either",
+                            ToBase = 1.0
+                        },
+                        new
+                        {
+                            Id = 31,
+                            Aliases = "bunch|bunches",
+                            Code = "bunch",
+                            IsVague = false,
+                            Kind = "Count",
+                            Name = "bunch",
+                            PluralName = "bunches",
+                            System = "Either",
+                            ToBase = 1.0
+                        },
+                        new
+                        {
+                            Id = 32,
+                            Aliases = "head|heads",
+                            Code = "head",
+                            IsVague = false,
+                            Kind = "Count",
+                            Name = "head",
+                            PluralName = "heads",
+                            System = "Either",
+                            ToBase = 1.0
+                        },
+                        new
+                        {
+                            Id = 33,
+                            Aliases = "stalk|stalks",
+                            Code = "stalk",
+                            IsVague = false,
+                            Kind = "Count",
+                            Name = "stalk",
+                            PluralName = "stalks",
+                            System = "Either",
+                            ToBase = 1.0
+                        },
+                        new
+                        {
+                            Id = 34,
+                            Aliases = "piece|pieces",
+                            Code = "piece",
+                            IsVague = false,
+                            Kind = "Count",
+                            Name = "piece",
+                            PluralName = "pieces",
+                            System = "Either",
+                            ToBase = 1.0
+                        });
+                });
+
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.UserPreference", b =>
                 {
                     b.Property<string>("UserId")
                         .HasColumnType("TEXT");
 
+                    b.Property<double?>("DefaultScale")
+                        .HasColumnType("REAL");
+
                     b.Property<string>("Theme")
                         .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Units")
                         .HasMaxLength(16)
                         .HasColumnType("TEXT");
 
@@ -225,6 +2460,72 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.HasKey("UserId");
 
                     b.ToTable("UserPreferences");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.YieldConversion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Basis")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("FoodId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FromState")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FromUnitKind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("PreparedDensityGPerMl")
+                        .HasColumnType("REAL");
+
+                    b.Property<double>("Ratio")
+                        .HasColumnType("REAL");
+
+                    b.Property<double>("RatioMax")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ToState")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedAt")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedById")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FoodId", "FromState")
+                        .IsUnique();
+
+                    b.ToTable("YieldConversions");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -278,6 +2579,282 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.CollectionRecipe", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.RecipeCollection", null)
+                        .WithMany("Recipes")
+                        .HasForeignKey("CollectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
+                        .WithMany()
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Food", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Unit", null)
+                        .WithMany()
+                        .HasForeignKey("DefaultPurchaseUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RecipeWarden.Infrastructure.Data.NutrientRef", null)
+                        .WithMany()
+                        .HasForeignKey("NutrientRefId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Unit", null)
+                        .WithMany()
+                        .HasForeignKey("PackageUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.FoodAlias", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Food", null)
+                        .WithMany("Aliases")
+                        .HasForeignKey("FoodId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.FoodSuggestion", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.NutrientRef", null)
+                        .WithMany()
+                        .HasForeignKey("NutrientRefId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ImportJob", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedRecipeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
+                        .WithMany()
+                        .HasForeignKey("DuplicateOfRecipeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.IngredientGroup", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
+                        .WithMany("IngredientGroups")
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.KitchenTool", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Unit", "CapacityUnit")
+                        .WithMany()
+                        .HasForeignKey("CapacityUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Unit", "ResolutionUnit")
+                        .WithMany()
+                        .HasForeignKey("ResolutionUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CapacityUnit");
+
+                    b.Navigation("ResolutionUnit");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.NutritionFacts", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
+                        .WithMany()
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Recipe", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Image", null)
+                        .WithMany()
+                        .HasForeignKey("FinishImageId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
+                        .WithMany()
+                        .HasForeignKey("ParentRecipeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Unit", null)
+                        .WithMany()
+                        .HasForeignKey("YieldUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeAllergen", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
+                        .WithMany()
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeCardImage", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Image", null)
+                        .WithMany()
+                        .HasForeignKey("ImageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
+                        .WithMany()
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeIngredient", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Food", null)
+                        .WithMany()
+                        .HasForeignKey("FoodId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("RecipeWarden.Infrastructure.Data.IngredientGroup", "Group")
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
+                        .WithMany("Ingredients")
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Unit", "Unit")
+                        .WithMany()
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Group");
+
+                    b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeSlugAlias", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
+                        .WithMany()
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeStep", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Image", null)
+                        .WithMany()
+                        .HasForeignKey("ImageId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
+                        .WithMany("Steps")
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeSuggestionState", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
+                        .WithMany()
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeTag", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
+                        .WithMany("Tags")
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Tag", "Tag")
+                        .WithMany()
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tag");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ShoppingCheck", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.ShoppingList", null)
+                        .WithMany("Checks")
+                        .HasForeignKey("ShoppingListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ShoppingLine", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Food", null)
+                        .WithMany()
+                        .HasForeignKey("FoodId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("RecipeWarden.Infrastructure.Data.ShoppingListRecipe", null)
+                        .WithMany()
+                        .HasForeignKey("ListRecipeId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("RecipeWarden.Infrastructure.Data.ShoppingList", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("ShoppingListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ShoppingListRecipe", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
+                        .WithMany()
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("RecipeWarden.Infrastructure.Data.ShoppingList", null)
+                        .WithMany("Recipes")
+                        .HasForeignKey("ShoppingListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ShoppingStapleCheck", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.ShoppingList", null)
+                        .WithMany()
+                        .HasForeignKey("ShoppingListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Staple", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Food", null)
+                        .WithMany()
+                        .HasForeignKey("FoodId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.UserPreference", b =>
                 {
                     b.HasOne("RecipeWarden.Infrastructure.Data.AppUser", null)
@@ -285,6 +2862,47 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                         .HasForeignKey("RecipeWarden.Infrastructure.Data.UserPreference", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.YieldConversion", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Food", "Food")
+                        .WithMany()
+                        .HasForeignKey("FoodId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Food");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Food", b =>
+                {
+                    b.Navigation("Aliases");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.Recipe", b =>
+                {
+                    b.Navigation("IngredientGroups");
+
+                    b.Navigation("Ingredients");
+
+                    b.Navigation("Steps");
+
+                    b.Navigation("Tags");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeCollection", b =>
+                {
+                    b.Navigation("Recipes");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.ShoppingList", b =>
+                {
+                    b.Navigation("Checks");
+
+                    b.Navigation("Lines");
+
+                    b.Navigation("Recipes");
                 });
 #pragma warning restore 612, 618
         }

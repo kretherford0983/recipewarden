@@ -1,0 +1,56 @@
+@page "/admin/settings"
+@model RecipeWarden.Web.Pages.Admin.SettingsModel
+@using RecipeWarden.Infrastructure.Settings
+@{
+    ViewData["Title"] = "Settings";
+}
+<p><a href="/admin">Admin</a></p>
+<h1>Settings</h1>
+@if (Model.Message is not null) { <div class="notice" role="status"><p>@Model.Message</p></div> }
+@if (Model.Error is not null) { <div class="form-errors" role="alert"><p>@Model.Error</p></div> }
+<form method="post" action="/admin/settings" asp-antiforgery="true" class="form">
+    <div class="field">
+        <label for="site-name">Site name (shown in the header and page titles)</label>
+        <input id="site-name" name="Input.SiteName" value="@Model.Input.SiteName" maxlength="@SiteSettings.MaxSiteNameLength">
+    </div>
+    <fieldset>
+        <legend>Disk space thresholds (each volume holding data or backups)</legend>
+        <div class="field-row">
+            <div class="field"><label for="warn-pct">Warning below % free</label><input id="warn-pct" name="Input.WarningPercent" type="number" min="0" max="99" step="1" value="@Model.Input.WarningPercent"></div>
+            <div class="field"><label for="warn-gb">or below GB free</label><input id="warn-gb" name="Input.WarningGb" type="number" min="0" step="0.1" value="@Model.Input.WarningGb"></div>
+            <div class="field"><label for="crit-pct">Critical below % free</label><input id="crit-pct" name="Input.CriticalPercent" type="number" min="0" max="99" step="1" value="@Model.Input.CriticalPercent"></div>
+            <div class="field"><label for="crit-mb">or below MB free</label><input id="crit-mb" name="Input.CriticalMb" type="number" min="0" step="1" value="@Model.Input.CriticalMb"></div>
+        </div>
+    </fieldset>
+    <fieldset>
+        <legend>Status-change webhook (optional)</legend>
+        <p>Posts a short message when the health status changes, e.g. to ntfy or Discord.</p>
+        <div class="field">
+            <label for="webhook">Webhook address</label>
+            <input id="webhook" name="Input.WebhookUrl" type="url" value="@Model.Input.WebhookUrl" placeholder="https://ntfy.sh/your-topic">
+        </div>
+        <div class="field">
+            <label for="webhook-format">Message format</label>
+            <select id="webhook-format" name="Input.WebhookFormat">
+                <option value="Text" selected="@(Model.Input.WebhookFormat == WebhookFormat.Text)">Plain text (ntfy)</option>
+                <option value="Discord" selected="@(Model.Input.WebhookFormat == WebhookFormat.Discord)">Discord</option>
+                <option value="Json" selected="@(Model.Input.WebhookFormat == WebhookFormat.Json)">JSON</option>
+            </select>
+        </div>
+        <label><input type="checkbox" name="Input.WebhookAllowLan" value="true" checked="@Model.Input.WebhookAllowLan"> The address is on my home network (allows exactly that host and port)</label>
+    </fieldset>
+    <div class="actions">
+        <button type="submit">Save settings</button>
+        <button type="submit" formaction="/admin/settings?handler=TestWebhook">Send a test message</button>
+    </div>
+</form>
+
+<h2>Set by the server owner</h2>
+<p>These come from the files in <code>/etc/recipewarden/</code>. Change them there (or with
+    <code>sudo bash install.sh --reconfigure</code> for the network), then restart the service.</p>
+<dl class="facts">
+    <dt>Trusted proxies (cloudflared host)</dt><dd>@(Model.Network.TrustedProxies.Count == 0 ? "none" : string.Join(", ", Model.Network.TrustedProxies))</dd>
+    <dt>Other addresses allowed to connect</dt><dd>@(Model.Network.AllowedSourceIps.Count == 0 ? "none" : string.Join(", ", Model.Network.AllowedSourceIps))</dd>
+    <dt>Rate limits</dt><dd>search @Model.Limits.SearchPerMinute a minute per IP; writes @Model.Limits.WritesPerMinute a minute per user; URL imports @Model.Limits.UrlImportsPerHour an hour; shopping ticks @Model.Limits.ShoppingChecksPerMinute a minute per IP</dd>
+    <dt>Backup folders (Backup:AllowedFolders, then <code>sudo recipewarden apply-config</code>)</dt><dd>@string.Join(", ", Model.BackupFolders)</dd>
+</dl>

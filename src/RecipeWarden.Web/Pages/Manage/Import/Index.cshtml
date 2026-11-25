@@ -1,0 +1,120 @@
+@page "/manage/import"
+@model RecipeWarden.Web.Pages.Manage.Import.IndexModel
+@using RecipeWarden.Core.Security
+@{
+    ViewData["Title"] = "Import";
+}
+<p class="breadcrumb"><a href="/manage">Manage</a> ›</p>
+<h1>Import a recipe</h1>
+
+@if (Model.Error is not null)
+{
+    <div class="error-summary" role="alert" tabindex="-1"><p>@Model.Error</p></div>
+}
+@if (Model.FileProblems.Count > 0)
+{
+    <div class="notice" role="status">
+        <p>Some files could not be imported:</p>
+        <ul>
+            @foreach (var p in Model.FileProblems)
+            {
+                <li><strong>@p.FileName</strong>: @p.Error</li>
+            }
+        </ul>
+        @if (Model.CreatedJobs.Count > 0)
+        {
+            <p>@Model.CreatedJobs.Count @(Model.CreatedJobs.Count == 1 ? "recipe is" : "recipes are") ready to review below.</p>
+        }
+    </div>
+}
+
+<section aria-labelledby="url-heading" class="import-box">
+    <h2 id="url-heading">From a web address</h2>
+    <form method="post" action="/manage/import?handler=Url" asp-antiforgery="true" data-progress="Fetching the page…">
+        <div class="field">
+            <label for="Url">Page address</label>
+            <input id="Url" name="Url" type="url" value="@Model.Address" placeholder="https://" maxlength="@UrlRules.MaxUrlLength" required>
+        </div>
+        <div class="field checkbox">
+            <input id="CopyImage" name="CopyImage" type="checkbox" value="true">
+            <label for="CopyImage">Also copy the finished-dish image</label>
+        </div>
+        <button type="submit" class="primary">Import</button>
+        <span class="progress" role="status" aria-live="polite" hidden></span>
+    </form>
+</section>
+
+<details class="import-box" open="@Model.OfferPaste" id="paste">
+    <summary><h2>Paste the page text or saved HTML</h2></summary>
+    <p class="hint">Use this when a site blocks importing: copy the recipe from the page (or save the page as HTML) and paste it here.</p>
+    <form method="post" action="/manage/import?handler=Paste" asp-antiforgery="true" data-progress="Reading the recipe…">
+        <div class="field">
+            <label for="PasteUrl">Page address <span class="hint">(optional, kept as the source)</span></label>
+            <input id="PasteUrl" name="PasteUrl" type="url" value="@Model.PasteUrl" placeholder="https://" maxlength="@UrlRules.MaxUrlLength">
+        </div>
+        <div class="field">
+            <label for="PasteText">Recipe text or HTML</label>
+            <textarea id="PasteText" name="PasteText" rows="10">@Model.PasteText</textarea>
+        </div>
+        <button type="submit">Read recipe</button>
+        <span class="progress" role="status" aria-live="polite" hidden></span>
+    </form>
+</details>
+
+<section aria-labelledby="file-heading" class="import-box">
+    <h2 id="file-heading">From files</h2>
+    <p class="hint">Markdown (.md), text (.txt), Word (.docx) or text PDF, up to @UploadRules.MaxFilesPerImport files of 20 MB each. A file with several recipes becomes several drafts to review.</p>
+    <form method="post" action="/manage/import?handler=Files" enctype="multipart/form-data" asp-antiforgery="true" data-progress="Reading the files…">
+        <div class="field">
+            <label for="files">Files</label>
+            <input id="files" name="files" type="file" multiple required accept=".md,.markdown,.txt,.docx,.pdf" data-max-bytes="@UploadRules.MaxDocumentBytes">
+        </div>
+        <button type="submit">Import files</button>
+        <span class="progress" role="status" aria-live="polite" hidden></span>
+    </form>
+</section>
+
+@if (Model.OfferPhotos)
+{
+    @* FR-IMP-13, W11, ADR 0058: shown only when the AI parser is on and its model can read images (AC-126). *@
+    <section aria-labelledby="photo-heading" class="import-box">
+        <h2 id="photo-heading">From photos</h2>
+        <p class="hint">A recipe card, a printed page or a cookbook: 1 to @RecipeWarden.Core.AiParser.PhotoImportRules.MaxPhotos photos of one recipe (JPEG, PNG or WebP,
+            10 MB each), chosen in reading order (front, then back). The photos are sent to the AI service your Admin set up, without their
+            location or camera details; the recipe comes back here for review.</p>
+        <form method="post" action="/manage/import?handler=Photos" enctype="multipart/form-data" asp-antiforgery="true" data-progress="Reading the photos…">
+            <div class="field">
+                <label for="photos">Photos</label>
+                <input id="photos" name="photos" type="file" multiple required accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" data-max-bytes="@UploadRules.MaxImageBytes">
+            </div>
+            <div class="field">
+                <label for="SourceName">Where it came from <span class="hint">(optional, e.g. "Grandma Ruth's card")</span></label>
+                <input id="SourceName" name="SourceName" maxlength="@RecipeWarden.Core.Recipes.SourceRules.MaxNameLength">
+            </div>
+            <div class="field checkbox">
+                <input id="KeepPhotos" name="KeepPhotos" type="checkbox" value="true" checked>
+                <label for="KeepPhotos">Save the card photo with the recipe</label>
+            </div>
+            <button type="submit">Read the photos</button>
+            <span class="progress" role="status" aria-live="polite" hidden></span>
+        </form>
+    </section>
+}
+
+<section aria-labelledby="open-heading">
+    <h2 id="open-heading">Waiting for review</h2>
+    @if (Model.Open.Count == 0)
+    {
+        <p class="empty-state">Nothing waiting. Imported recipes appear here until you save or discard them.</p>
+    }
+    else
+    {
+        <ul class="import-list">
+            @foreach (var j in Model.Open)
+            {
+                <li><a href="/manage/import/@j.Id/review">@j.Title</a> <span class="hint">@j.Kind · @j.SourceRef</span></li>
+            }
+        </ul>
+    }
+</section>
+<script src="~/js/import.js" asp-append-version="true" defer></script>

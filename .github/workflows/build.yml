@@ -1,0 +1,126 @@
+# Builds the installable Linux package whenever code lands in a long-lived branch (docs/branching.md):
+#   develop -> GitHub pre-release v<version>-dev.<run>   (install on the test host; newest 3 per version kept)
+#   main    -> GitHub release     v<version> (+ tag)       (install in production; once per version)
+# Code reaches develop and main only through pull requests whose ci checks passed on the up-to-date branch,
+# so a push build does not re-run the tests. A hand-run build (Actions -> build -> Run workflow, e.g. on a
+# feature branch) runs the tests first and keeps the package on the run only, publishing nothing.
+name: build
+
+on:
+  push:
+    branches: [develop, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: "1"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      release: ${{ steps.meta.outputs.release }}
+      artifact: ${{ steps.meta.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          version: "0.13.9"
+
+      - name: Python runtime cache (ADR 0051)
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/recipewarden
+          key: rw-python-${{ runner.os }}-${{ hashFiles('build/python.sh') }}
+
+      - id: meta
+        name: Version
+        run: |
+          RELEASE="$(bash build/version.sh --check)"
+          if [ "$GITHUB_REF_NAME" = "main" ]; then VERSION="$RELEASE"; else VERSION="$RELEASE-dev.$GITHUB_RUN_NUMBER"; fi
+          {
+            echo "release=$RELEASE"
+            echo "version=$VERSION"
+            # artifact names may not contain "/" (hand runs on feature/... branches)
+            echo "artifact=recipewarden-$VERSION-${GITHUB_REF_NAME//\//-}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Tests (hand-run builds only)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          dotnet build RecipeWarden.slnx --configuration Release
+          build/test.sh --no-build --configuration Release
+
+      - name: Package (self-contained linux-x64)
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: build/package.sh "$VERSION" dist
+
+      - name: Smoke test the package
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: build/smoke-test.sh "dist/recipewarden-$VERSION-linux-x64.tar.gz" "$VERSION"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ steps.meta.outputs.artifact }}
+          path: dist/
+          # The GitHub release keeps the permanent copy of develop/main builds; hand runs keep theirs 7 days.
+          retention-days: ${{ github.event_name == 'workflow_dispatch' && 7 || 1 }}
+
+  publish:
+    needs: package
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ needs.package.outputs.artifact }}
+          path: dist
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.package.outputs.version }}
+          RELEASE: ${{ needs.package.outputs.release }}
+        run: bash build/publish-release.sh "$VERSION" "$RELEASE"
+
+      - name: Remove old development builds
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE: ${{ needs.package.outputs.release }}
+        run: |
+          if [ "$GITHUB_REF_NAME" = "main" ]; then
+            bash build/prune-dev-builds.sh "$RELEASE" release
+          else
+            bash build/prune-dev-builds.sh "$RELEASE" dev 3
+          fi

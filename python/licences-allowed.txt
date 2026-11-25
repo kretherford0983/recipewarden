@@ -1,0 +1,20 @@
+# SEC-95, AC-108: licences allowed for the Python packages that ship in the package (runtime dependencies only).
+# Permissive SPDX identifiers, one per line. "BSD" stands for the "BSD License" classifier, which does not say
+# which BSD variant; every BSD variant is permissive.
+MIT
+BSD
+BSD-2-Clause
+BSD-3-Clause
+0BSD
+Apache-2.0
+PSF-2.0
+CNRI-Python
+W3C
+ISC
+Zlib
+CC0-1.0
+Unlicense
+
+# ADR 0053: named, unmodified, transitive MPL-2.0 packages. "package = licence"; any other MPL-2.0 package fails.
+certifi = MPL-2.0
+tqdm = MPL-2.0

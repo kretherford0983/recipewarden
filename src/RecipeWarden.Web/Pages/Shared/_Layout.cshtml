@@ -3,25 +3,54 @@
 @inject RecipeWarden.Web.Theme.ThemeResolver ThemeResolver
 @inject IAntiforgery Antiforgery
 @inject IAuthorizationService Authz
+@inject RecipeWarden.Infrastructure.Settings.SettingsStore SiteSettings
+@inject RecipeWarden.Infrastructure.Health.HealthState Health
 @{
+    var siteName = (await SiteSettings.GetAsync(RecipeWarden.Infrastructure.Settings.SettingKeys.SiteName)) ?? "RecipeWarden";
     var theme = await ThemeResolver.GetValueAsync(Context);
     var signedIn = User.Identity?.IsAuthenticated == true;
     var canEdit = signedIn && (await Authz.AuthorizeAsync(User, AppPolicies.CanEditRecipes)).Succeeded;
     var canAdmin = signedIn && (await Authz.AuthorizeAsync(User, AppPolicies.CanAdminister)).Succeeded;
-    var version = typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "dev";
+    var version = RecipeWarden.Web.Hosting.AppInfo.Version;
+    var path = Context.Request.Path.Value ?? "/";
+    bool Under(params string[] prefixes) => prefixes.Any(p => path.Equals(p, StringComparison.OrdinalIgnoreCase)
+        || path.StartsWith(p + "/", StringComparison.OrdinalIgnoreCase));
+    // ADR 0047: primary navigation (icon, name, where it is "current"); Admin and Manage only for their roles.
+    var nav = new List<(string Href, string Icon, string Label, bool Current, string Css)>
+    {
+        ("/", "home", "Home", path == "/", ""),
+        ("/recipes", "browse", "Browse", Under("/recipes", "/search", "/tags"), ""),
+        ("/collections", "collections", "Collections", Under("/collections"), ""),
+        ("/shopping", "shopping", "Shopping list", Under("/shopping"), ""),
+    };
+    if (canEdit) { nav.Add(("/manage", "manage", "Manage", Under("/manage"), "")); }
+    if (canAdmin) { nav.Add(("/admin", "admin", "Admin", Under("/admin"), "nav-admin")); }
 }
 <!DOCTYPE html>
 <html lang="en" data-theme="@theme">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="color-scheme" content="light dark">
     <meta name="htmx-config" content='{"includeIndicatorStyles":false,"allowEval":false,"allowScriptTags":false}'>
     @if (signedIn)
     {
         <meta name="rw-csrf" content="@Antiforgery.GetAndStoreTokens(Context).RequestToken">
     }
-    <title>@(ViewData["Title"] is string t ? t + " · " : "")RecipeWarden</title>
+    <title>@(ViewData["Title"] is string t ? t + " · " : "")@siteName</title>
+    @if (ViewData["Description"] is string description)
+    {
+        <meta name="description" content="@description">
+    }
+    @if (ViewData["OgType"] is string ogType)
+    {
+        @* UX-14, ADR 0048: pages that are articles (a recipe) say so, as article sites do. *@
+        <meta property="og:type" content="@ogType">
+        <meta property="og:site_name" content="@siteName">
+        @if (ViewData["Title"] is string ogTitle) { <meta property="og:title" content="@ogTitle"> }
+        @if (ViewData["Description"] is string ogDescription) { <meta property="og:description" content="@ogDescription"> }
+    }
+    <partial name="_AppIcons" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
     <script src="~/js/theme.js" asp-append-version="true" defer></script>
     <script src="~/lib/htmx/htmx.min.js" defer></script>
@@ -30,28 +59,38 @@
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
 <header class="site-header">
-    <a class="brand" href="/">RecipeWarden</a>
+    <div class="brand-wrap">
+        <span class="logo"><partial name="_Icon" model="@("logo")" /></span>
+        <a class="brand" href="/">@siteName</a>
+    </div>
     <form class="search" role="search" method="get" action="/search">
         <label for="site-search" class="visually-hidden">Search recipes</label>
-        <input id="site-search" name="q" type="search" placeholder="Search recipes" autocomplete="off">
-        <button type="submit" aria-label="Search">&#x1F50D;</button>
+        <button type="submit" class="search-button" aria-label="Search"><partial name="_Icon" model="@("search")" /></button>
+        <input id="site-search" name="q" type="search" placeholder="Search recipes" autocomplete="off" value="@(path == "/search" ? Context.Request.Query["q"].ToString() : null)">
     </form>
     <div class="header-actions">
-        <button type="button" class="theme-toggle" id="theme-toggle"
+        <button type="button" class="theme-toggle icon-button" id="theme-toggle"
                 data-signed-in="@(signedIn ? "true" : "false")"
-                aria-label="Theme: @theme. Change theme">
+                aria-label="Theme: @theme. Change theme" title="Change theme">
+            <span class="theme-icon theme-icon--system"><partial name="_Icon" model="@("system")" /></span>
+            <span class="theme-icon theme-icon--light"><partial name="_Icon" model="@("sun")" /></span>
+            <span class="theme-icon theme-icon--dark"><partial name="_Icon" model="@("moon")" /></span>
             <span class="theme-toggle__label">@theme</span>
         </button>
-        <a class="icon-link" href="/shopping" aria-label="Shopping list">&#x1F6D2;</a>
         @if (signedIn)
         {
             <details class="user-menu">
-                <summary>@User.Identity?.Name</summary>
+                <summary>
+                    <partial name="_Icon" model="@("user")" />
+                    <span class="user-name">@User.Identity?.Name</span>
+                </summary>
                 <ul>
                     @if (canEdit) { <li><a href="/manage">Manage</a></li> }
                     @if (canAdmin) { <li><a href="/admin">Admin</a></li> }
+                    <li><a href="/account/2fa">Two-factor sign-in</a></li>
+                    <li><a href="/account/password">Change password</a></li>
                     <li>
-                        <form method="post" action="/account/logout">
+                        <form method="post" action="/account/logout" asp-antiforgery="true">
                             <button type="submit">Sign out</button>
                         </form>
                     </li>
@@ -64,21 +103,45 @@
         }
     </div>
 </header>
-<nav class="primary-nav" aria-label="Primary">
-    <ul>
-        <li><a href="/">Home</a></li>
-        <li><a href="/recipes">Browse</a></li>
-        <li><a href="/collections">Collections</a></li>
-        <li><a href="/shopping">Shopping list</a></li>
-        @if (canEdit) { <li><a href="/manage">Manage</a></li> }
-    </ul>
-</nav>
-<main id="main" class="content">
-    @RenderBody()
-</main>
-<footer class="site-footer">
-    <span>RecipeWarden @version</span>
-    <span>Nutrition and allergen data are estimates.</span>
-</footer>
+<div class="app-body">
+    <nav class="primary-nav" aria-label="Primary">
+        <ul>
+            @foreach (var item in nav)
+            {
+                <li class="@item.Css">
+                    <a href="@item.Href" aria-current="@(item.Current ? "page" : null)" title="@item.Label">
+                        <partial name="_Icon" model="@item.Icon" />
+                        <span class="nav-label">@item.Label</span>
+                    </a>
+                </li>
+            }
+        </ul>
+    </nav>
+    <div class="app-main">
+        @if (canAdmin && (Health.Banner is not null || Health.BackupBanner is not null))
+        {
+            @* FR-OPS-03, FR-BKP-14: Admins see health and failed-backup banners on every page. *@
+            <div class="admin-banner status-@Health.Status.ToString().ToLowerInvariant()" role="status">
+                @if (Health.Banner is not null) { <p>@Health.Banner <a href="/admin/health">Health</a></p> }
+                @if (Health.BackupBanner is not null) { <p>@Health.BackupBanner <a href="/admin/backups">Backups</a></p> }
+            </div>
+        }
+        <main id="main" class="content">
+            @if (canAdmin && Under("/admin"))
+            {
+                <partial name="_SectionNav" model="@(("Admin pages", RecipeWarden.Web.Layout.SectionNav.Admin, path))" />
+            }
+            else if (canEdit && Under("/manage") && !Under("/manage/recipes"))
+            {
+                <partial name="_SectionNav" model="@(("Manage pages", RecipeWarden.Web.Layout.SectionNav.Manage, path))" />
+            }
+            @RenderBody()
+        </main>
+        <footer class="site-footer">
+            <span>RecipeWarden @version</span>
+            <span>Nutrition and allergen data are estimates.</span>
+        </footer>
+    </div>
+</div>
 </body>
 </html>

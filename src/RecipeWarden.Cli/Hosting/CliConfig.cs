@@ -11,8 +11,15 @@ internal static class CliConfig
     public static string ResolvePath(string? explicitPath) =>
         explicitPath ?? Environment.GetEnvironmentVariable(ConfigPathVariable) ?? DefaultConfigPath;
 
-    public static IConfiguration Load(string path) =>
-        new ConfigurationBuilder().AddJsonFile(Path.GetFullPath(path), optional: false, reloadOnChange: false).Build();
+    /// <summary>The main config plus the installer-owned network.json beside it (ADR 0007).</summary>
+    public static IConfiguration Load(string path)
+    {
+        var full = Path.GetFullPath(path);
+        return new ConfigurationBuilder()
+            .AddJsonFile(full, optional: false, reloadOnChange: false)
+            .AddJsonFile(Path.Combine(Path.GetDirectoryName(full) ?? "/", "network.json"), optional: true, reloadOnChange: false)
+            .Build();
+    }
 
     /// <summary>The local URL the service listens on, used to poll /health after a restart.</summary>
     public static Uri HealthUri(IConfiguration config)

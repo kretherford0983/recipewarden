@@ -42,6 +42,59 @@ public sealed class CliCommandTests : IDisposable
         error.ToString().ShouldContain("12");
     }
 
+    [Theory]
+    [Trait("Req", "FR-INST-04")]
+    [Trait("Req", "AC-100")]
+    [InlineData("first.last@#example.com")]
+    [InlineData("not-an-email")]
+    [InlineData("x;id@example.com")]
+    public async Task Admin_create_rejects_an_invalid_email_before_asking_for_a_password(string email)
+    {
+        var asked = false;
+        var error = new StringWriter();
+
+        var exit = await AdminCreateCommand.RunAsync(
+            Config(), email, () => { asked = true; return "correct horse battery"; }, new StringWriter(), error, TestContext.Current.CancellationToken);
+
+        exit.ShouldBe(1);
+        asked.ShouldBeFalse();
+        error.ToString().ShouldContain($"'{email}' is not a valid email address");
+        File.Exists(Path.Combine(dir, "db", "recipewarden.db")).ShouldBeFalse();
+    }
+
+    [Fact]
+    [Trait("Req", "FR-INST-04")]
+    [Trait("Req", "AC-100")]
+    public async Task Admin_create_rejects_an_existing_email_before_asking_for_a_password()
+    {
+        await AdminCreateCommand.RunAsync(Config(), "admin@example.com", "correct horse battery", new StringWriter(), new StringWriter(), TestContext.Current.CancellationToken);
+        var asked = false;
+        var error = new StringWriter();
+
+        var exit = await AdminCreateCommand.RunAsync(
+            Config(), "ADMIN@example.com", () => { asked = true; return "another long password"; }, new StringWriter(), error, TestContext.Current.CancellationToken);
+
+        exit.ShouldBe(1);
+        asked.ShouldBeFalse();
+        error.ToString().ShouldContain("already exists");
+    }
+
+    [Fact]
+    [Trait("Req", "FR-INST-04")]
+    [Trait("Req", "AC-100")]
+    public async Task Admin_create_asks_for_the_password_once_the_email_is_valid_and_new()
+    {
+        var asked = 0;
+        var output = new StringWriter();
+
+        var exit = await AdminCreateCommand.RunAsync(
+            Config(), "admin@example.com", () => { asked++; return "correct horse battery"; }, output, new StringWriter(), TestContext.Current.CancellationToken);
+
+        exit.ShouldBe(0);
+        asked.ShouldBe(1);
+        output.ToString().ShouldContain("Admin account admin@example.com created.");
+    }
+
     [Fact]
     [Trait("Req", "FR-OPS-01")]
     public async Task Health_reports_ok_for_an_initialized_database()
@@ -94,6 +147,17 @@ public sealed class CliCommandTests : IDisposable
         var config = CliConfig.Load(path);
 
         config.GetSection("Backup:AllowedFolders").GetChildren().Select(c => c.Value).ShouldBe(["/mnt/a", "/mnt/b"]);
+    }
+
+    [Fact]
+    [Trait("Req", "FR-INST-02")]
+    public void Network_json_beside_the_config_overrides_the_listening_address()
+    {
+        var path = Path.Combine(dir, "appsettings.Production.json");
+        File.WriteAllText(path, """{ "Kestrel": { "Endpoints": { "Http": { "Url": "http://127.0.0.1:5080" } } } }""");
+        File.WriteAllText(Path.Combine(dir, "network.json"), """{ "Kestrel": { "Endpoints": { "Http": { "Url": "http://192.168.1.15:6080" } } } }""");
+
+        CliConfig.HealthUri(CliConfig.Load(path)).ToString().ShouldBe("http://192.168.1.15:6080/health");
     }
 
     public void Dispose()

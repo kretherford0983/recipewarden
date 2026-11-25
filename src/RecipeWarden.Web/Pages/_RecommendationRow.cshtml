@@ -1,0 +1,14 @@
+@model (string Id, string Heading, IReadOnlyList<RecipeWarden.Infrastructure.Recipes.RecipeCard> Cards)
+@* FR-HOME-02, UX-09: a recommendation row; not rendered when empty. *@
+@if (Model.Cards.Count > 0)
+{
+    <section class="recipe-row" aria-labelledby="@Model.Id">
+        <h2 id="@Model.Id">@Model.Heading</h2>
+        <ul class="recipe-grid">
+            @foreach (var r in Model.Cards)
+            {
+                <partial name="_RecipeCard" model="@((r, 3))" />
+            }
+        </ul>
+    </section>
+}

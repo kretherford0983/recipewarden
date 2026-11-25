@@ -68,6 +68,36 @@ public sealed class SEC_05_UserAdminServiceTests
     }
 
     [Fact]
+    [Trait("Req", "AC-100")]
+    public async Task Refuses_an_invalid_email_without_creating_anything()
+    {
+        await using var tdb = await TestDatabase.CreateAsync();
+        await using var scope = tdb.Provider.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<UserAdminService>();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+
+        var result = await service.CreateAdminAsync("first.last@#example.com", "correct horse battery");
+
+        result.Succeeded.ShouldBeFalse();
+        result.Errors.Single().ShouldContain("not a valid email address");
+        users.Users.ShouldBeEmpty();
+    }
+
+    [Fact]
+    [Trait("Req", "AC-100")]
+    public async Task Checks_a_new_admin_email_without_a_password()
+    {
+        await using var tdb = await TestDatabase.CreateAsync();
+        await using var scope = tdb.Provider.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<UserAdminService>();
+
+        (await service.CheckNewAdminEmailAsync("admin@example.com")).Succeeded.ShouldBeTrue();
+        (await service.CheckNewAdminEmailAsync("first.last@#example.com")).Errors.Single().ShouldContain("not a valid email address");
+        await service.CreateAdminAsync("admin@example.com", "correct horse battery");
+        (await service.CheckNewAdminEmailAsync("Admin@Example.com")).Errors.Single().ShouldContain("already exists");
+    }
+
+    [Fact]
     [Trait("Req", "FR-UI-01")]
     public async Task Theme_preference_is_saved_and_updated()
     {

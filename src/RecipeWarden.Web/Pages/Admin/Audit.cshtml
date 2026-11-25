@@ -1,0 +1,55 @@
+@page "/admin/audit"
+@model RecipeWarden.Web.Pages.Admin.AuditModel
+@{
+    ViewData["Title"] = "Audit log";
+}
+<p><a href="/admin">Admin</a></p>
+<h1>Audit log</h1>
+<p>Every change: who, what, when and from which IP. Entries list the names of changed fields, never their values.</p>
+<form method="get" action="/admin/audit" class="filters">
+    <div class="field-row">
+        <div class="field"><label for="f-action">Action starts with</label><input id="f-action" name="action" value="@Model.Action" placeholder="Recipe."></div>
+        <div class="field"><label for="f-user">User</label><input id="f-user" name="user" value="@Model.UserFilter"></div>
+        <div class="field">
+            <label for="f-entity">Entity</label>
+            <select id="f-entity" name="entity">
+                <option value="">Any</option>
+                @foreach (var t in Model.EntityTypes)
+                {
+                    <option value="@t" selected="@(t == Model.Entity)">@t</option>
+                }
+            </select>
+        </div>
+        <div class="field"><label for="f-from">From</label><input id="f-from" name="from" type="date" value="@Model.From?.ToString("yyyy-MM-dd")"></div>
+        <div class="field"><label for="f-to">To</label><input id="f-to" name="to" type="date" value="@Model.To?.ToString("yyyy-MM-dd")"></div>
+    </div>
+    <button type="submit">Filter</button> <a href="/admin/audit">Clear</a>
+</form>
+@if (Model.Result.Entries.Count == 0)
+{
+    <p class="empty-state">No entries match.</p>
+}
+else
+{
+    <table class="list audit">
+        <thead><tr><th scope="col">When (UTC)</th><th scope="col">Who</th><th scope="col">Action</th><th scope="col">Entity</th><th scope="col">IP</th><th scope="col">Details</th></tr></thead>
+        <tbody>
+        @foreach (var e in Model.Result.Entries)
+        {
+            <tr>
+                <td><time datetime="@e.At.ToString("O")">@e.At.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss")</time></td>
+                <td>@e.UserName</td>
+                <td>@e.Action</td>
+                <td>@e.EntityType @e.EntityId</td>
+                <td>@e.Ip</td>
+                <td><code>@e.DetailsJson</code></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    <nav class="pager" aria-label="Audit pages">
+        @if (Model.Result.Page > 1) { <a href="@Model.PageUrl(Model.Result.Page - 1)">Newer</a> }
+        <span>Page @Model.Result.Page</span>
+        @if (Model.Result.HasMore) { <a href="@Model.PageUrl(Model.Result.Page + 1)">Older</a> }
+    </nav>
+}

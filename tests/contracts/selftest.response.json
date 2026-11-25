@@ -1,0 +1,23 @@
+{
+ "v": 1,
+ "ok": true,
+ "engine": {
+  "worker": "1.0.0",
+  "python": "3.13.18",
+  "libs": {
+   "ingredient-parser-nlp": "2.10.0",
+   "recipe-scrapers": "15.14.0"
+  }
+ },
+ "result": {
+  "passed": true,
+  "checks": {
+   "network_blocked": true,
+   "parse_ms": 785,
+   "parse": true,
+   "fdc": true,
+   "scrape_ms": 229,
+   "scrape": true
+  }
+ }
+}

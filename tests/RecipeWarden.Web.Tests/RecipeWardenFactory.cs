@@ -8,6 +8,8 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using RecipeWarden.Core.Security;
 using RecipeWarden.Infrastructure.Data;
+using RecipeWarden.Infrastructure.Import;
+using RecipeWarden.Tests.Shared;
 
 namespace RecipeWarden.Web.Tests;
 
@@ -22,20 +24,46 @@ public sealed partial class RecipeWardenFactory : WebApplicationFactory<Program>
 
     private readonly string dataDirectory = Path.Combine(Path.GetTempPath(), "rw-web-" + Guid.NewGuid().ToString("N"));
 
+    /// <summary>ADR 0024: the pretend internet every import fetch goes to (no real network in tests).</summary>
+    internal FakeWeb Web { get; } = new();
+
     /// <summary>Extra settings a test class can add before the host starts.</summary>
     public Dictionary<string, string?> Settings { get; } = new();
 
+    /// <summary>Extra service registrations a test class can add before the host starts (e.g. a fake disk, AC-99).</summary>
+    public List<Action<IServiceCollection>> ExtraServices { get; } = [];
+
+    public string DataDirectory => dataDirectory;
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        TestDatabaseTemplate.CopyTo(dataDirectory); // migrated once per test process (docs/testing.md)
         builder.UseEnvironment("Testing");
         builder.UseSetting("Data:Directory", dataDirectory);
         builder.UseSetting("Serilog:MinimumLevel:Default", "Warning");
+        builder.UseSetting("Operations:Background", "false"); // M7: tests run the scheduler and health monitor by hand
+        // SEC-63: test classes sign in many times from one test IP; SEC_63_SignInRateLimitTests checks the limit itself.
+        builder.UseSetting("RateLimits:SignInsPerMinute", "100000");
+        // ADR 0051: no Python worker unless a test class asks for one (the real one, or a fake), so pages show the
+        // v1 behaviour (BR-119) and test hosts do not start worker processes.
+        builder.UseSetting("Python:Directory", "/nonexistent/rw-python-for-tests");
         foreach (var (key, value) in Settings)
         {
             builder.UseSetting(key, value);
         }
 
-        builder.ConfigureServices(s => s.AddSingleton<IStartupFilter, TestRemoteIpStartupFilter>());
+        builder.ConfigureServices(s =>
+        {
+            s.AddSingleton<IStartupFilter, TestRemoteIpStartupFilter>();
+            s.UseFastPasswordHashing();
+            s.AddSingleton<IDnsResolver>(Web);
+            s.AddSingleton<ISocketConnector>(Web);
+            s.AddSingleton<Infrastructure.Health.IVolumeProbe>(new RoomyDisk()); // tests never depend on the build machine's disk
+            foreach (var extra in ExtraServices)
+            {
+                extra(s);
+            }
+        });
     }
 
     public HttpClient CreateHttpsClient(bool allowRedirects = false) =>
@@ -103,6 +131,7 @@ public sealed partial class RecipeWardenFactory : WebApplicationFactory<Program>
         base.Dispose(disposing);
         if (disposing)
         {
+            Web.DisposeAsync().AsTask().GetAwaiter().GetResult();
             SqliteConnection.ClearAllPools();
             try
             {
@@ -120,6 +149,12 @@ public sealed partial class RecipeWardenFactory : WebApplicationFactory<Program>
 
     [GeneratedRegex("<meta name=\"rw-csrf\" content=\"([^\"]+)\"")]
     private static partial Regex CsrfMeta();
+
+    /// <summary>A 100 GB volume with 60 GB free.</summary>
+    private sealed class RoomyDisk : Infrastructure.Health.IVolumeProbe
+    {
+        public (long Total, long Free) Measure(string path) => (100L * 1024 * 1024 * 1024, 60L * 1024 * 1024 * 1024);
+    }
 
     /// <summary>TestServer has no socket; give each request a remote IP (loopback unless a test overrides it).</summary>
     private sealed class TestRemoteIpStartupFilter : IStartupFilter

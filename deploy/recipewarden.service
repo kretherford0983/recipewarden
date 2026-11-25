@@ -10,8 +10,8 @@ After=network-online.target
 Type=exec
 User=recipewarden
 Group=recipewarden
-WorkingDirectory=/opt/recipewarden/current
-ExecStart=/opt/recipewarden/current/RecipeWarden.Web
+WorkingDirectory=/opt/recipewarden/current/web
+ExecStart=/opt/recipewarden/current/web/RecipeWarden.Web
 Environment=ASPNETCORE_ENVIRONMENT=Production
 Environment=DOTNET_NOLOGO=1
 Environment=RECIPEWARDEN_CONFIG=/etc/recipewarden/appsettings.Production.json

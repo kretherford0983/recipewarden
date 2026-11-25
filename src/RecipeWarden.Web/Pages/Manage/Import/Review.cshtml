@@ -1,0 +1,162 @@
+@page "/manage/import/{id:int}/review"
+@using RecipeWarden.Core.Import
+@model RecipeWarden.Web.Pages.Manage.Import.ReviewModel
+@using RecipeWarden.Infrastructure.Data
+@{
+    ViewData["Title"] = "Review " + (Model.Input.Title ?? "import");
+    var review = Model.Review!;
+}
+<p class="breadcrumb"><a href="/manage">Manage</a> › <a href="/manage/import">Import</a> ›</p>
+<h1>Review import</h1>
+<p class="hint">From @review.Kind: @review.SourceRef@if (review.Kind is RecipeWarden.Core.Import.ImportSourceKind.Url or RecipeWarden.Core.Import.ImportSourceKind.Paste && !review.ParsedByAi)
+    {
+        @* FR-IMP-12: the review page names how the recipe was read. *@
+        <text> · Read from: @RecipeWarden.Core.Import.SiteReaderRules.MethodLabel(review.Recipe.Method)</text>
+    }</p>
+
+@if (review.Batch.Count > 1)
+{
+    <nav class="import-batch" aria-label="Recipes in this import">
+        <p>This import found @review.Batch.Count recipes:</p>
+        <ol>
+            @foreach (var j in review.Batch)
+            {
+                <li>
+                    @if (j.Id == review.JobId) { <strong aria-current="page">@j.Title</strong> }
+                    else { <a href="/manage/import/@j.Id/review">@j.Title</a> }
+                    @if (j.Status != ImportStatus.Review) { <span class="badge">@j.Status</span> }
+                </li>
+            }
+        </ol>
+    </nav>
+}
+
+@if (review.Status != ImportStatus.Review)
+{
+    <p class="notice" role="status">@RecipeWarden.Web.Pages.Manage.Import.ReviewModel.AlreadyDone
+        @if (review.CreatedRecipeId is int saved) { <a href="/manage/recipes/@saved/edit">Open the recipe</a> }
+    </p>
+}
+
+@if (review.Duplicate is { } dup)
+{
+    <div class="notice duplicate" role="alert">
+        <p><strong>Possible duplicate:</strong> you already have <a href="/recipes/@dup.Slug">@dup.Title</a>.</p>
+        <p>Open the existing recipe, or tick “Save anyway” below to keep both.</p>
+    </div>
+}
+
+@if (Model.AiError is not null)
+{
+    <p class="notice error" role="alert">@Model.AiError</p>
+}
+
+@if (review.PhotoCount > 0)
+{
+    @* FR-IMP-13, W11 step 2: the photos the recipe was read from, to check each field against. *@
+    <section class="import-photos" aria-labelledby="photos-heading">
+        <h2 id="photos-heading">@(review.PhotoCount == 1 ? "The photo" : "The photos")</h2>
+        <ol class="photo-strip">
+            @for (var i = 0; i < review.PhotoCount; i++)
+            {
+                var src = $"/manage/import/{review.JobId}/review?handler=Photo&n={i}";
+                <li><a href="@src" target="_blank" rel="noopener"><img src="@src" alt="Photo @(i + 1) of the recipe" loading="lazy"></a></li>
+            }
+        </ol>
+    </section>
+}
+
+@if (Model.AiFields.Count > 0)
+{
+    <div class="notice ai-parsed-notice" role="note">
+        <p><span class="badge ai">AI</span> These fields were filled by the AI parser — check each one: <strong>@string.Join(", ", Model.AiFields)</strong>.
+            Nothing is saved until you save below.</p>
+    </div>
+}
+
+@if (review.Warnings.Count > 0)
+{
+    <section class="notice import-warnings" aria-labelledby="warnings-heading">
+        <h2 id="warnings-heading">Check before saving</h2>
+        <ul>
+            @foreach (var w in review.Warnings)
+            {
+                @if (w.IsSecondOpinion)
+                {
+                    <li class="second-opinion"><span class="badge">Second reading</span> <q>@w.Line</q> — @w.Message.
+                        <span class="hint">Your text is kept as it is; edit the line below if the second reading is right.</span></li>
+                }
+                else
+                {
+                    <li>@w.Message@if (w.Line is not null) { <text>: </text><q>@w.Line</q> }</li>
+                }
+            }
+        </ul>
+    </section>
+}
+
+@if (review.Status == ImportStatus.Review && review.Recipe.FoldedBatches.Count > 0)
+{
+    @* BR-125: batch sizes of this recipe were added to its notes; each can still become its own recipe. *@
+    <section class="notice folded-batches" aria-labelledby="folded-heading">
+        <h2 id="folded-heading">Other batch sizes in this file</h2>
+        <ul>
+            @for (var i = 0; i < review.Recipe.FoldedBatches.Count; i++)
+            {
+                <li>
+                    @review.Recipe.FoldedBatches[i].Recipe.Title: added to the notes below.
+                    <form method="post" action="/manage/import/@review.JobId/review?handler=Split" asp-antiforgery="true" class="inline-form">
+                        <input type="hidden" name="index" value="@i">
+                        <button type="submit">Import it as its own recipe</button>
+                    </form>
+                </li>
+            }
+        </ul>
+    </section>
+}
+
+@{
+    var alternatives = review.Status == ImportStatus.Review
+        ? BatchRules.AlternativeGroups((review.Recipe.Ingredients ?? string.Empty).Split('\n').Select(l => l.Trim()))
+        : [];
+}
+@foreach (var name in alternatives)
+{
+    @* BR-132: two versions of one ingredient group; the reviewer picks one and what happens to the rest. *@
+    var versions = BatchRules.Versions(review.Recipe.Ingredients, name);
+    var key = "versions-" + System.Text.RegularExpressions.Regex.Replace(name.ToLowerInvariant(), "[^a-z0-9]+", "-");
+    <section class="guide versions" aria-labelledby="@key-heading">
+        <h2 id="@key-heading">Two versions of “@name”</h2>
+        <p>Shopping lists and nutrition would count every version. Choose the one to keep, then what to do with the other@(versions.Count > 2 ? "s" : "").
+            Changes you have made in the form below are not kept, so do this first.</p>
+        <form method="post" action="/manage/import/@review.JobId/review?handler=Versions" asp-antiforgery="true">
+            <input type="hidden" name="name" value="@name">
+            <fieldset>
+                <legend>Keep</legend>
+                @for (var i = 0; i < versions.Count; i++)
+                {
+                    <label><input type="radio" name="keep" value="@versions[i]" checked="@(i == 0)"> @name (@versions[i])</label>
+                }
+            </fieldset>
+            <div class="toolbar">
+                <button type="submit" name="choice" value="@VersionChoice.KeepOnly">Keep it, drop the other</button>
+                <button type="submit" name="choice" value="@VersionChoice.MoveToNotes">Keep it, move the other to the notes</button>
+                <button type="submit" name="choice" value="@VersionChoice.Split">Split into separate recipes</button>
+            </div>
+        </form>
+    </section>
+}
+
+@if (review.Status == ImportStatus.Review)
+{
+    @if (Model.AiEnabled)
+    {
+        <form method="post" action="/manage/import/@review.JobId/review?handler=Reparse" asp-antiforgery="true" class="reparse">
+            <button type="submit">Re-parse with AI</button>
+            <span class="hint">Sends only this recipe's text to the AI service set by your Admin; the result comes back here for review.</span>
+        </form>
+    }
+    <partial name="/Pages/Manage/Recipes/_EditorForm.cshtml" model="Model" />
+    @* AC-144: its button is in the editor's sticky bar (form="discard-import"). *@
+    <form method="post" action="/manage/import/@review.JobId/review?handler=Discard" asp-antiforgery="true" id="discard-import" hidden></form>
+}

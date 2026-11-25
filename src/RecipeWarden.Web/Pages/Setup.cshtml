@@ -1,0 +1,35 @@
+@page "/setup"
+@model RecipeWarden.Web.Pages.SetupModel
+@using RecipeWarden.Core.Security
+@using RecipeWarden.Core.Health
+@{
+    ViewData["Title"] = "Set up";
+}
+<h1>Set up RecipeWarden</h1>
+@if (Model.Error is not null) { <div class="form-errors" role="alert"><p>@Model.Error</p></div> }
+<p>Use the setup token the installer printed (or run <code>sudo recipewarden setup-token</code> on the server for a new one).
+    This page disappears for good once setup is done.</p>
+<div class="setup-choices">
+    <section aria-labelledby="new-h">
+        <h2 id="new-h">Start new</h2>
+        <form method="post" action="/setup?handler=Create" asp-antiforgery="true" class="form narrow">
+            <div class="field"><label for="n-token">Setup token</label><input id="n-token" name="token" autocomplete="off" required></div>
+            <div class="field"><label for="n-email">Your email (the first Admin)</label><input id="n-email" name="email" type="email" required maxlength="254"></div>
+            <div class="field"><label for="n-pass">Password (at least @AccountRules.MinimumPasswordLength characters)</label>
+                <input id="n-pass" name="password" type="password" autocomplete="new-password" minlength="@AccountRules.MinimumPasswordLength" required></div>
+            <button type="submit">Create the Admin account</button>
+        </form>
+    </section>
+    <section aria-labelledby="restore-h">
+        <h2 id="restore-h">Restore from backup</h2>
+        <p>Moving from another host? Upload its backup (up to @HealthRules.FormatBytes(Model.MaxUploadBytes); bigger ones: <code>install.sh --restore</code>).
+            Accounts, recipes, images and kitchen come from the backup; this server's network settings stay.</p>
+        <form method="post" action="/setup?handler=Restore" asp-antiforgery="true" enctype="multipart/form-data" class="form narrow">
+            <div class="field"><label for="r-token">Setup token</label><input id="r-token" name="token" autocomplete="off" required></div>
+            <div class="field"><label for="r-archive">Backup archive</label><input id="r-archive" name="archive" type="file" accept=".gz,.tgz,.rwenc" required></div>
+            <div class="field"><label for="r-kit">Recovery kit (encrypted backups)</label><input id="r-kit" name="kitFile" type="file" accept=".txt,text/plain"></div>
+            <div class="field"><label for="r-pass">Passphrase</label><input id="r-pass" name="passphrase" type="password" autocomplete="off"></div>
+            <button type="submit">Restore</button>
+        </form>
+    </section>
+</div>

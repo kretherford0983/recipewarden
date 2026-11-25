@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RecipeWarden.Infrastructure;
 using RecipeWarden.Infrastructure.Data;
+using RecipeWarden.Tests.Shared;
 
 namespace RecipeWarden.Infrastructure.Tests;
 
@@ -18,17 +19,34 @@ internal sealed class TestDatabase : IAsyncDisposable
 
     public ServiceProvider Provider { get; }
 
-    public static async Task<TestDatabase> CreateAsync()
+    /// <param name="fromTemplate">Start from the migrated template (default) or from an empty directory.</param>
+    /// <param name="clock">Replaces the system clock (BR-05 trash tests).</param>
+    /// <param name="settings">Extra configuration (e.g. Backup:AllowedFolders).</param>
+    public static async Task<TestDatabase> CreateAsync(bool fromTemplate = true, TimeProvider? clock = null, Action<IServiceCollection>? configure = null,
+        IDictionary<string, string?>? settings = null, string? directory = null)
     {
-        var dir = Path.Combine(Path.GetTempPath(), "rw-infra-" + Guid.NewGuid().ToString("N"));
+        var dir = directory ?? Path.Combine(Path.GetTempPath(), "rw-infra-" + Guid.NewGuid().ToString("N"));
+        if (fromTemplate)
+        {
+            TestDatabaseTemplate.CopyTo(dir);
+        }
+
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?> { ["Data:Directory"] = dir })
+            .AddInMemoryCollection(settings ?? new Dictionary<string, string?>())
             .Build();
 
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddRecipeWardenData(config);
         services.AddRecipeWardenIdentityCore();
+        services.UseFastPasswordHashing();
+        if (clock is not null)
+        {
+            services.AddSingleton(clock);
+        }
+
+        configure?.Invoke(services);
         var provider = services.BuildServiceProvider();
 
         await using (var scope = provider.CreateAsyncScope())

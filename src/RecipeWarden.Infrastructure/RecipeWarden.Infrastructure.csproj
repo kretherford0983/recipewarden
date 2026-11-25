@@ -1,11 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\RecipeWarden.Core\RecipeWarden.Core.csproj" />
+    <ProjectReference Include="..\RecipeWarden.Importers\RecipeWarden.Importers.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Cronos" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection" />
+    <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- ADR 0013: USDA public-domain seed, built by tools/seed/build-seed.py. -->
+    <EmbeddedResource Include="Data/Seed/measurement-v1.json" LogicalName="RecipeWarden.Seed.measurement-v1.json" />
+    <EmbeddedResource Include="Data/Seed/fdc-sr-legacy-2018-04.zip" LogicalName="RecipeWarden.Seed.fdc-sr-legacy-2018-04.zip" />
+    <EmbeddedResource Include="Data/Seed/fdc-foundation-2026-04-fndds-2024-10.zip" LogicalName="RecipeWarden.Seed.fdc-foundation-2026-04-fndds-2024-10.zip" />
+    <!-- SEC-01, ADR 0043: from SecLists (MIT) -->
+    <EmbeddedResource Include="Data/Seed/common-passwords.txt" LogicalName="RecipeWarden.Seed.common-passwords.txt" />
+    <EmbeddedResource Include="Ai/image-test.jpg" LogicalName="RecipeWarden.Ai.image-test.jpg" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="RecipeWarden.Infrastructure.Tests" />

@@ -1,12 +1,21 @@
-# Section 9.9: CI within GitHub Pro limits (private repo). Target: under 8 minutes.
-# Gates: build with warnings as errors, all tests, coverage (NFR-06), vulnerable packages (SEC-81),
-# secrets (SEC-83), installer container tests. Actions pinned to commit SHAs (SEC-84).
+# Section 9.9: CI for the public repository (ADR 0005). Target: under 8 minutes.
+# Runs on work in progress (feature/*, hotfix/*) and on every pull request into develop or main.
+# Gates: branch flow (promotion-rules), build with warnings as errors, all tests, coverage (NFR-06),
+# vulnerable packages (SEC-81), secrets (SEC-83), installer container tests, the Python worker (ADR 0051, SEC-95). Actions pinned to SHAs (SEC-84).
+# Packages are built by build.yml when code lands in develop or main (docs/branching.md).
+#
+# Speed (docs/testing.md, modelled on PennyWarden 2.4.0): independent jobs run side by side; the test projects
+# run at the same time and xUnit runs test classes on every core; the final job "test" passes only when every
+# other job passed and is the single check the branch rules require, so adding or splitting a job later never
+# needs a ruleset change. Time limits are about 3-4x a normal run so a hung run stops early.
 name: ci
 
 on:
   push:
-    branches: [main]
+    branches: ["feature/**", "hotfix/**"]
   pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -21,11 +30,42 @@ env:
   NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
 
 jobs:
-  build-test:
+  promotion:
+    name: promotion-rules
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Check branch flow and version
+        env:
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+        run: bash build/check-promotion.sh "$BASE" "$HEAD"
+
+  python:
+    name: python worker
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6 # normal ~1 min
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          version: "0.13.9"
+      # ADR 0051, SEC-95, AC-108: ruff, pytest (85% coverage gate), licences and source builds, pip-audit.
+      - name: Lint, tests, licences, vulnerable packages
+        run: build/python.sh check
+
+  build-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10 # normal ~1.5 min
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          version: "0.13.9"
 
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
@@ -43,23 +83,99 @@ jobs:
       - name: Build (warnings are errors)
         run: dotnet build RecipeWarden.slnx --no-restore --configuration Release
 
-      - name: Test with coverage gates (NFR-06)
+      - name: Python worker for the real-worker tests (ADR 0051)
+        run: build/python.sh dev
+
+      - name: Tests with coverage gates (NFR-06), all projects at once, every core
         run: build/test.sh --no-build --configuration Release
+
+      - name: Upload coverage and test logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-results-${{ github.run_id }}
+          path: |
+            artifacts/coverage
+            artifacts/test-logs
+          if-no-files-found: ignore
+          retention-days: 7
+
+  e2e:
+    name: end-to-end (Playwright)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10 # normal ~2.5 min
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Build the end-to-end tests
+        run: dotnet build tests/RecipeWarden.E2E.Tests --configuration Release
+
+      - name: Browser cache (keyed on the Playwright version)
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}
+
+      # docs/testing.md: browser only; system libraries are already on Ubuntu runners. install-deps is a short,
+      # best-effort try so an apt mirror outage cannot fail the job (PennyWarden, 2026-11-11).
+      - name: Install Chromium
+        run: pwsh tests/RecipeWarden.E2E.Tests/bin/Release/net10.0/playwright.ps1 install chromium
+
+      - name: System libraries for Chromium (best effort)
+        continue-on-error: true
+        timeout-minutes: 2
+        run: sudo pwsh tests/RecipeWarden.E2E.Tests/bin/Release/net10.0/playwright.ps1 install-deps chromium
+
+      - name: W1 and W2 in Chromium
+        run: build/e2e.sh --no-build --configuration Release
+
+  checks:
+    name: dependency checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5 # normal ~40 s
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore RecipeWarden.slnx
 
       - name: Vulnerable packages (SEC-81)
         run: build/check-vulnerable.sh
 
-      - name: Upload coverage
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: coverage
-          path: artifacts/coverage
-          retention-days: 7
+      - name: Version format
+        run: bash build/version.sh --check
+
+      - name: Release publishing survives GitHub errors (ADR 0061)
+        run: |
+          bash tests/build/test-publish-release.sh
+          bash tests/build/test-prune-dev-builds.sh
 
   secrets:
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 5 # normal ~10 s
+    permissions:
+      contents: read
+      pull-requests: read # gitleaks-action lists the commits of a pull request
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -69,16 +185,97 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  installer:
+  package:
+    name: package
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 8 # normal ~2 min
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          version: "0.13.9"
+
+      - name: Python runtime cache (keyed on the pinned versions in build/python.sh)
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/recipewarden
+          key: rw-python-${{ runner.os }}-${{ hashFiles('build/python.sh') }}
+
+      - name: Package (self-contained linux-x64) and smoke test
+        run: |
+          VERSION="$(bash build/version.sh --check)-ci.$GITHUB_RUN_NUMBER"
+          build/package.sh "$VERSION" dist
+          build/smoke-test.sh "dist/recipewarden-$VERSION-linux-x64.tar.gz" "$VERSION"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ci-package-${{ github.run_id }}
+          path: dist/recipewarden-*-linux-x64.tar.gz
+          retention-days: 1
+
+  installer:
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6 # normal ~1 min
     strategy:
       fail-fast: false
       matrix:
-        image: ["debian:12", "debian:13", "ubuntu:22.04", "ubuntu:24.04"]
+        image: ["debian:12", "debian:13", "ubuntu:24.04", "ubuntu:26.04"] # ADR 0054: 22.04 dropped
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ci-package-${{ github.run_id }}
+          path: dist
       - name: shellcheck
-        run: shellcheck deploy/install.sh tests/installer/test-install.sh build/*.sh
-      - name: Installer tests in ${{ matrix.image }}
-        run: docker run --rm -v "$PWD:/src:ro" "${{ matrix.image }}" bash /src/tests/installer/test-install.sh
+        run: shellcheck deploy/install.sh tests/installer/*.sh tests/build/*.sh build/*.sh
+      - name: Installer tests in ${{ matrix.image }} (no systemd; --no-start)
+        run: |
+          PKG=$(basename dist/recipewarden-*-linux-x64.tar.gz)
+          docker run --rm -v "$PWD:/src:ro" -v "$PWD/dist:/dist:ro" "${{ matrix.image }}" \
+            bash -c "apt-get update -qq && apt-get install -y -qq curl ca-certificates >/dev/null && bash /src/tests/installer/test-install.sh /dist/$PKG"
+
+  install-systemd:
+    name: installer (systemd, ${{ matrix.runner }})
+    needs: package
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-26.04]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 8 # normal ~2 min
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ci-package-${{ github.run_id }}
+          path: dist
+      - name: Install, upgrade, rollback, reconfigure, uninstall with systemd
+        run: sudo bash tests/installer/test-install-systemd.sh dist/recipewarden-*-linux-x64.tar.gz
+
+  test:
+    name: test
+    needs: [promotion, python, build-test, e2e, checks, secrets, package, installer, install-systemd]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Every job passed (promotion-rules may be skipped outside pull requests)
+        env:
+          PROMOTION: ${{ needs.promotion.result }}
+          OTHERS: ${{ needs.python.result }} ${{ needs.build-test.result }} ${{ needs.e2e.result }} ${{ needs.checks.result }} ${{ needs.secrets.result }} ${{ needs.package.result }} ${{ needs.installer.result }} ${{ needs.install-systemd.result }}
+        run: |
+          echo "promotion-rules: $PROMOTION; python, build-test, e2e, checks, secrets, package, installer, installer (systemd): $OTHERS"
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then [ "$PROMOTION" = "success" ]; else [ "$PROMOTION" = "success" ] || [ "$PROMOTION" = "skipped" ]; fi
+          [ "$OTHERS" = "success success success success success success success success" ]

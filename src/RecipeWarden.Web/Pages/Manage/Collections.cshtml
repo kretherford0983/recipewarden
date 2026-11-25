@@ -1,0 +1,95 @@
+@page "/manage/collections"
+@model RecipeWarden.Web.Pages.Manage.CollectionsModel
+@using RecipeWarden.Core.Organization
+@{
+    ViewData["Title"] = "Manage collections";
+}
+<h1>Collections</h1>
+@if (Model.Message is not null) { <p class="notice" role="status">@Model.Message</p> }
+@if (Model.Error is not null) { <p class="error-summary" role="alert">@Model.Error</p> }
+
+<form method="post" action="/manage/collections?handler=Create" class="stacked-form" asp-antiforgery="true">
+    <h2>New collection</h2>
+    <label for="new-name">Name</label>
+    <input id="new-name" name="name" maxlength="@NameRules.MaxCollectionLength" required>
+    <label for="new-description">Description <span class="hint">(Markdown, optional)</span></label>
+    <textarea id="new-description" name="description" rows="2"></textarea>
+    <button type="submit">Create</button>
+</form>
+
+@if (Model.Collections.Count == 0)
+{
+    <p class="empty-state">No collections yet.</p>
+}
+else
+{
+    <h2>Order</h2>
+    <ol class="reorder-list">
+        @for (var i = 0; i < Model.Collections.Count; i++)
+        {
+            var c = Model.Collections[i];
+            <li>
+                <a href="/manage/collections?c=@c.Slug">@c.Name</a> <span class="meta">(@c.RecipeCount)</span>
+                <form method="post" action="/manage/collections?handler=Move" class="inline-form" asp-antiforgery="true">
+                    <input type="hidden" name="id" value="@c.Id">
+                    <button type="submit" name="direction" value="-1" disabled="@(i == 0)" aria-label="Move @c.Name up">↑</button>
+                    <button type="submit" name="direction" value="1" disabled="@(i == Model.Collections.Count - 1)" aria-label="Move @c.Name down">↓</button>
+                </form>
+            </li>
+        }
+    </ol>
+}
+
+@if (Model.Selected is { } sel)
+{
+    <section class="collection-edit" aria-labelledby="edit-heading">
+        <h2 id="edit-heading">Edit “@sel.Name”</h2>
+        <form method="post" action="/manage/collections?handler=Update" class="stacked-form" asp-antiforgery="true">
+            <input type="hidden" name="id" value="@sel.Id">
+            <input type="hidden" name="version" value="@sel.Version">
+            <label for="edit-name">Name</label>
+            <input id="edit-name" name="name" value="@sel.Name" maxlength="@NameRules.MaxCollectionLength" required>
+            <label for="edit-description">Description</label>
+            <textarea id="edit-description" name="description" rows="2">@sel.Description</textarea>
+            <button type="submit">Save</button>
+        </form>
+
+        <h3>Recipes</h3>
+        @if (sel.Recipes.Count == 0)
+        {
+            <p class="empty-state">No recipes yet. Use “Add to collection” on a recipe page.</p>
+        }
+        else
+        {
+            <ol class="reorder-list">
+                @for (var i = 0; i < sel.Recipes.Count; i++)
+                {
+                    var r = sel.Recipes[i];
+                    <li>
+                        <a href="/recipes/@r.Slug">@r.Title</a>
+                        <form method="post" action="/manage/collections?handler=MoveRecipe" class="inline-form" asp-antiforgery="true">
+                            <input type="hidden" name="id" value="@sel.Id">
+                            <input type="hidden" name="recipeId" value="@r.Id">
+                            <button type="submit" name="direction" value="-1" disabled="@(i == 0)" aria-label="Move @r.Title up">↑</button>
+                            <button type="submit" name="direction" value="1" disabled="@(i == sel.Recipes.Count - 1)" aria-label="Move @r.Title down">↓</button>
+                        </form>
+                        <form method="post" action="/manage/collections?handler=RemoveRecipe" class="inline-form" asp-antiforgery="true">
+                            <input type="hidden" name="id" value="@sel.Id">
+                            <input type="hidden" name="recipeId" value="@r.Id">
+                            <button type="submit">Remove</button>
+                        </form>
+                    </li>
+                }
+            </ol>
+        }
+
+        <details class="confirm">
+            <summary>Delete this collection…</summary>
+            <form method="post" action="/manage/collections?handler=Delete" asp-antiforgery="true">
+                <input type="hidden" name="id" value="@sel.Id">
+                <p>The recipes stay; only the list is removed.</p>
+                <button type="submit" class="danger">Delete “@sel.Name”</button>
+            </form>
+        </details>
+    </section>
+}

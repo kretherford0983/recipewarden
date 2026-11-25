@@ -1,0 +1,70 @@
+@page "/recipes/{slug}/print"
+@model RecipeWarden.Web.Pages.Recipes.PrintModel
+@using RecipeWarden.Core.Measurement
+@using RecipeWarden.Core.Recipes
+@using RecipeWarden.Web.Content
+@{
+    Layout = "_PrintLayout";
+    var r = Model.Recipe!;
+    var sc = Model.Scaled!;
+    ViewData["Title"] = r.Title;
+}
+<article class="print-recipe" aria-labelledby="recipe-title">
+    <p class="print-actions screen-only">
+        <a href="/recipes/@(r.Slug)@(Model.ViewQuery())">Back to the recipe</a>
+        <button type="button" class="print-now">Print</button>
+    </p>
+    <h1 id="recipe-title">@r.Title</h1>
+    <p class="print-facts">
+        Serves @ServingsRules.Format(sc.Servings, sc.ServingsMax)@(sc.Factor != 1m ? " (scaled " + ScaleRules.Label(sc.Factor) + ")" : "")
+        @if (r.TotalMinutes is not null) { <span> · Total @TimeText.Format(r.TotalMinutes, r.TotalMinutesMax)</span> }
+        @if (r.PrepMinutes is not null) { <span> · Prep @TimeText.Format(r.PrepMinutes, r.PrepMinutesMax)</span> }
+        @if (r.CookMinutes is not null) { <span> · Cook @TimeText.Format(r.CookMinutes, r.CookMinutesMax)</span> }
+    </p>
+    @if (r.SourceName is not null || r.SourceUrl is not null)
+    {
+        @* BR-10, AC-12: the credit and the address in full, so it survives on paper. *@
+        <p class="source-credit">
+            Source: @(r.SourceName ?? r.SourceUrl)@(r.SourceAuthor is null ? "" : " by " + r.SourceAuthor)
+            @if (r.SourceUrl is not null) { <br><a class="print-url" href="@r.SourceUrl" rel="noopener noreferrer nofollow">@r.SourceUrl</a> }
+        </p>
+    }
+    @if (sc.TimeNote is not null) { <p class="print-note">@sc.TimeNote</p> }
+
+    <section class="print-ingredients" aria-labelledby="ingredients-heading">
+        <h2 id="ingredients-heading">Ingredients</h2>
+        @foreach (var g in sc.Ingredients)
+        {
+            @if (g.Name is not null) { <h3>@g.Name</h3> }
+            <ul>
+                @foreach (var line in g.Lines)
+                {
+                    <li>@line.Text@if (line.Secondary is not null) { <span class="secondary"> (@line.Secondary)</span> }@if (line.YieldNote is not null) { <span class="hint"> — @line.YieldNote</span> }</li>
+                }
+            </ul>
+        }
+    </section>
+
+    <section class="print-steps" aria-labelledby="steps-heading">
+        <h2 id="steps-heading">Steps</h2>
+        @foreach (var s in sc.Steps)
+        {
+            @if (s.Name is not null) { <h3>@s.Name</h3> }
+            <ol>
+                @foreach (var step in s.Steps)
+                {
+                    <li>@if (step.Title is not null) { <strong>@step.Title. </strong> }@step.Text</li>
+                }
+            </ol>
+        }
+    </section>
+
+    @if (r.Notes is not null)
+    {
+        <section class="print-notes" aria-labelledby="notes-heading">
+            <h2 id="notes-heading">Notes</h2>
+            <div class="prose">@MarkdownRenderer.Render(r.Notes)</div>
+        </section>
+    }
+</article>
+<script src="~/js/print.js" asp-append-version="true" defer></script>

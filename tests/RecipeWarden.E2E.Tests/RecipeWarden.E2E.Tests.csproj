@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    End-to-end tests (docs/testing.md, spec 9.8): key workflows in a real browser against the app on Kestrel.
+    Run with build/e2e.sh; not part of build/test.sh because they need a browser (CI job "e2e" installs one).
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\RecipeWarden.Web\RecipeWarden.Web.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.Playwright" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Shared\TestDatabaseTemplate.cs" Link="Shared\TestDatabaseTemplate.cs" />
+    <Compile Include="..\Shared\FakeWeb.cs" Link="Shared\FakeWeb.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="a11y-check.js" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="vendor/readability/*.js" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
