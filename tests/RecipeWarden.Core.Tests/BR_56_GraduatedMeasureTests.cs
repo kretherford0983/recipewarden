@@ -4,10 +4,10 @@ using static RecipeWarden.Core.Tests.KitchenTestData;
 
 namespace RecipeWarden.Core.Tests;
 
-/// <summary>BR-50, BR-51, AC-135, AC-136: markings on cups and jugs, and what retiring a measure takes away.</summary>
+/// <summary>BR-56, BR-57, AC-135, AC-136: markings on cups and jugs, and what retiring a measure takes away.</summary>
 [Trait("Req", "FR-TOOL-01")]
-[Trait("Req", "BR-50")]
-public sealed class BR_50_GraduatedMeasureTests
+[Trait("Req", "BR-56")]
+public sealed class BR_56_GraduatedMeasureTests
 {
     private const decimal Cup = 236.5882365m;
     private const decimal Tbsp = 14.78676478125m;
@@ -105,7 +105,7 @@ public sealed class BR_50_GraduatedMeasureTests
 
     [Fact]
     [Trait("Req", "AC-136")]
-    [Trait("Req", "BR-51")]
+    [Trait("Req", "BR-57")]
     public void Retiring_says_which_sizes_would_be_lost_or_are_still_covered()
     {
         var tools = KitchenRules.StandardSet.Select((t, i) => t with { Id = i + 1 }).Append(Pyrex()).ToList();

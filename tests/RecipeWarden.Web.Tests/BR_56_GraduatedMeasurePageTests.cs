@@ -4,12 +4,12 @@ using System.Net;
 namespace RecipeWarden.Web.Tests;
 
 /// <summary>
-/// BR-50, BR-51, AC-135, AC-136: a jug with markings on /manage/kitchen, recipes using a marking as one measure, and
+/// BR-56, BR-57, AC-135, AC-136: a jug with markings on /manage/kitchen, recipes using a marking as one measure, and
 /// retiring the only tool of a size. Own factory per test: the kitchen is shared by the whole site.
 /// </summary>
 [Trait("Req", "FR-TOOL-01")]
-[Trait("Req", "BR-50")]
-public sealed class BR_50_GraduatedMeasurePageTests
+[Trait("Req", "BR-56")]
+public sealed class BR_56_GraduatedMeasurePageTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -44,7 +44,7 @@ public sealed class BR_50_GraduatedMeasurePageTests
 
     [Fact]
     [Trait("Req", "AC-136")]
-    [Trait("Req", "BR-51")]
+    [Trait("Req", "BR-57")]
     public async Task Retiring_asks_when_a_size_would_be_lost_and_says_when_another_tool_covers_it()
     {
         await using var factory = new RecipeWardenFactory();

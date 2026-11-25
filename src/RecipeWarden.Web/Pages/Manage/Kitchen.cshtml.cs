@@ -22,7 +22,7 @@ public sealed class KitchenToolInput
     public int Quantity { get; set; } = 1;
     public string? FillPct { get; set; }
 
-    /// <summary>BR-50: markings, one set per line ("4 cups by 1/2").</summary>
+    /// <summary>BR-56: markings, one set per line ("4 cups by 1/2").</summary>
     public string? Markings { get; set; }
 }
 
@@ -36,7 +36,7 @@ public sealed class KitchenModel(KitchenService kitchen) : PageModel
     public int Version { get; private set; }
     public string? Message { get; private set; }
 
-    /// <summary>BR-51: a retire waiting for confirmation, with the sizes it would take away.</summary>
+    /// <summary>BR-57: a retire waiting for confirmation, with the sizes it would take away.</summary>
     public (KitchenToolInfo Tool, IReadOnlyList<string> Lost)? ConfirmRetire { get; private set; }
     public IReadOnlyList<string> Errors { get; private set; } = [];
 
@@ -49,7 +49,7 @@ public sealed class KitchenModel(KitchenService kitchen) : PageModel
         await LoadAsync();
         if (done == "retired" && Tools.FirstOrDefault(r => r.Tool.Id == tool) is { } retired)
         {
-            // BR-51: which of its sizes another tool still gives.
+            // BR-57: which of its sizes another tool still gives.
             var (_, covered) = MeasureScales.IfRetired(retired.Tool, Tools.Where(r => r.Tool.IsActive).Select(r => r.Tool));
             if (covered.Count > 0)
             {
@@ -95,7 +95,7 @@ public sealed class KitchenModel(KitchenService kitchen) : PageModel
     }
 
     /// <summary>
-    /// BR-51: retiring a measure that is the only one giving a size asks first ("Retiring this leaves you without
+    /// BR-57: retiring a measure that is the only one giving a size asks first ("Retiring this leaves you without
     /// ⅓ cup"); otherwise it retires and says which sizes another tool still covers.
     /// </summary>
     public async Task<IActionResult> OnPostRetireAsync(int id, bool confirm = false)

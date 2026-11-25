@@ -5,7 +5,7 @@ using RecipeWarden.Core.Measurement;
 namespace RecipeWarden.Core.Kitchen;
 
 /// <summary>
-/// BR-50 (ADR 0018 amendment 1): one set of markings on a cup, jug or adjustable measure: from <see cref="Min"/> to
+/// BR-56 (ADR 0018 amendment 1): one set of markings on a cup, jug or adjustable measure: from <see cref="Min"/> to
 /// <see cref="Max"/> in steps of <see cref="Step"/>, in <see cref="Unit"/> (a volume unit code). A 4-cup Pyrex has
 /// "4 cups by 1/2", "1 quart by 1/3" and "1000 ml by 100"; an Adjust-A-Cup "1/8 to 1 cup by 1/8".
 /// </summary>
@@ -30,7 +30,7 @@ public sealed record MeasureScale(string Unit, decimal Min, decimal Max, decimal
     }
 }
 
-/// <summary>BR-50: reading, checking and using a tool's markings.</summary>
+/// <summary>BR-56: reading, checking and using a tool's markings.</summary>
 public static partial class MeasureScales
 {
     public const int MaxScales = 4;
@@ -163,7 +163,7 @@ public static partial class MeasureScales
     }
 
     /// <summary>
-    /// BR-51: the amounts a measuring tool gives (its own size when it is a spoon or cup, and its markings), as
+    /// BR-57: the amounts a measuring tool gives (its own size when it is a spoon or cup, and its markings), as
     /// (ml, text) pairs in cups and spoons.
     /// </summary>
     public static IReadOnlyList<(decimal Ml, string Text)> Sizes(KitchenToolInfo tool)
@@ -184,7 +184,7 @@ public static partial class MeasureScales
     }
 
     /// <summary>
-    /// BR-51: what retiring <paramref name="tool"/> would mean: sizes no other active tool gives (lost), and sizes
+    /// BR-57: what retiring <paramref name="tool"/> would mean: sizes no other active tool gives (lost), and sizes
     /// another active tool still gives, with that tool's name (covered).
     /// </summary>
     public static (IReadOnlyList<string> Lost, IReadOnlyList<(string Size, string By)> Covered) IfRetired(KitchenToolInfo tool, IEnumerable<KitchenToolInfo> active)

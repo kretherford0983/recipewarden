@@ -23,7 +23,7 @@ public sealed record ToolPlan(IReadOnlyList<ToolFill> Fills, string Text, decima
 /// FR-MEAS-02, BR-21, BR-24, ADR 0018: combines the active spoons and cups to make an amount. At most 3 fills;
 /// the fewest fills within tolerance wins, then the smallest error. Returns null when nothing fits, and the caller
 /// falls back to the nearest fraction (ADR 0012). Large amounts therefore stay "5 cups" (5 fills is over the cap).
-/// BR-50: a marking on a cup, jug or adjustable measure is one fill; a plan uses at most one, and at the same number of
+/// BR-56: a marking on a cup, jug or adjustable measure is one fill; a plan uses at most one, and at the same number of
 /// fills a plan with only fixed measures wins (they are the more accurate).
 /// </summary>
 public static class DisplayPlanner

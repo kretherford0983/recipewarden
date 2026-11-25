@@ -37,7 +37,7 @@ public sealed class FR_TOOL_01_KitchenPageTests(RecipeWardenFactory factory) : I
         (await factory.ReadAsync($"/recipes/{slug}?scale=2")).ShouldContain("½ Tbsp vanilla extract");
 
         var id = await factory.ToolIdAsync("½ Tbsp");
-        // BR-51: the only ½ Tbsp asks first, then retires when confirmed.
+        // BR-57: the only ½ Tbsp asks first, then retires when confirmed.
         var ask = await editor.PostFormAsync("/manage/kitchen?handler=Retire", ("id", id.ToString(System.Globalization.CultureInfo.InvariantCulture)));
         ask.StatusCode.ShouldBe(HttpStatusCode.OK);
         WebUtility.HtmlDecode(await ask.TextAsync()).ShouldContain("Retiring this leaves you without ½ Tbsp");

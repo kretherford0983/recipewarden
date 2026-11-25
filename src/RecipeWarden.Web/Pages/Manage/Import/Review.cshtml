@@ -1,4 +1,5 @@
 @page "/manage/import/{id:int}/review"
+@using RecipeWarden.Core.Import
 @model RecipeWarden.Web.Pages.Manage.Import.ReviewModel
 @using RecipeWarden.Infrastructure.Data
 @{
@@ -111,6 +112,38 @@
                 </li>
             }
         </ul>
+    </section>
+}
+
+@{
+    var alternatives = review.Status == ImportStatus.Review
+        ? BatchRules.AlternativeGroups((review.Recipe.Ingredients ?? string.Empty).Split('\n').Select(l => l.Trim()))
+        : [];
+}
+@foreach (var name in alternatives)
+{
+    @* BR-132: two versions of one ingredient group; the reviewer picks one and what happens to the rest. *@
+    var versions = BatchRules.Versions(review.Recipe.Ingredients, name);
+    var key = "versions-" + System.Text.RegularExpressions.Regex.Replace(name.ToLowerInvariant(), "[^a-z0-9]+", "-");
+    <section class="notice versions" aria-labelledby="@key-heading">
+        <h2 id="@key-heading">Two versions of “@name”</h2>
+        <p>Shopping lists and nutrition would count every version. Choose the one to keep, then what to do with the other@(versions.Count > 2 ? "s" : "").
+            Changes you have made in the form below are not kept, so do this first.</p>
+        <form method="post" action="/manage/import/@review.JobId/review?handler=Versions" asp-antiforgery="true">
+            <input type="hidden" name="name" value="@name">
+            <fieldset>
+                <legend>Keep</legend>
+                @for (var i = 0; i < versions.Count; i++)
+                {
+                    <label><input type="radio" name="keep" value="@versions[i]" checked="@(i == 0)"> @name (@versions[i])</label>
+                }
+            </fieldset>
+            <div class="toolbar">
+                <button type="submit" name="choice" value="@VersionChoice.KeepOnly">Keep it, drop the other</button>
+                <button type="submit" name="choice" value="@VersionChoice.MoveToNotes">Keep it, move the other to the notes</button>
+                <button type="submit" name="choice" value="@VersionChoice.Split">Split into separate recipes</button>
+            </div>
+        </form>
     </section>
 }
 

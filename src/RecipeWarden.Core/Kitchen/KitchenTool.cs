@@ -53,10 +53,10 @@ public sealed record KitchenToolInfo(
     public bool Supports(string unitCode) =>
         SupportedUnits?.Contains(unitCode, StringComparer.Ordinal) == true;
 
-    /// <summary>BR-50: the markings on a cup, jug or adjustable measure (null or empty for a plain measure).</summary>
+    /// <summary>BR-56: the markings on a cup, jug or adjustable measure (null or empty for a plain measure).</summary>
     public IReadOnlyList<MeasureScale>? Scales { get; init; }
 
-    /// <summary>BR-50: a virtual tool standing for one marking of <see cref="Id"/> (display planner only).</summary>
+    /// <summary>BR-56: a virtual tool standing for one marking of <see cref="Id"/> (display planner only).</summary>
     public bool IsMarking { get; init; }
 }
 
@@ -65,7 +65,7 @@ public sealed record KitchenToolInfo(
 /// </summary>
 public sealed record KitchenFields(bool Size, bool ScaleUnits, bool Fill, string SizeLabel, string SizeHint, string SizePlaceholder)
 {
-    /// <summary>BR-50: the type can have markings (cups, spoons, jugs).</summary>
+    /// <summary>BR-56: the type can have markings (cups, spoons, jugs).</summary>
     public bool Markings { get; init; }
 }
 
@@ -246,7 +246,7 @@ public static class KitchenRules
         var sizeErrors = new List<string>();
         if (FieldsFor(type).Markings && !string.IsNullOrWhiteSpace(markings))
         {
-            var (scales, markingErrors) = MeasureScales.Parse(markings); // BR-50
+            var (scales, markingErrors) = MeasureScales.Parse(markings); // BR-56
             sizeErrors.AddRange(markingErrors);
             tool = tool with { Scales = scales };
         }

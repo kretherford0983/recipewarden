@@ -24,7 +24,7 @@ public sealed class KitchenTools
     /// <summary>Spoons and cups, largest first.</summary>
     public IReadOnlyList<KitchenToolInfo> Measures { get; }
 
-    /// <summary>BR-50: markings on active cups, jugs and adjustable measures that no fixed measure already gives.</summary>
+    /// <summary>BR-56: markings on active cups, jugs and adjustable measures that no fixed measure already gives.</summary>
     public IReadOnlyList<KitchenToolInfo> Markings { get; }
 
     /// <summary>The finest active scale, or null.</summary>
