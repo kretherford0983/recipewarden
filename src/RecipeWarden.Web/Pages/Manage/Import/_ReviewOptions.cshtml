@@ -9,6 +9,13 @@
             <label for="CopyImage">Copy the finished-dish image from the source <span class="hint">(@image)</span></label>
         </div>
     }
+    @if (Model.Review.PhotoCount > 0)
+    {
+        <div class="field checkbox">
+            <input id="KeepPhotos" name="KeepPhotos" type="checkbox" value="true" checked="@Model.KeepPhotos">
+            <label for="KeepPhotos">Save the card photo with the recipe</label>
+        </div>
+    }
     @if (Model.Review.Duplicate is not null)
     {
         <div class="field checkbox" id="SaveAnyway_field">

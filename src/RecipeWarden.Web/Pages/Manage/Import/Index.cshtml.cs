@@ -13,8 +13,11 @@ namespace RecipeWarden.Web.Pages.Manage.Import;
 /// </summary>
 [RequestSizeLimit(MaxRequestBytes)]
 [RequestFormLimits(MultipartBodyLengthLimit = MaxRequestBytes)]
-public sealed class IndexModel(ImportService imports) : PageModel
+public sealed class IndexModel(ImportService imports, Infrastructure.Ai.AiParserService ai) : PageModel
 {
+    /// <summary>FR-IMP-13, AC-126: the photo form is shown only when the AI parser is on and its model reads images.</summary>
+    public bool OfferPhotos { get; private set; }
+
     /// <summary>Room for a 60 MB file, so an oversized document gets a clear message rather than a bare 413 (AC-15).</summary>
     public const long MaxRequestBytes = 64L * 1024 * 1024;
 
@@ -39,7 +42,52 @@ public sealed class IndexModel(ImportService imports) : PageModel
     public IReadOnlyList<int> CreatedJobs { get; private set; } = [];
     public IReadOnlyList<ImportJobSummary> Open { get; private set; } = [];
 
-    public async Task OnGetAsync() => Open = await imports.ListOpenAsync(HttpContext.RequestAborted);
+    public async Task OnGetAsync()
+    {
+        Open = await imports.ListOpenAsync(HttpContext.RequestAborted);
+        await LoadPhotoOfferAsync();
+    }
+
+    /// <summary>
+    /// FR-IMP-13, W11, ADR 0058: 1 to 4 photos read by the AI parser. Refused with the reason, and nothing sent, when
+    /// photo import is unavailable (BR-130, AC-126).
+    /// </summary>
+    public async Task<IActionResult> OnPostPhotosAsync(List<IFormFile> photos, string? sourceName, bool keepPhotos)
+    {
+        ArgumentNullException.ThrowIfNull(photos);
+        if (photos.Count > Core.AiParser.PhotoImportRules.MaxPhotos)
+        {
+            return await FailAsync(Core.AiParser.PhotoImportRules.TooMany);
+        }
+
+        var streams = new List<Stream>();
+        try
+        {
+            var input = new List<ImportFile>();
+            foreach (var f in photos)
+            {
+                var s = f.OpenReadStream();
+                streams.Add(s);
+                input.Add(new ImportFile(f.FileName, s, f.Length));
+            }
+
+            var start = await imports.StartPhotosAsync(input, sourceName, keepPhotos, Permissions.UserId(User), HttpContext.RequestAborted);
+            return start.Error is null ? Redirect($"/manage/import/{start.JobIds[0]}/review") : await FailAsync(start.Error);
+        }
+        finally
+        {
+            foreach (var s in streams)
+            {
+                await s.DisposeAsync();
+            }
+        }
+    }
+
+    private async Task LoadPhotoOfferAsync()
+    {
+        var settings = await ai.GetSettingsAsync(HttpContext.RequestAborted);
+        OfferPhotos = settings.Enabled && settings.CanReadImages;
+    }
 
     public async Task<IActionResult> OnPostUrlAsync()
     {
@@ -117,6 +165,7 @@ public sealed class IndexModel(ImportService imports) : PageModel
     private async Task<IActionResult> ShowAsync(int status)
     {
         Open = await imports.ListOpenAsync(HttpContext.RequestAborted);
+        await LoadPhotoOfferAsync();
         Response.StatusCode = status;
         return Page();
     }

@@ -19,6 +19,7 @@
     <EmbeddedResource Include="Data/Seed/fdc-foundation-2026-04-fndds-2024-10.zip" LogicalName="RecipeWarden.Seed.fdc-foundation-2026-04-fndds-2024-10.zip" />
     <!-- SEC-01, ADR 0043: from SecLists (MIT) -->
     <EmbeddedResource Include="Data/Seed/common-passwords.txt" LogicalName="RecipeWarden.Seed.common-passwords.txt" />
+    <EmbeddedResource Include="Ai/image-test.jpg" LogicalName="RecipeWarden.Ai.image-test.jpg" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="RecipeWarden.Infrastructure.Tests" />

@@ -32,6 +32,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
     public DbSet<InventorySnapshot> InventorySnapshots => Set<InventorySnapshot>();
     public DbSet<RecipeSuggestionState> RecipeSuggestionStates => Set<RecipeSuggestionState>();
     public DbSet<Image> Images => Set<Image>();
+    public DbSet<RecipeCardImage> RecipeCardImages => Set<RecipeCardImage>();
     public DbSet<ImportJob> ImportJobs => Set<ImportJob>();
     public DbSet<ShoppingList> ShoppingLists => Set<ShoppingList>();
     public DbSet<ShoppingListRecipe> ShoppingListRecipes => Set<ShoppingListRecipe>();
@@ -138,6 +139,15 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
             e.Property(s => s.ImageId).HasMaxLength(32);
             e.HasIndex(s => s.ImageId);
             e.HasOne<Image>().WithMany().HasForeignKey(s => s.ImageId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<RecipeCardImage>(e =>
+        {
+            e.HasIndex(c => new { c.RecipeId, c.Position });
+            e.Property(c => c.ImageId).HasMaxLength(32);
+            e.HasIndex(c => c.ImageId);
+            e.HasOne<Recipe>().WithMany().HasForeignKey(c => c.RecipeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Image>().WithMany().HasForeignKey(c => c.ImageId).OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<Image>(e =>

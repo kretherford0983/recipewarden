@@ -138,6 +138,20 @@ public sealed class RecipeExporter(AppDbContext db, RecipeService recipes, Image
             }
         }
 
+        if (withImages)
+        {
+            // ADR 0058 D7: card photos travel with the recipe as card-1.webp, card-2.webp, … (not part of recipe-md v1).
+            var cards = await db.RecipeCardImages.AsNoTracking().Where(c => c.RecipeId == id).OrderBy(c => c.Position).Select(c => c.ImageId)
+                .ToListAsync(cancellationToken).ConfigureAwait(false);
+            for (var i = 0; i < cards.Count; i++)
+            {
+                if (await images.FindAsync(cards[i], thumb: false, canSeeAll: true, cancellationToken).ConfigureAwait(false) is { } card)
+                {
+                    files.Add((string.Create(System.Globalization.CultureInfo.InvariantCulture, $"card-{i + 1}.webp"), card.Path));
+                }
+            }
+        }
+
         var date = imported is { } at ? DateOnly.FromDateTime(at.UtcDateTime) : (DateOnly?)null;
 
         // ADR 0035/0036: allergens and the nutrition panel, as the recipe page shows them (per serving at any scale).

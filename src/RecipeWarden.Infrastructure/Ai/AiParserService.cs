@@ -54,19 +54,23 @@ public sealed class AiParserService(AppDbContext db, SettingsStore settings, Saf
     public const string ApiKey = "Ai.ApiKey";
     public const string Cap = "Ai.MonthlyTokenCap";
     public const string AllowLan = "Ai.AllowLan";
+    public const string ReadsImages = "Ai.ReadsImages";
 
     private IDataProtector Protector => protection.CreateProtector(KeyPurpose);
 
     public async Task<AiSettings> GetSettingsAsync(CancellationToken cancellationToken = default)
     {
-        var all = await settings.GetManyAsync([Enabled, Provider, Endpoint, Model, Cap, AllowLan], cancellationToken).ConfigureAwait(false);
+        var all = await settings.GetManyAsync([Enabled, Provider, Endpoint, Model, Cap, AllowLan, ReadsImages], cancellationToken).ConfigureAwait(false);
         return new AiSettings(
             all.GetValueOrDefault(Enabled) == "true",
             all.TryGetValue(Provider, out var p) && Enum.TryParse<AiProvider>(p, out var provider) ? provider : AiProvider.Claude,
             all.GetValueOrDefault(Endpoint),
             all.GetValueOrDefault(Model),
             all.TryGetValue(Cap, out var c) && long.TryParse(c, NumberStyles.Integer, CultureInfo.InvariantCulture, out var cap) && cap > 0 ? cap : null,
-            all.GetValueOrDefault(AllowLan) == "true");
+            all.GetValueOrDefault(AllowLan) == "true")
+        {
+            ReadsImages = all.GetValueOrDefault(ReadsImages) switch { "true" => true, "false" => false, _ => null },
+        };
     }
 
     /// <summary>SEC-45: the UI only ever learns whether a key is set.</summary>
@@ -94,6 +98,7 @@ public sealed class AiParserService(AppDbContext db, SettingsStore settings, Saf
         await settings.SetAsync(Model, value.Model!.Trim(), cancellationToken).ConfigureAwait(false);
         await settings.SetAsync(Cap, value.MonthlyTokenCap?.ToString(CultureInfo.InvariantCulture), cancellationToken).ConfigureAwait(false);
         await settings.SetAsync(AllowLan, value.Provider != AiProvider.Claude && value.AllowLan ? "true" : null, cancellationToken).ConfigureAwait(false);
+        await settings.SetAsync(ReadsImages, value.ReadsImages switch { true => "true", false => "false", null => null }, cancellationToken).ConfigureAwait(false);
         if (clearKey)
         {
             await settings.SetAsync(ApiKey, null, cancellationToken).ConfigureAwait(false);
@@ -138,6 +143,70 @@ public sealed class AiParserService(AppDbContext db, SettingsStore settings, Saf
         return new AiParseResult(recipe, null, true);
     }
 
+    /// <summary>BR-130: why photos cannot be read now (off, not image-capable, capped), or null when they can.</summary>
+    public async Task<string?> PhotoImportUnavailableAsync(CancellationToken cancellationToken = default)
+    {
+        var s = await GetSettingsAsync(cancellationToken).ConfigureAwait(false);
+        var used = s.MonthlyTokenCap is null ? 0 : (await UsageThisMonthAsync(cancellationToken).ConfigureAwait(false)).Total;
+        return PhotoImportRules.Unavailable(s, used);
+    }
+
+    /// <summary>
+    /// FR-IMP-13, ADR 0058: photos (the SEC-48 JPEG copies, in order) → a recipe-md draft for review. Checked against
+    /// BR-130 first, so nothing is sent when photo import is unavailable.
+    /// </summary>
+    public async Task<AiParseResult> ParsePhotosAsync(IReadOnlyList<byte[]> jpegs, AiPurpose purpose, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(jpegs);
+        if (PhotoImportRules.CheckCount(jpegs.Count) is { } count)
+        {
+            return AiParseResult.NotUsed(count);
+        }
+
+        if (await PhotoImportUnavailableAsync(cancellationToken).ConfigureAwait(false) is { } reason)
+        {
+            return AiParseResult.NotUsed(reason);
+        }
+
+        var call = await CallAsync(purpose, PhotoImportRules.Instructions, PhotoImportRules.Prompt(jpegs.Count), cancellationToken, images: jpegs)
+            .ConfigureAwait(false);
+        if (call.Error is not null)
+        {
+            return new AiParseResult(null, call.Error, call.Attempted);
+        }
+
+        var block = AiReplyReader.Read(call.Text).FirstOrDefault(b => b.IsValid);
+        if (block is null)
+        {
+            await MarkLastAsync(AiCallResult.Invalid, "No valid recipe-md in the reply", cancellationToken).ConfigureAwait(false);
+            return new AiParseResult(null, "The AI reply did not contain a usable recipe. Try clearer photos, or type the recipe in.", true);
+        }
+
+        return new AiParseResult(block.Recipe! with { Remarks = [.. block.Recipe!.Remarks, AiParserRules.AiParsedNotice] }, null, true);
+    }
+
+    /// <summary>ADR 0058 D8 "Test image reading": the built-in picture of a word, read with the saved settings.</summary>
+    public async Task<string?> TestImagesAsync(CancellationToken cancellationToken = default)
+    {
+        byte[] picture;
+        await using (var stream = typeof(AiParserService).Assembly.GetManifestResourceStream("RecipeWarden.Ai.image-test.jpg")
+            ?? throw new InvalidOperationException("The image test picture is missing from the build."))
+        {
+            using var copy = new MemoryStream();
+            await stream.CopyToAsync(copy, cancellationToken).ConfigureAwait(false);
+            picture = copy.ToArray();
+        }
+
+        var call = await CallAsync(AiPurpose.Test, PhotoImportRules.ImageTestInstructions, "Which word is written here?", cancellationToken,
+            allowWhenDisabled: true, maxTokens: 10, images: [picture]).ConfigureAwait(false);
+        if (call.Error is not null)
+        {
+            return call.Error;
+        }
+
+        return PhotoImportRules.ImageTestPassed(call.Text) ? null : PhotoImportRules.ImageTestFailed;
+    }
+
     /// <summary>FR-NUT-06: picks one of the local candidates for an unmatched ingredient, or none. An Editor confirms it.</summary>
     public async Task<(int? Index, string? Error)> SuggestMappingAsync(string ingredient, IReadOnlyList<string> candidates, CancellationToken cancellationToken = default)
     {
@@ -169,7 +238,7 @@ public sealed class AiParserService(AppDbContext db, SettingsStore settings, Saf
     private sealed record Call(string? Text, string? Error, bool Attempted);
 
     private async Task<Call> CallAsync(AiPurpose purpose, string system, string user, CancellationToken ct, bool allowWhenDisabled = false,
-        int maxTokens = AiParserRules.MaxOutputTokens)
+        int maxTokens = AiParserRules.MaxOutputTokens, IReadOnlyList<byte[]>? images = null)
     {
         var s = await GetSettingsAsync(ct).ConfigureAwait(false);
         if (!s.Enabled && !allowWhenDisabled)
@@ -224,8 +293,14 @@ public sealed class AiParserService(AppDbContext db, SettingsStore settings, Saf
             }
         }
 
+        var body = AiProtocol.Request(s.Provider, s.Model!, system, user, images ?? [], maxTokens);
+        if (images is { Count: > 0 } && !PhotoImportRules.FitsRequest(body.LongLength))
+        {
+            return new Call(null, PhotoImportRules.TooLarge, false); // SEC-48: refused before connecting
+        }
+
         var watch = Stopwatch.StartNew();
-        var response = await fetcher.SendAsync(new OutboundRequest(uri, HttpMethod.Post, AiProtocol.Request(s.Provider, s.Model!, system, user, maxTokens),
+        var response = await fetcher.SendAsync(new OutboundRequest(uri, HttpMethod.Post, body,
             "application/json", AiProtocol.Headers(s.Provider, key), permit, AiParserRules.Timeout, AiParserRules.MaxResponseBytes), ct).ConfigureAwait(false);
         var ms = (int)watch.ElapsedMilliseconds;
         if (response.Failure is FetchFailure.Refused or FetchFailure.Blocked)

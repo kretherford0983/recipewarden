@@ -42,4 +42,10 @@ public sealed class ImportJob
 
     /// <summary>FR-IMP-09: the recipe came from the AI parser; the review page marks its fields.</summary>
     public bool ParsedByAi { get; set; }
+
+    /// <summary>FR-IMP-13: how many photos the batch folder holds (photo-0 … photo-n); 0 for other imports (ADR 0058).</summary>
+    public int PhotoCount { get; set; }
+
+    /// <summary>BR-131: "Save the card photo with the recipe", ticked by default for photo imports.</summary>
+    public bool KeepPhotos { get; set; }
 }

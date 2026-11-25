@@ -74,6 +74,33 @@
     </form>
 </section>
 
+@if (Model.OfferPhotos)
+{
+    @* FR-IMP-13, W11, ADR 0058: shown only when the AI parser is on and its model can read images (AC-126). *@
+    <section aria-labelledby="photo-heading" class="import-box">
+        <h2 id="photo-heading">From photos</h2>
+        <p class="hint">A recipe card, a printed page or a cookbook: 1 to @RecipeWarden.Core.AiParser.PhotoImportRules.MaxPhotos photos of one recipe (JPEG, PNG or WebP,
+            10 MB each), chosen in reading order (front, then back). The photos are sent to the AI service your Admin set up, without their
+            location or camera details; the recipe comes back here for review.</p>
+        <form method="post" action="/manage/import?handler=Photos" enctype="multipart/form-data" asp-antiforgery="true" data-progress="Reading the photos…">
+            <div class="field">
+                <label for="photos">Photos</label>
+                <input id="photos" name="photos" type="file" multiple required accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" data-max-bytes="@UploadRules.MaxImageBytes">
+            </div>
+            <div class="field">
+                <label for="SourceName">Where it came from <span class="hint">(optional, e.g. "Grandma Ruth's card")</span></label>
+                <input id="SourceName" name="SourceName" maxlength="@RecipeWarden.Core.Recipes.SourceRules.MaxNameLength">
+            </div>
+            <div class="field checkbox">
+                <input id="KeepPhotos" name="KeepPhotos" type="checkbox" value="true" checked>
+                <label for="KeepPhotos">Save the card photo with the recipe</label>
+            </div>
+            <button type="submit">Read the photos</button>
+            <span class="progress" role="status" aria-live="polite" hidden></span>
+        </form>
+    </section>
+}
+
 <section aria-labelledby="open-heading">
     <h2 id="open-heading">Waiting for review</h2>
     @if (Model.Open.Count == 0)

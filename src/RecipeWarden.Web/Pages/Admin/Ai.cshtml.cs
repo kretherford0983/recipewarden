@@ -27,8 +27,9 @@ public sealed class AiModel(AiParserService ai, AuditLog audit) : PageModel
         await LoadAsync();
     }
 
+    /// <param name="readsImages">ADR 0058 D8: the checkbox comes before a hidden "false", so the first value wins; null keeps the saved choice.</param>
     public async Task<IActionResult> OnPostAsync(bool enabled, AiProvider provider, string? endpoint, string? model, string? apiKey, bool clearKey, string? cap,
-        bool allowLan)
+        bool allowLan, string? readsImages)
     {
         long? monthlyCap = null;
         if (!string.IsNullOrWhiteSpace(cap))
@@ -41,7 +42,13 @@ public sealed class AiModel(AiParserService ai, AuditLog audit) : PageModel
             monthlyCap = c == 0 ? null : c;
         }
 
-        var value = new AiSettings(enabled, provider, endpoint, model, monthlyCap, allowLan);
+        var images = readsImages switch
+        {
+            "true" => true,
+            "false" => false,
+            _ => (await ai.GetSettingsAsync(HttpContext.RequestAborted)).ReadsImages,
+        };
+        var value = new AiSettings(enabled, provider, endpoint, model, monthlyCap, allowLan) { ReadsImages = images };
         var error = await ai.SaveSettingsAsync(value, apiKey, clearKey, HttpContext.RequestAborted);
         if (error is not null)
         {
@@ -50,7 +57,7 @@ public sealed class AiModel(AiParserService ai, AuditLog audit) : PageModel
 
         // SEC-45: the audit says whether a key was set, never the key.
         await audit.RecordAsync("AiSettings.Update", "Settings", "ai",
-            new { enabled, provider = provider.ToString(), model, keyChanged = !string.IsNullOrWhiteSpace(apiKey) || clearKey, cap = monthlyCap, allowLan },
+            new { enabled, provider = provider.ToString(), model, keyChanged = !string.IsNullOrWhiteSpace(apiKey) || clearKey, cap = monthlyCap, allowLan, readsImages = images },
             HttpContext.RequestAborted);
         return Redirect("/admin/ai?done=saved");
     }
@@ -64,6 +71,20 @@ public sealed class AiModel(AiParserService ai, AuditLog audit) : PageModel
         }
 
         Message = "Connection works.";
+        await LoadAsync();
+        return Page();
+    }
+
+    /// <summary>ADR 0058 D8 "Test image reading": the built-in picture of a word, with the saved settings.</summary>
+    public async Task<IActionResult> OnPostTestImagesAsync()
+    {
+        var error = await ai.TestImagesAsync(HttpContext.RequestAborted);
+        if (error is not null)
+        {
+            return await FailAsync("Image test failed: " + error);
+        }
+
+        Message = PhotoImportRules.ImageTestOk;
         await LoadAsync();
         return Page();
     }

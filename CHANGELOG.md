@@ -5,6 +5,16 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 
 ## 1.0.0 — unreleased
 
+### Photo import with the AI parser (M8b, ADR 0058)
+- Import a recipe from 1 to 4 photos (a handwritten card, a printed page) on **Manage → Import → From photos** when
+  the AI parser is on and its model can read images. Photos are sent upright, at most 1568 px, as JPEG without
+  location or camera details; the original upload is never sent or stored (FR-IMP-13, SEC-48).
+- The review page shows the photos and lists what the model marked `[unclear]`; an unclear ingredient amount must be
+  fixed before saving (BR-129). "Re-parse with AI" sends the kept photos again.
+- "Save the card photo with the recipe" (ticked by default) keeps the photos as the recipe's card, shown under the
+  source, public with a published recipe and included in the Markdown zip export (BR-131).
+- Admin → AI parser: "This model can read images" and "Test image reading" (ADR 0058 D8).
+
 ### Owner testing feedback (ADR 0055 to 0057)
 - My Kitchen: the form shows only the fields for the chosen type, the scale's step is called "Resolution (smallest
   step)" with how to read it off the label ("1" means 1 g), and fields from another type are never saved (BR-120, BR-121).

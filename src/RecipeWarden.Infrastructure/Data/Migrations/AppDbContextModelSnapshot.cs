@@ -778,12 +778,18 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                         .HasMaxLength(2048)
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("KeepPhotos")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("ParsedByAi")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("ParsedJson")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("PhotoCount")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("RawPath")
                         .HasMaxLength(128)
@@ -1337,6 +1343,32 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
                     b.HasIndex("Allergen", "Status");
 
                     b.ToTable("RecipeAllergens");
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeCardImage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ImageId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("RecipeId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ImageId");
+
+                    b.HasIndex("RecipeId", "Position");
+
+                    b.ToTable("RecipeCardImages");
                 });
 
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeCollection", b =>
@@ -2661,6 +2693,21 @@ namespace RecipeWarden.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeAllergen", b =>
                 {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
+                        .WithMany()
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RecipeWarden.Infrastructure.Data.RecipeCardImage", b =>
+                {
+                    b.HasOne("RecipeWarden.Infrastructure.Data.Image", null)
+                        .WithMany()
+                        .HasForeignKey("ImageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("RecipeWarden.Infrastructure.Data.Recipe", null)
                         .WithMany()
                         .HasForeignKey("RecipeId")

@@ -110,6 +110,9 @@ public sealed record RecipeView
     /// <summary>ADR 0022: the finish image id, if any.</summary>
     public string? FinishImageId { get; init; }
 
+    /// <summary>FR-IMP-13, ADR 0058 D7: photos of the recipe card it was imported from, in order.</summary>
+    public IReadOnlyList<string> CardImageIds { get; init; } = [];
+
     /// <summary>ADR 0019: the stored finished yield (amount, unit code, source) and finished density (BR-112).</summary>
     public decimal? YieldAmount { get; init; }
     public string? YieldUnitCode { get; init; }
