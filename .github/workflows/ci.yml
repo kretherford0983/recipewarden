@@ -165,6 +165,9 @@ jobs:
       - name: Version format
         run: bash build/version.sh --check
 
+      - name: Release publishing survives GitHub errors (ADR 0061)
+        run: bash tests/build/test-publish-release.sh
+
   secrets:
     runs-on: ubuntu-24.04
     timeout-minutes: 5 # normal ~10 s
@@ -234,7 +237,7 @@ jobs:
           name: ci-package-${{ github.run_id }}
           path: dist
       - name: shellcheck
-        run: shellcheck deploy/install.sh tests/installer/*.sh build/*.sh
+        run: shellcheck deploy/install.sh tests/installer/*.sh tests/build/*.sh build/*.sh
       - name: Installer tests in ${{ matrix.image }} (no systemd; --no-start)
         run: |
           PKG=$(basename dist/recipewarden-*-linux-x64.tar.gz)
