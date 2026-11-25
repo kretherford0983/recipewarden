@@ -73,7 +73,16 @@ public sealed class ReviewModel(ImportService imports, TagService tags, Infrastr
 
     public override bool CreditLocked => Review?.CreditLocked == true;
 
-    public override string? ExtraPartial => Review?.Status == ImportStatus.Review ? "_ReviewOptions" : null;
+    /// <summary>AC-144: the options box only when it holds an option (image, card photos or a duplicate).</summary>
+    public override string? ExtraPartial => Review is { Status: ImportStatus.Review } r && (r.ImageUrl is not null || r.PhotoCount > 0 || r.Duplicate is not null)
+        ? "_ReviewOptions"
+        : null;
+
+    public override string? FormClass => Review?.ParsedByAi == true ? "ai-parsed" : null;
+
+    public override string? SecondaryFormId => Review?.Status == ImportStatus.Review ? "discard-import" : null;
+
+    public override string? SecondaryFormLabel => "Discard this import";
 
     public async Task<IActionResult> OnGetAsync([FromRoute] int id)
     {

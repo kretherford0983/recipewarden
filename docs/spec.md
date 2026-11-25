@@ -1,6 +1,6 @@
-# RecipeWarden — Specification v0.31
+# RecipeWarden — Specification v0.32
 
-Version 0.31 · 2026-11-25
+Version 0.32 · 2026-11-25
 
 ## 1. Overview
 
@@ -81,7 +81,7 @@ Requirements carry stable IDs (FR = functional, NFR = non-functional) used by th
 | FR-IMP-01 | Import from a URL: read schema.org Recipe JSON-LD first, then microdata, then a heuristic HTML fallback. | M |
 | FR-IMP-02 | On URL import, offer an opt-in checkbox to copy the source's finish image. | M |
 | FR-IMP-03 | Every imported public recipe stores source name, author (if given), URL and import date, and displays credit with a direct link. | M |
-| FR-IMP-04 | Import from structured Markdown in the app's defined format (recipe-md v1, section 9.7), and from loosely structured Markdown by heading detection. | M |
+| FR-IMP-04 | Import from structured Markdown in the app's defined format (recipe-md v1, section 9.7), and from loosely structured Markdown by heading detection; several recipes per file, and several versions of one recipe under one title (BR-133). | M |
 | FR-IMP-05 | Import from Word .docx (headings/lists detected) and text-based PDF. | M |
 | FR-IMP-06 | Every import goes through a review screen showing parsed fields, warnings and low-confidence lines before saving. | M |
 | FR-IMP-07 | Detect likely duplicates (same source URL, or same normalized title + ingredient overlap above 80%) and offer open existing / save anyway. | S |
@@ -274,6 +274,10 @@ These rules are enforced in the domain layer (not only the UI) and each has unit
 | BR-130 | (FR-IMP-13) Photo import is unavailable, with a message saying why, when the AI parser is off, the model is not marked image-capable, or the monthly cap is reached; nothing is sent in any of these cases. |
 | BR-131 | (FR-IMP-13) The photos are sent in the order chosen, in one call; the import keeps the re-encoded photos for 30 days (FR-IMP-08) for "Re-parse with AI", and "Save the card photo with the recipe" (ticked by default) keeps them as the recipe's card images in that order. |
 | BR-132 | (ADR 0056 amendment 1) When an import lists two or more versions of one ingredient group ("Sauce (Side Dish)", "Sauce (Taco Topping)"), the review warns and offers: keep one version and drop the others; keep one and move the others to the notes as a list; or split into one draft per version, titled "Title (Version)", each with the shared groups. The warning goes when it is resolved. |
+| BR-133 | (FR-IMP-04, ADR 0062) Inside one `# ` recipe, `## ` headings that each hold their own Ingredients and Steps sections and either their own facts (yield, servings, times) or a version word ("based", "style", "version", "classic" …) are versions: one draft each, titled "Title (Version)" (merged into the title's own bracket when it has one). Lines before the first `## ` heading are every version's description; shared sections before the first version go into every version's notes. A second Ingredients section whose heading names a batch, with its Steps, is folded by BR-124/BR-125. |
+| BR-134 | (ADR 0062) Under a Yield, Makes or Servings heading a line is that fact without a keyword; other lines there go to the notes. In a yield, "approximately", "approx.", "roughly", "around", "about" and "~" read as "about", and words after "of" following the unit are dropped ("Approximately 1 1/2 cups of sauce" → "about 1 1/2 cups"). Time headings accept a bare "10 minutes" and "~10 minutes". |
+| BR-135 | (FR-SCL-06, ADR 0062) When an import states no yield, the review prefills Makes with the BR-111 estimate in US cups (Tbsp under ¼ cup, quarts from 8 cups, to ½, ⅓ or ¼) and warns, naming what was not counted; no estimate when nothing counts or more than half the lines with an amount do not. Saved unchanged it is an Estimated yield; changed, it is Entered. |
+| BR-136 | (FR-IMP-09, ADR 0062) The AI parser is asked for `yield:` only when the text states it, and for one recipe-md document per recipe or version (a batch size goes in the notes); every valid document becomes a draft. "Re-parse with AI" on one draft keeps the document whose title matches it (same title, else most title words in common, else the first). An AI yield that is not an amount becomes a remark. |
 
 ### 4.3 Scaling and conversion
 
@@ -1105,6 +1109,13 @@ Each criterion is written Given / When / Then and becomes at least one automated
 | AC-118 | Given a file with a recipe's single and double batch, then one draft "Kansas Corn Bake" is made with servings 6–8, pan 8x12 and five headed steps; its notes hold the double batch's pan, times, steps and doneness notes; the review offers "Import it as its own recipe", which makes the second draft. |
 | AC-119 | Given a recipe whose steps are headed by bold lines and whose ingredients hold two versions of a sauce, then five headed steps are made, indented bullets stay in step 5, italics are removed, and the review warns about the two sauces. |
 | AC-137 | Given the street corn import with "Sauce (Side Dish)" and "Sauce (Taco Topping)", when the reviewer keeps Side Dish and chooses split, then two drafts "… (Side Dish)" and "… (Taco Topping)" are in the batch, each with the corn group and one sauce and no warning; keep-only leaves no Taco Topping lines; move-to-notes lists them in the notes. |
+| AC-138 | Given the wing sauce file (one title, an oil and a butter version, a 16 oz batch in the oil version), then two drafts "… (Homemade, Oil Based Sauce)" with 10 ingredients, 6 steps, Makes "about 1 1/2 cups", prep 5 / cook 5 / total 10 min and the 16 oz batch folded into its notes, and "… (Homemade, Butter Based Sauce)" with 8 ingredients, 5 steps, Makes "about 3/4 cup", prep 3 / cook 7 min; both have the shared description and the "Choosing the Right Sauce" notes; a stated yield is saved as Entered. |
+| AC-139 | Given a cake whose "For the cake" and "For the frosting" sections each have ingredients and steps but no facts of their own, or a file with one version heading, then one draft is made. |
+| AC-140 | Given "Yield: approximately 2 cups of dressing" (or "Approximately 1 1/2 cups of sauce" under a Yield heading), then Makes is "about 2 cups" ("about 1 1/2 cups"). |
+| AC-141 | Given an import with 1 cup hot sauce and 1/3 cup oil and no yield, then the review prefills Makes "about 1 1/3 cups" with a warning; saved unchanged the yield is Estimated; changed to 12 fl oz it is Entered. |
+| AC-142 | Given an import of 3 lb chicken wings, 2 eggs and 1/2 cup hot sauce with no yield, then Makes stays empty. |
+| AC-143 | Given an AI reply with two recipe-md documents (two versions, each with `yield:`), then two drafts are made with their yields; "Re-parse with AI" on the second draft of a two-version batch keeps the second version. |
+| AC-144 | Given any import review, then the editor form is a card, Save draft, Publish and Discard this import are in its sticky bar inside the card edges (also when AI-parsed), Discard posts with an antiforgery token, and the Import options box shows only when it has an option. |
 | AC-120 | Given two recipes titled "Chocolate Custard" and "Vanilla Custard" with overlapping ingredients at double amounts, then both are imported as separate drafts. |
 | AC-17 | Given the AI parser is disabled, then no request is made to any AI host during any import (asserted by test). Given it is enabled with the Claude provider, when a blog-prose fixture with no structure is imported, then a draft with ingredients and steps reaches the review screen with AI-parsed fields marked, and nothing is saved until the user confirms. |
 | AC-18 | Given an OpenAI-compatible endpoint at 192.168.1.50:11434 is configured, then calls to it succeed while any other private address is still refused; the saved API key never appears in the UI, logs or audit; when the monthly cap is reached, AI parsing pauses with a message and the rules-based parser is used; a model reply containing HTML or script is stored as inert text. |
@@ -1314,6 +1325,7 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
+- v0.32 (2026-11-25): Owner testing (ADR 0062). FR-IMP-04 — several versions of one recipe under one title. BR-133 — versions become drafts, a batch section inside one is folded; BR-134 — loose yield words and facts under Yield and time headings; BR-135 — an unstated Makes is prefilled with the ingredient estimate and saved as Estimated; BR-136 — the AI parser asks for the stated yield and one document per version, and re-parse keeps the matching version. AC-138 to AC-144 (AC-144: the review page's action bar).
 - v0.31 amendment (2026-11-25): AC-109 widened: `import-compare --url` compares a given page (owner: to try sites whose imports failed).
 - v0.31 (2026-11-25): BR-56 — markings on cups, spoons and jugs, used by the display planner (ADR 0018 amendment 1); AC-135. BR-57 — one measure of each size is enough; retiring the only measure of a size asks first (ADR 0018 amendment 1); AC-136. BR-132 — two versions of an ingredient group: keep one and drop, move to notes, or split (ADR 0056 amendment 1, D3 accepted); AC-137.
 - v0.30 (2026-11-25): BR-55 — an allergen check that cannot finish never reports a line as allergen-free (ADR 0036 amendment 1); AC-132. BR-49 — editable kitchen locations for staples (ADR 0057 amendment 1); AC-133. UX-15 — favicon, app icons and an installable web app manifest (ADR 0060); AC-134; 7.2 manifest and icon routes.

@@ -46,6 +46,18 @@ public abstract class RecipeEditorPageModel(TagService tags) : PageModel
     /// <summary>ADR 0025: extra fields inside the form (the review page's image and duplicate choices).</summary>
     public virtual string? ExtraPartial => null;
 
+    /// <summary>AC-144: an extra class on the editor form (the review page marks an AI-parsed draft).</summary>
+    public virtual string? FormClass => null;
+
+    /// <summary>
+    /// AC-144: the id of a separate form (outside the editor, as forms cannot nest) whose submit button sits in the
+    /// editor's sticky bar, e.g. the review page's "Discard this import"; null for none.
+    /// </summary>
+    public virtual string? SecondaryFormId => null;
+
+    /// <summary>The label of the <see cref="SecondaryFormId"/> button.</summary>
+    public virtual string? SecondaryFormLabel => null;
+
     /// <summary>W2 step 3: live parse of the ingredient lines, shown as chips (htmx partial; POST with antiforgery).</summary>
     public PartialViewResult OnPostParse() =>
         // By full path: the import review page (Pages/Manage/Import) shares this model and would not find it by name.

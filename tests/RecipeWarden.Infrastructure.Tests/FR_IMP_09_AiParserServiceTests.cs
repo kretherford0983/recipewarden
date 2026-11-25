@@ -279,6 +279,106 @@ public sealed class FR_IMP_09_AiParserServiceTests
         (await s.WithAsync(sp => sp.GetRequiredService<AppDbContext>().AiCallLogs.SingleAsync(Ct))).Purpose.ShouldBe(AiPurpose.Reparse);
     }
 
+    private const string TwoSauces = """
+        ---
+        format: recipe-md/1
+        title: "Wing Sauce (Oil Based)"
+        yield: approximately 1 1/2 cups of sauce
+        ---
+
+        ## Ingredients
+
+        - 1 cup hot sauce
+        - 1/3 cup oil
+
+        ## Steps
+
+        1. Heat and whisk.
+
+        ---
+        format: recipe-md/1
+        title: "Wing Sauce (Butter Based)"
+        yield: about 3/4 cup
+        ---
+
+        ## Ingredients
+
+        - 1/2 cup hot sauce
+        - 1/4 cup butter
+
+        ## Steps
+
+        1. Melt and whisk.
+        """;
+
+    [Fact]
+    [Trait("Req", "AC-143")]
+    [Trait("Req", "BR-136")]
+    public async Task One_reply_with_two_versions_gives_two_drafts_with_their_stated_yields()
+    {
+        await using var s = await Scope.CreateAsync();
+        s.ClaudeReplies(TwoSauces);
+        await s.ConfigureAsync(Claude());
+
+        var start = await s.WithAsync(sp => sp.GetRequiredService<ImportService>().StartPasteAsync(BlogProse, null, false, "u", Ct));
+
+        start.JobIds.Count.ShouldBe(2);
+        var oil = (await s.WithAsync(sp => sp.GetRequiredService<ImportService>().GetReviewAsync(start.JobIds[0], Ct)))!;
+        var butter = (await s.WithAsync(sp => sp.GetRequiredService<ImportService>().GetReviewAsync(start.JobIds[1], Ct)))!;
+        oil.Recipe.Title.ShouldBe("Wing Sauce (Oil Based)");
+        oil.Recipe.Yield.ShouldBe("about 1 1/2 cups");
+        oil.EstimatedYield.ShouldBeNull("the reply stated the yield");
+        butter.Recipe.Title.ShouldBe("Wing Sauce (Butter Based)");
+        butter.Recipe.Yield.ShouldBe("about 3/4 cup");
+        oil.ParsedByAi.ShouldBeTrue();
+        butter.ParsedByAi.ShouldBeTrue();
+        s.AiRequests.ShouldHaveSingleItem().Body.ShouldContain("yield:");
+    }
+
+    [Fact]
+    [Trait("Req", "AC-143")]
+    [Trait("Req", "BR-136")]
+    public async Task Reparse_of_one_version_keeps_that_version()
+    {
+        await using var s = await Scope.CreateAsync();
+        s.ClaudeReplies(TwoSauces);
+        await s.ConfigureAsync(Claude() with { Enabled = false });
+        var start = await s.WithAsync(sp => sp.GetRequiredService<ImportService>().StartPasteAsync("""
+            # Wing Sauce
+
+            ## Oil Based
+
+            - Makes about 1 1/2 cups
+
+            ### Ingredients
+            - 1 cup hot sauce
+            - 1/3 cup oil
+
+            ### Steps
+            1. Heat and whisk.
+
+            ## Butter Based
+
+            - Makes about 3/4 cup
+
+            ### Ingredients
+            - 1/2 cup hot sauce
+            - 1/4 cup butter
+
+            ### Steps
+            1. Melt and whisk.
+            """, null, false, "u", Ct));
+        start.JobIds.Count.ShouldBe(2);
+        await s.ConfigureAsync(Claude());
+
+        (await s.WithAsync(sp => sp.GetRequiredService<ImportService>().ReparseWithAiAsync(start.JobIds[1], Ct))).ShouldBeNull();
+
+        var butter = (await s.WithAsync(sp => sp.GetRequiredService<ImportService>().GetReviewAsync(start.JobIds[1], Ct)))!;
+        butter.Recipe.Title.ShouldBe("Wing Sauce (Butter Based)");
+        butter.Recipe.Ingredients.ShouldBe("1/2 cup hot sauce\n1/4 cup butter");
+        butter.ParsedByAi.ShouldBeTrue();
+    }
+
     [Theory]
     [InlineData("2", 1, null)]
     [InlineData("none", null, "no match")]

@@ -45,6 +45,9 @@ public sealed record ImportReview(int JobId, ImportSourceKind Kind, string Sourc
     /// <summary>FR-IMP-13: the photos the recipe was read from (shown on the review page) and whether to keep them.</summary>
     public int PhotoCount { get; init; }
     public bool KeepPhotos { get; init; }
+
+    /// <summary>BR-135: the ingredient estimate put in Makes because the import did not say; null when it did, or none.</summary>
+    public string? EstimatedYield { get; init; }
 }
 
 public sealed record ImportSaveResult(SaveOutcome? Outcome, bool NeedsDuplicateChoice, string? ImageWarning)
@@ -60,7 +63,7 @@ public sealed record ImportSaveResult(SaveOutcome? Outcome, bool NeedsDuplicateC
 /// </summary>
 public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptions options, SafeFetcher fetcher, RecipeService recipes,
     ImageStore images, Ai.AiParserService ai, Core.Python.IIngredientSecondOpinion secondOpinion, Core.Python.ISiteRecipeScraper siteReader,
-    SiteReaderSettings siteReaders, TimeProvider clock)
+    SiteReaderSettings siteReaders, Measurement.FoodCatalogService foods, TimeProvider clock)
 {
     public static readonly TimeSpan KeepFor = TimeSpan.FromDays(30);
 
@@ -375,18 +378,18 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
         }
 
         var parsed = await ai.ParseAsync(text, AiPurpose.Import, ct).ConfigureAwait(false);
-        if (parsed.Recipe is { } recipe)
+        if (parsed.Recipes.Count > 0)
         {
+            // BR-136: one draft per recipe or version in the reply, each with the page's credit.
             var first = rules.Recipes.Count > 0 ? rules.Recipes[0] : null;
-            recipe = recipe with
+            return new ReadResult(parsed.Recipes.Select(recipe => recipe with
             {
                 SourceType = first?.SourceType ?? (page is null ? recipe.SourceType : SourceType.Web),
                 SourceUrl = first?.SourceUrl ?? page?.AbsoluteUri ?? recipe.SourceUrl,
                 SourceName = first?.SourceName ?? (page is null ? recipe.SourceName : HostName(page)),
                 SourceAuthor = first?.SourceAuthor ?? recipe.SourceAuthor,
                 ImageUrl = first?.ImageUrl ?? recipe.ImageUrl,
-            };
-            return new ReadResult([recipe], null);
+            }).ToList(), null);
         }
 
         if (rules.Error is not null || parsed.Error is null)
@@ -440,19 +443,20 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
             parsed = await ai.ParseAsync(text, AiPurpose.Reparse, cancellationToken).ConfigureAwait(false);
         }
 
-        if (parsed.Recipe is null)
+        var before = Parsed(job);
+        if (AiParserRules.PickForDraft(parsed.Recipes, before.Title) is not { } picked)
         {
             return parsed.Error;
         }
 
-        var before = Parsed(job);
-        var recipe = parsed.Recipe with
+        // BR-136: the whole file is sent again; this draft keeps the version that matches it.
+        var recipe = picked with
         {
-            SourceType = before.SourceType ?? parsed.Recipe.SourceType,
-            SourceUrl = before.SourceUrl ?? parsed.Recipe.SourceUrl,
-            SourceName = before.SourceName ?? parsed.Recipe.SourceName,
-            SourceAuthor = before.SourceAuthor ?? parsed.Recipe.SourceAuthor,
-            ImageUrl = before.ImageUrl ?? parsed.Recipe.ImageUrl,
+            SourceType = before.SourceType ?? picked.SourceType,
+            SourceUrl = before.SourceUrl ?? picked.SourceUrl,
+            SourceName = before.SourceName ?? picked.SourceName,
+            SourceAuthor = before.SourceAuthor ?? picked.SourceAuthor,
+            ImageUrl = before.ImageUrl ?? picked.ImageUrl,
         };
         job.ParsedJson = JsonSerializer.Serialize(recipe, Json);
         job.WarningsJson = JsonSerializer.Serialize(await WarningsAsync(recipe, cancellationToken).ConfigureAwait(false), Json);
@@ -520,13 +524,45 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
         var batch = await db.ImportJobs.AsNoTracking().Where(j => j.BatchId == job.BatchId).OrderBy(j => j.Id)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
         var warnings = JsonSerializer.Deserialize<List<ImportWarning>>(job.WarningsJson, Json) ?? [];
+
+        // BR-135: worked out on view, so a later fix to the food catalogue or the ingredient lines is used.
+        var estimate = job.Status == ImportStatus.Review ? await EstimateAsync(recipe, cancellationToken).ConfigureAwait(false) : null;
+        if (estimate is not null)
+        {
+            recipe = recipe with { Yield = estimate.Text };
+            warnings.Add(new ImportWarning(ImportYieldRules.Warning(estimate)));
+        }
+
         return new ImportReview(job.Id, job.SourceKind, job.SourceRef, job.Status, recipe, warnings, job.ImageUrl, job.CopyImage, duplicate,
             job.CreatedRecipeId, batch.Count > 1 ? batch.Select(Summary).ToList() : [])
         {
             ParsedByAi = job.ParsedByAi,
             PhotoCount = job.PhotoCount,
             KeepPhotos = job.KeepPhotos,
+            EstimatedYield = estimate?.Text,
         };
+    }
+
+    /// <summary>
+    /// BR-135 (owner decision Q2): when the import states no yield, the BR-111 estimate from its ingredient lines
+    /// (foods matched as on save), or null when there is no usable estimate.
+    /// </summary>
+    private async Task<YieldPrefill?> EstimateAsync(ImportedRecipe recipe, CancellationToken ct)
+    {
+        if (!string.IsNullOrWhiteSpace(recipe.Yield))
+        {
+            return null;
+        }
+
+        var parses = ImportReader.IngredientParses(recipe.Ingredients);
+        if (parses.Count == 0)
+        {
+            return null;
+        }
+
+        var matcher = await foods.LoadMatcherAsync(ct).ConfigureAwait(false);
+        var catalog = await foods.LoadCatalogAsync(ct).ConfigureAwait(false);
+        return ImportYieldRules.Prefill(parses.Select(p => new Core.Measurement.ScaleInput(p, matcher.Match(p.Name))).ToList(), catalog);
     }
 
     /// <summary>
@@ -587,6 +623,13 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
 
         var now = clock.GetUtcNow();
         var saved = await db.Recipes.SingleAsync(r => r.Id == outcome.Id, cancellationToken).ConfigureAwait(false);
+
+        // BR-135: the prefilled estimate, saved unchanged, stays an estimate (BR-111); a changed Makes is entered.
+        if (saved.YieldAmount is not null && await EstimateAsync(parsed, cancellationToken).ConfigureAwait(false) is { } estimate
+            && string.Equals(saved.YieldText, estimate.Text, StringComparison.Ordinal))
+        {
+            saved.YieldSource = Core.Kitchen.YieldSource.Estimated.ToString();
+        }
         if (locked || job.SourceKind is not ImportSourceKind.Paste)
         {
             saved.SourceImportedAt = now;

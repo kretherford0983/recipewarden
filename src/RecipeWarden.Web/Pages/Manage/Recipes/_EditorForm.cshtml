@@ -45,7 +45,7 @@
     </table>
 }
 
-<form method="post" action="@Model.FormAction" class="editor" id="recipe-editor" asp-antiforgery="true">
+<form method="post" action="@Model.FormAction" class="@(Model.FormClass is { } formClass ? "editor " + formClass : "editor")" id="recipe-editor" asp-antiforgery="true">
     <input type="hidden" asp-for="Input.Version">
 
     <div class="field">
@@ -267,6 +267,10 @@ For the filling:
     <div class="actions sticky-actions">
         <button type="submit" name="Action" value="draft">Save draft</button>
         <button type="submit" name="Action" value="publish" class="primary">Publish</button>
+        @if (Model.SecondaryFormId is { } secondaryForm)
+        {
+            <button type="submit" form="@secondaryForm" formnovalidate class="push-end">@Model.SecondaryFormLabel</button>
+        }
     </div>
 </form>
 <script src="~/js/editor.js" asp-append-version="true" defer></script>

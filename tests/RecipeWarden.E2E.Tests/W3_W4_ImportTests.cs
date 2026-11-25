@@ -85,6 +85,67 @@ public sealed class W3_W4_ImportTests(BrowserHost host) : IClassFixture<BrowserH
     }
 
     [Fact]
+    [Trait("Req", "AC-144")]
+    public async Task W4_the_review_bar_sits_inside_the_card_and_discards_from_the_bar()
+    {
+        await host.CreateUserAsync("w4-bar@example.com", AppRoles.Editor);
+        await using var context = await host.NewContextAsync();
+        var page = await context.NewPageAsync();
+        await BrowserHost.SignInAsync(page, "w4-bar@example.com");
+        var md = "# W4 Bar Sauce\n## Ingredients\n- 1 cup hot sauce\n- 1/3 cup oil\n## Steps\n1. Whisk.";
+
+        await page.GotoAsync("/manage/import");
+        await page.Locator("#files").SetInputFilesAsync(new FilePayload { Name = "bar.md", MimeType = "text/markdown", Buffer = Encoding.UTF8.GetBytes(md) });
+        await page.GetByRole(AriaRole.Button, new() { Name = "Import files" }).ClickAsync();
+        await page.WaitForURLAsync("**/review");
+        var review = new Uri(page.Url).AbsolutePath;
+        var folder = Environment.GetEnvironmentVariable("RW_SCREENSHOTS");
+
+        await Assertions.Expect(page.Locator("#Input_Yield")).ToHaveValueAsync("about 1 1/3 cups");
+        await Assertions.Expect(page.Locator("fieldset.review-options")).ToHaveCountAsync(0);
+        await BarFitsAsync(page);
+        await ShootAsync(page, folder, "review-bar");
+
+        // The same with the AI marker (ADR 0042): the accent edge must not push the bar out of the card.
+        await using (var scope = host.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<RecipeWarden.Infrastructure.Data.AppDbContext>();
+            var id = int.Parse(review.Split('/')[3], System.Globalization.CultureInfo.InvariantCulture);
+            var job = await db.ImportJobs.FindAsync([id], TestContext.Current.CancellationToken);
+            job!.ParsedByAi = true;
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        await page.ReloadAsync();
+        await Assertions.Expect(page.Locator("form#recipe-editor.ai-parsed")).ToHaveCountAsync(1);
+        await BarFitsAsync(page);
+        await ShootAsync(page, folder, "review-bar-ai");
+
+        await page.Locator(".sticky-actions").GetByRole(AriaRole.Button, new() { Name = "Discard this import" }).ClickAsync();
+        await page.WaitForURLAsync("**/manage/import");
+        await Assertions.Expect(page.Locator("main")).Not.ToContainTextAsync("W4 Bar Sauce");
+    }
+
+    private static async Task BarFitsAsync(IPage page)
+    {
+        var form = (await page.Locator("form#recipe-editor").BoundingBoxAsync())!;
+        var bar = (await page.Locator("form#recipe-editor .sticky-actions").BoundingBoxAsync())!;
+        bar.X.ShouldBeGreaterThanOrEqualTo(form.X, "the bar starts inside the card");
+        (bar.X + bar.Width).ShouldBeLessThanOrEqualTo(form.X + form.Width + 0.5f, "the bar ends inside the card");
+        var buttons = page.Locator(".sticky-actions button");
+        await Assertions.Expect(buttons).ToHaveTextAsync(["Save draft", "Publish", "Discard this import"]);
+    }
+
+    private static async Task ShootAsync(IPage page, string? folder, string name)
+    {
+        if (folder is { Length: > 0 })
+        {
+            Directory.CreateDirectory(folder);
+            await page.ScreenshotAsync(new PageScreenshotOptions { Path = Path.Combine(folder, name + ".png"), FullPage = true });
+        }
+    }
+
+    [Fact]
     [Trait("Req", "W2")]
     [Trait("Req", "ADR-0022")]
     public async Task W2_add_a_finish_photo_on_a_phone()
