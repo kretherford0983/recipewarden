@@ -24,3 +24,13 @@ prefers weight for "dry solids", but no data says which foods are dry solids.
 ## Consequences
 - AC-32 and AC-33 are tested against the Core planner and through the page.
 - A household that weighs liquids can still choose the Weight view.
+
+## Amendment 1 (2026-11-25): markings and one of each size (BR-56, BR-57)
+The owner measures with a marked Pyrex jug (4 cups by ½, 1 quart by ⅓, 1000 ml by 100) and an Adjust-A-Cup (⅛ to
+1 cup by ⅛). Cups, spoons and jugs gain optional markings, one set per line, stored on the tool as
+"unit min max step" sets. The planner treats a mark as one fill and uses at most one mark per amount, filling the rest
+with fixed measures; with equal fills the fixed-only plan wins, so existing displays only change where a mark saves a
+fill. Jugs without markings stay ignored by the planner (the owner: jugs are rare in modern recipes). How a cook gets
+an amount (one cup or two halves) is theirs to choose, so My Kitchen says one measure of each size is enough; a second
+one only guards against retiring the last of a size. Retiring the only active measure of a size asks first and lists
+the sizes lost; after a retire the page names the tools that still cover its sizes.

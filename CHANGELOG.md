@@ -29,6 +29,11 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 - Allergens: if checking an ingredient line ever takes too long, the recipe now shows "May contain" for every allergen
   instead of none, and the "free of" filter leaves it out until it is checked again (BR-55).
 - Staples: kitchen locations can be added, renamed, reordered and removed on Manage → Staples (BR-49).
+- My Kitchen: measuring cups, spoons and jugs can list their markings ("4 cups by 1/2", "1000 ml by 100",
+  "1/8 to 1 cup by 1/8" for an adjustable cup); recipes use a mark when it saves a fill (BR-56). The page says one
+  measure of each size is enough, and retiring the only measure of a size asks first (BR-57).
+- Import review: when a recipe lists two versions of an ingredient group (a side-dish and a taco-topping sauce), pick
+  the one to keep and drop the other, move it to the notes, or split into separate recipes (BR-132).
 
 ### Owner testing feedback (ADR 0055 to 0057)
 - My Kitchen: the form shows only the fields for the chosen type, the scale's step is called "Resolution (smallest

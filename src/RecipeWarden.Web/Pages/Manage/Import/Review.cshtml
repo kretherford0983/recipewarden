@@ -125,7 +125,7 @@
     @* BR-132: two versions of one ingredient group; the reviewer picks one and what happens to the rest. *@
     var versions = BatchRules.Versions(review.Recipe.Ingredients, name);
     var key = "versions-" + System.Text.RegularExpressions.Regex.Replace(name.ToLowerInvariant(), "[^a-z0-9]+", "-");
-    <section class="notice versions" aria-labelledby="@key-heading">
+    <section class="guide versions" aria-labelledby="@key-heading">
         <h2 id="@key-heading">Two versions of “@name”</h2>
         <p>Shopping lists and nutrition would count every version. Choose the one to keep, then what to do with the other@(versions.Count > 2 ? "s" : "").
             Changes you have made in the form below are not kept, so do this first.</p>

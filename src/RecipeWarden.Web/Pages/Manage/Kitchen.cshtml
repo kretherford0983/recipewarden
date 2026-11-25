@@ -11,7 +11,7 @@
     you fit a recipe to a container or scale a baked recipe. Appliances and thermometers are kept for your records.
     Inventory version @Model.Version.</p>
 <script src="~/js/kitchen.js" asp-append-version="true" defer></script>
-<aside class="notice kitchen-guide" aria-label="How My Kitchen works">
+<aside class="guide kitchen-guide" aria-label="How My Kitchen works">
     @* BR-57: what the app needs from this page. *@
     <p><strong>One of each size is enough.</strong> Recipes use any size you have, whatever you measure it with: a 1 cup
         measure, the 1 cup line on a jug, or an adjustable cup set to 1 cup. Listing more than one tool for the same size
@@ -20,7 +20,7 @@
 </aside>
 @if (Model.ConfirmRetire is { } pending)
 {
-    <section class="notice warning" role="alert" aria-labelledby="confirm-retire-heading">
+    <section class="guide confirm-retire" role="alert" aria-labelledby="confirm-retire-heading">
         <h2 id="confirm-retire-heading">Retire @(string.IsNullOrWhiteSpace(pending.Tool.Name) ? KitchenRules.Describe(pending.Tool) : pending.Tool.Name)?</h2>
         <p>Retiring this leaves you without @string.Join(", ", pending.Lost). Recipes will make those amounts from other sizes
             (or say so), until you add a replacement.</p>

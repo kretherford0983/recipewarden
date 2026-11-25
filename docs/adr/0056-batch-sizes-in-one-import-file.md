@@ -1,6 +1,6 @@
 # ADR 0056: Batch sizes and variations in one import file
 
-- Status: Accepted for D1 and D2 (owner, 2026-11-24); D3 proposed (for owner review).
+- Status: Accepted for D1 and D2 (owner, 2026-11-24); D3 accepted as amended (owner, 2026-11-25, amendment 1).
 - Requirements: FR-IMP-04, FR-IMP-06; new BR-124 to BR-127, AC-117 to AC-120.
 
 ## Context
@@ -30,3 +30,10 @@ into its own draft and mis-read dividers, bulleted servings and times, bold step
 Pure Core rules (`BatchRules`, `NutritionText.FromLabelLines`, `StepTextRules`); the owner's three files are test
 fixtures. A plain bullet in a numbered step list ("- " directly under "2.") now needs whitespace after it to count as
 a bullet ("-Item" is text).
+
+## Amendment 1 (2026-11-25): D3 choices (BR-132)
+The owner kept the warning and asked for three choices on the review page, after picking the version to keep: keep it
+and drop the others (no notes); keep it and move the others to the notes, as a bulleted list under their heading; or
+split into separate drafts in the same batch, one per version, titled "Title (Version)", each keeping the groups
+shared by all versions. The choice is applied to the parsed import, so edits made in the review form before it are
+not kept (the page says so). Any choice removes the warning.
