@@ -175,11 +175,17 @@ pythonSelftest.SetAction(async (parse, ct) =>
 root.Subcommands.Add(pythonSelftest);
 
 // import-compare (AC-109, D6; ADR 0051)
-var importCompare = new Command("import-compare", "Compare saved URL imports read by the .NET extractor and by site readers (reads only)");
+var compareUrl = new Option<string[]>("--url")
+{
+    Description = "Fetch this page and compare it instead of the saved imports (repeatable; nothing is saved)",
+    AllowMultipleArgumentsPerToken = false,
+};
+var importCompare = new Command("import-compare", "Compare saved URL imports (or --url pages) read by the .NET extractor and by site readers");
+importCompare.Options.Add(compareUrl);
 importCompare.SetAction(async (parse, ct) =>
 {
     var config = CliConfig.Load(CliConfig.ResolvePath(parse.GetValue(configOption)));
-    return await ImportCompareCommand.RunAsync(config, Console.Out, Console.Error, ct);
+    return await ImportCompareCommand.RunAsync(config, Console.Out, Console.Error, parse.GetValue(compareUrl) ?? [], ct);
 });
 root.Subcommands.Add(importCompare);
 

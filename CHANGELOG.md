@@ -5,6 +5,11 @@ The first feature branch of a new release bumps `<VersionPrefix>` in `Directory.
 
 ## 1.0.0 — unreleased
 
+### import-compare --url
+- `recipewarden import-compare --url <address>` fetches a page (through the same checks as a URL import) and compares
+  the normal reading with the site reader's, saving nothing; repeat `--url` for several. Pages that fail to import
+  are never saved, so this is how to try them (AC-109). A page that cannot be fetched is reported with the reason.
+
 ### Site readers for web imports (M10, ADR 0059)
 - When a page's recipe data (JSON-LD or microdata) is missing or incomplete, recipe-scrapers' reader for that site can
   read the same HTML; a complete reading replaces the .NET one (FR-IMP-12, BR-117). Off by default: turn it on under

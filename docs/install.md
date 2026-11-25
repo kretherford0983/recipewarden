@@ -123,6 +123,7 @@ good. When off or not working, both features use the built-in behaviour.
 ```bash
 sudo recipewarden python-selftest   # check the bundled worker (exit 0 passed)
 sudo recipewarden import-compare    # after a few weeks of URL imports: would site-specific readers have helped? (reads only)
+sudo recipewarden import-compare --url https://example.com/recipe   # try one page (repeat --url for more); saves nothing
 ```
 
 ## Cloudflare Access (SEC-64)
