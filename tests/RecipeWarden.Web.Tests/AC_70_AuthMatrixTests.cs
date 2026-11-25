@@ -31,6 +31,7 @@ public sealed class AC_70_AuthMatrixTests(RecipeWardenFactory factory) : IClassF
     {
         ["/"] = Access.Anonymous,
         ["/health"] = Access.Anonymous,
+        ["/manifest.webmanifest"] = Access.Anonymous, // UX-15, ADR 0060
         ["/error"] = Access.Anonymous,          // SEC-73 generic error page (not listed in 7.2; see traceability notes)
         ["/account/login"] = Access.Anonymous,
         ["/account/logout"] = Access.SignedIn,

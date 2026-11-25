@@ -81,7 +81,14 @@ public static class AllergenRules
 
     private static Regex Words(IEnumerable<string> words) =>
         new(@"\b(?:" + string.Join('|', words.OrderByDescending(w => w.Length).Select(w => Regex.Escape(w).Replace(@"\ ", @"\s+", StringComparison.Ordinal)))
-            + @")(?:s|es)?\b", RegexOptions.CultureInvariant | RegexOptions.Compiled, TimeSpan.FromMilliseconds(250));
+            + @")(?:s|es)?\b", RegexOptions.CultureInvariant | RegexOptions.Compiled, MatchTimeout);
+
+    /// <summary>
+    /// BR-55: the word lists are literal alternations (no nested repeats), so a match is linear in the line's length; the
+    /// limit only guards against a stalled host. It is generous because a busy host once hit the old 250 ms on an
+    /// ordinary line and the line silently lost its allergens.
+    /// </summary>
+    private static readonly TimeSpan MatchTimeout = TimeSpan.FromSeconds(2);
 
     private static Rule R(AllergenCode code, AllergenStatus status, string[] include, string[]? exclude = null) =>
         new(code, status, Words(include), exclude is null ? null : Words(exclude));
@@ -153,14 +160,27 @@ public static class AllergenRules
         return " " + string.Join(' ', sb.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries)) + " ";
     }
 
-    /// <summary>The allergens one ingredient (its line text and, if matched, its food's name) contains or may contain.</summary>
-    public static IReadOnlyDictionary<AllergenCode, AllergenStatus> Detect(string? lineText, string? foodName = null)
+    /// <summary>
+    /// The allergens one ingredient (its line text and, if matched, its food's name) contains or may contain. BR-55: a
+    /// line that cannot be checked is never reported as free of allergens; it may contain every one (fail safe).
+    /// </summary>
+    public static IReadOnlyDictionary<AllergenCode, AllergenStatus> Detect(string? lineText, string? foodName = null) =>
+        TryDetect(lineText, foodName, (regex, text) => regex.IsMatch(text), out var found) ? found : Unchecked;
+
+    /// <summary>BR-55: what an ingredient line that could not be checked may contain: everything.</summary>
+    public static IReadOnlyDictionary<AllergenCode, AllergenStatus> Unchecked { get; } =
+        All.ToFrozenDictionary(c => c, _ => AllergenStatus.MayContain);
+
+    /// <summary>The check itself; false when a match timed out (<paramref name="isMatch"/> is replaceable for tests).</summary>
+    internal static bool TryDetect(string? lineText, string? foodName, Func<Regex, string, bool> isMatch,
+        out IReadOnlyDictionary<AllergenCode, AllergenStatus> result)
     {
         var text = Normalize(lineText + " " + foodName);
         var found = new Dictionary<AllergenCode, AllergenStatus>();
+        result = found;
         if (text.Trim().Length == 0)
         {
-            return found;
+            return true;
         }
 
         try
@@ -168,7 +188,7 @@ public static class AllergenRules
             foreach (var rule in Rules)
             {
                 var checkText = rule.Exclude is null ? text : rule.Exclude.Replace(text, " ");
-                if (!rule.Include.IsMatch(checkText))
+                if (!isMatch(rule.Include, checkText))
                 {
                     continue;
                 }
@@ -181,7 +201,7 @@ public static class AllergenRules
 
             foreach (var (words, removes) in Suppressors)
             {
-                if (words.IsMatch(text))
+                if (isMatch(words, text))
                 {
                     foreach (var code in removes)
                     {
@@ -192,20 +212,26 @@ public static class AllergenRules
         }
         catch (RegexMatchTimeoutException)
         {
-            // An absurd line: nothing detected for it rather than a hang.
+            return false; // BR-55: never "nothing found" for a line that was not checked
         }
 
-        return found;
+        return true;
     }
 
     /// <summary>Merges lines: Contains beats May contain.</summary>
     public static IReadOnlyDictionary<AllergenCode, AllergenStatus> ForRecipe(IEnumerable<(string Line, string? Food)> lines)
     {
         ArgumentNullException.ThrowIfNull(lines);
+        return Merge(lines.Select(l => Detect(l.Line, l.Food)));
+    }
+
+    internal static IReadOnlyDictionary<AllergenCode, AllergenStatus> Merge(IEnumerable<IReadOnlyDictionary<AllergenCode, AllergenStatus>> perLine)
+    {
+        ArgumentNullException.ThrowIfNull(perLine);
         var result = new Dictionary<AllergenCode, AllergenStatus>();
-        foreach (var (line, food) in lines)
+        foreach (var line in perLine)
         {
-            foreach (var (code, status) in Detect(line, food))
+            foreach (var (code, status) in line)
             {
                 if (!result.TryGetValue(code, out var existing) || (existing == AllergenStatus.MayContain && status == AllergenStatus.Contains))
                 {

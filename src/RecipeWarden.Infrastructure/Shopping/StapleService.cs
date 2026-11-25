@@ -4,6 +4,7 @@ using RecipeWarden.Core.Organization;
 using RecipeWarden.Core.Shopping;
 using RecipeWarden.Infrastructure.Data;
 using RecipeWarden.Infrastructure.Measurement;
+using RecipeWarden.Infrastructure.Settings;
 
 namespace RecipeWarden.Infrastructure.Shopping;
 
@@ -13,21 +14,47 @@ namespace RecipeWarden.Infrastructure.Shopping;
 /// from /manage/conversions); its <see cref="Staple"/> row holds where it lives and the usual amount, and is made on
 /// demand. Rows without a food are non-food staples.
 /// </summary>
-public sealed class StapleService(AppDbContext db, FoodCatalogService foods, TimeProvider clock)
+public sealed class StapleService(AppDbContext db, FoodCatalogService foods, SettingsStore settings, TimeProvider clock)
 {
+    /// <summary>BR-49: the kitchen locations in walking order ("Other" last).</summary>
+    public async Task<IReadOnlyList<string>> LocationsAsync(CancellationToken cancellationToken = default) =>
+        StapleRules.ParseLocations(await settings.GetAsync(SettingKeys.StapleLocations, cancellationToken).ConfigureAwait(false));
+
+    /// <summary>BR-49: saves the location editor; staples follow a renamed location, and a removed one's go to "Other".</summary>
+    public async Task<string?> SaveLocationsAsync(IReadOnlyList<LocationEdit> rows, CancellationToken cancellationToken = default)
+    {
+        var current = await LocationsAsync(cancellationToken).ConfigureAwait(false);
+        var (locations, moves, error) = StapleRules.EditLocations(current, rows);
+        if (error is not null)
+        {
+            return error;
+        }
+
+        var staples = await db.Staples.Where(s => moves.Keys.Contains(s.Location)).ToListAsync(cancellationToken).ConfigureAwait(false);
+        foreach (var staple in staples)
+        {
+            staple.Location = moves[staple.Location];
+        }
+
+        await settings.SetAsync(SettingKeys.StapleLocations, string.Join('\n', locations), cancellationToken).ConfigureAwait(false);
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return null;
+    }
+
     /// <summary>Every staple: flagged foods (with their details when saved) and non-food staples.</summary>
     public async Task<IReadOnlyList<StapleInfo>> ListAsync(CancellationToken cancellationToken = default)
     {
+        var locations = await LocationsAsync(cancellationToken).ConfigureAwait(false);
         var rows = await db.Staples.AsNoTracking().ToListAsync(cancellationToken).ConfigureAwait(false);
         var byFood = rows.Where(r => r.FoodId is not null).ToDictionary(r => r.FoodId!.Value);
         var flagged = await db.Foods.AsNoTracking().Where(f => f.IsPantryStaple).Select(f => new { f.Id, f.Name })
             .ToListAsync(cancellationToken).ConfigureAwait(false);
         var list = flagged.Select(f => byFood.TryGetValue(f.Id, out var r)
                 ? new StapleInfo(r.Id, f.Id, f.Name, r.Location, r.Restock, r.Section, r.LastRestockedAt)
-                : new StapleInfo(0, f.Id, f.Name, StapleRules.DefaultLocation, null, null, null))
+                : new StapleInfo(0, f.Id, f.Name, StapleRules.DefaultFor(locations), null, null, null))
             .Concat(rows.Where(r => r.FoodId is null).Select(r => new StapleInfo(r.Id, null, r.Name, r.Location, r.Restock, r.Section, r.LastRestockedAt)))
             .ToList();
-        return StapleRules.ByLocation(list).SelectMany(g => g).ToList();
+        return StapleRules.ByLocation(list, locations).SelectMany(g => g).ToList();
     }
 
     /// <summary>Adds a staple: a name the catalogue knows becomes a food staple, anything else a non-food staple.</summary>
@@ -35,7 +62,8 @@ public sealed class StapleService(AppDbContext db, FoodCatalogService foods, Tim
     {
         var clean = ImportText.Line(name);
         section = string.IsNullOrWhiteSpace(section) ? null : section;
-        if (StapleRules.Validate(clean, location, restock, section) is { } error)
+        var locations = await LocationsAsync(cancellationToken).ConfigureAwait(false);
+        if (StapleRules.Validate(clean, location, restock, section, locations) is { } error)
         {
             return error;
         }
@@ -100,7 +128,7 @@ public sealed class StapleService(AppDbContext db, FoodCatalogService foods, Tim
             return StapleRules.NameRequired;
         }
 
-        if (StapleRules.Validate(row?.Name ?? food!.Name, location, restock, section) is { } error)
+        if (StapleRules.Validate(row?.Name ?? food!.Name, location, restock, section, await LocationsAsync(cancellationToken).ConfigureAwait(false)) is { } error)
         {
             return error;
         }

@@ -1,6 +1,6 @@
-# RecipeWarden — Specification v0.29
+# RecipeWarden — Specification v0.30
 
-Version 0.29 · 2026-11-24
+Version 0.30 · 2026-11-25
 
 ## 1. Overview
 
@@ -321,6 +321,7 @@ These rules are enforced in the domain layer (not only the UI) and each has unit
 | BR-46 | Unanswered staples do not stop a list from finishing; the heading shows "N staples to check" while any are unanswered. |
 | BR-47 | Ticking a restock item records when its staple was last bought; the walk-through shows "last bought 3 weeks ago". |
 | BR-48 | A shopping line records whether its food was a staple when it was added, so changing the staples list never moves items on open lists. |
+| BR-49 | (ADR 0057 amendment 1) Editors can add, rename, reorder and remove the staples' kitchen locations (at most 20, names up to 24 characters, each once). A renamed location keeps its staples; a removed one's staples move to "Other", which is always last and cannot be renamed or removed. |
 
 ### 4.6 Nutrition and allergens
 
@@ -331,6 +332,7 @@ These rules are enforced in the domain layer (not only the UI) and each has unit
 | BR-52 | Allergen detection uses the ingredient catalogue mapping plus keyword rules; manual overrides win and survive re-detection. |
 | BR-53 | (M6, ADR 0009) A "free of" filter excludes any recipe with that allergen detected or manually set, and also recipes with unmatched ingredients unless the user chooses "include unverified". |
 | BR-54 | Nutrition data is local only: the app never calls a nutrition service. Mapping precedence for an ingredient: Editor mapping > custom food > automatic name/alias match. Unmapped ingredients lower completeness (BR-50) and appear in the unmatched report. |
+| BR-55 | (ADR 0036 amendment 1) An ingredient line the allergen check cannot finish is never reported as free of allergens: it may contain every allergen until the recipe is checked again. The check's time limit is 2 s (the word lists match in time linear in the line's length). |
 | BR-116 | (FR-NUT-07) A food suggestion is shown only if its FDC id matches a local, non-removed `NutrientRef`, with confidence ≥ 0.75; it is never applied without an Editor; precedence stays Editor mapping > custom food > automatic exact match (BR-54). Dismissed suggestions are not shown again for that name and engine version. |
 
 ### 4.7 Backups
@@ -545,6 +547,7 @@ The site should feel like a well-designed cookbook: calm, readable, fast, and us
 | UX-12 | Print uses a dedicated stylesheet: black on white, no images except optional finish image thumbnail, ingredient checkboxes, page-break avoidance inside steps. |
 | UX-14 | The recipe page works with the browser's reader mode (Safari Reader, Chrome Reading mode, Firefox Reader View): one article marked as a schema.org Recipe, each ingredient line and step a paragraph, `og:type=article` with a description in the head, schema.org Recipe JSON-LD for Safari HomeView and search engines (ADR 0050 and amendment 1: yield in servings, whole description, absolute image addresses, `HowToSection` for named step sections, category and cuisine from typed tags, total time from prep + cook when not given, calories only from a complete estimate, no rating), tools in asides, and the reader shows the description, ingredients (with groups), steps and notes without the page's controls (ADR 0048). |
 | UX-13 | One design system (ADR 0047, docs/ui-standards.md): shared colour tokens in both themes, one control height, labelled fields that line up, cards, pills, original line icons. A rule changes in the standards and the shared CSS, never on one page. Every main screen fits its window on a phone and a desktop in both themes. |
+| UX-15 | (ADR 0060) Every page links the tab icon (favicon.ico and an SVG), an Apple touch icon and a web app manifest named from the site name, with 192 and 512 px icons (plain and maskable), standalone display and a theme colour, so Chrome and Edge offer "Install" and phones "Add to home screen". The print view has the tab icon; the maintenance page carries it inline. No service worker: the site works online only. |
 
 ### 6.2 Key workflows
 
@@ -646,7 +649,8 @@ Three zones: public reading pages, `/manage` for editors, `/admin` for admins. T
 | `/shopping/new`, `/shopping/{id}` editing handlers | Create, start again, add a recipe (from the recipe page) or item, remove, delete | Editor |
 | `/shopping/{id}` `?handler=Staple` | Have it / Need it for a staple on the list (BR-44; antiforgery, the check-off rate limit) | Anonymous (ADR 0057) |
 | `/shopping/{id}/staples` | Staples walk-through: recipe staples, then the rest by location; adds restock items (FR-SHOP-05) | Editor |
-| `/manage/staples` | The household staples list: add, edit, remove (FR-SHOP-05) | Editor |
+| `/manage/staples` | The household staples list: add, edit, remove; kitchen locations (FR-SHOP-05, BR-49) | Editor |
+| `/manifest.webmanifest`, `/favicon.ico`, `/favicon.svg`, `/apple-touch-icon.png`, `/icons/*` | Web app manifest and icons (UX-15, ADR 0060) | Anonymous |
 | `/manage/recipes/new`, `/manage/recipes/{id}/edit` | Recipe editor | Editor |
 | `/manage/import` | Import from a URL, pasted text or HTML, files (ADR 0024) or photos when FR-IMP-13 applies (ADR 0058); imports waiting for review | Editor |
 | `/manage/import/{id}/review` | Review an import in the editor form, then save or discard (ADR 0025); a photo import's photos through `?handler=Photo&n=` (ADR 0058) | Editor |
@@ -1158,10 +1162,13 @@ Each criterion is written Given / When / Then and becomes at least one automated
 | AC-53 | Given staples eggs (Fridge, usual amount 1 dozen) and foil (household item, Under the sink) that no recipe needs, when Check staples is opened, then they appear after recipe staples, grouped by location in kitchen order; ticking eggs adds "egg 12" to Dairy and Eggs marked Restock. |
 | AC-54 | Given butter is both needed by a recipe and restocked, then one butter item shows both sources. |
 | AC-125 | Given an anonymous visitor, then /manage/staples and /shopping/{id}/staples redirect to sign-in; Have it / Need it needs a valid antiforgery token and only answers staples on that list; staple changes are audited. |
+| AC-133 | Given staples under "Under the sink" and "Freezer", when an Editor renames "Under the sink" to "Sink cupboard", moves it first, removes "Freezer" and adds "Garage", then the walk-through and the staples page list Sink cupboard first, its staples with it, the freezer's staples under Other, and Garage can be chosen. A duplicate name is refused. |
 | AC-55 | Given imported nutrition, then it displays labelled "from source"; given none, calculated values show with completeness %, and below 70% are labelled partial. |
 | AC-56 | Given "2 Tbsp soy sauce", then Soy and Wheat badges appear; an Editor override to remove Wheat (gluten-free tamari) persists after re-detection. |
+| AC-132 | Given an ingredient line whose allergen check times out, then the recipe may contain every allergen (no line is treated as allergen-free), and lines that were checked keep "Contains". |
 | AC-60 | Given 20+ recipes, then home shows a search box, up to 8 recommended, 8 recently added, collections and tag links, with no empty sections rendered. |
 | AC-61 | Given an anonymous visitor picks dark mode, when they return a week later, then the site loads in dark mode with no light flash. |
+| AC-134 | Given any page, then it links /favicon.ico, /favicon.svg, /apple-touch-icon.png and /manifest.webmanifest, all served anonymously; the manifest is named from the site name and lists icons that load; Chrome reports no installability error other than being in a private window. |
 | AC-57 | Given 3 recipes use "gochujang" with no match, then it tops the unmatched report with count 3; after an Editor maps it, all 3 recipes recalculate and their completeness rises. Given a custom food entered from a label (serving 30 g, 110 kcal), then 100 g is stored as about 367 kcal. |
 | AC-58 | Given a newer USDA dataset file is uploaded, then existing mappings are kept by USDA id, foods missing from the new set are flagged, the dataset version updates, and no network request is made at any point. |
 
@@ -1301,6 +1308,7 @@ Reuse this shape per milestone: "Start M<n> from section 9.10. In scope: <IDs>. 
 
 ## Changelog
 
+- v0.30 (2026-11-25): BR-55 — an allergen check that cannot finish never reports a line as allergen-free (ADR 0036 amendment 1); AC-132. BR-49 — editable kitchen locations for staples (ADR 0057 amendment 1); AC-133. UX-15 — favicon, app icons and an installable web app manifest (ADR 0060); AC-134; 7.2 manifest and icon routes.
 - v0.29 (2026-11-24): M10 site readers (ADR 0059): FR-IMP-12 and BR-117 revised (Admin switch `Import.SiteReaders`, off by default, replaces the config value); AC-131; 7.2 /admin/health; 9.10 M10.
 - v0.28 (2026-11-24): Photo import through the AI parser (ADR 0058, milestone M8b before M9). D-13; FR-IMP-13; BR-128 to BR-131; SEC-48; SEC-50 and SEC-52 clarified; W11; AC-126 to AC-130; 7.2 import and /admin/ai; 8.2 RecipeCardImage; 8.5 ImportJob photo fields; 9.3 and 9.10.
 - v0.27 (2026-11-24): Owner testing (ADR 0055 to 0057). Kitchen form fields and scale resolution (BR-120, BR-121); per-ingredient weights (FR-TOOL-05, BR-122, BR-123); batch sizes and variations in one import file and Markdown clean-up (BR-124 to BR-127); staples: FR-SHOP-03 changed to "Check before you buy", new FR-SHOP-05 restock walk-through, BR-43 to BR-48. 7.2 adds `/manage/staples`, `/shopping/{id}/staples` and the Staple handler; 8.2 RecipeIngredient.Measure; 8.5 Staple, ShoppingStapleCheck and ShoppingLine columns; ACs 51 (revised), 52 to 54, 113 to 120, 125.

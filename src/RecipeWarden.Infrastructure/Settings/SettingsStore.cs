@@ -10,6 +10,9 @@ namespace RecipeWarden.Infrastructure.Settings;
 public static class SettingKeys
 {
     public const string SiteName = "Site.Name";
+
+    /// <summary>BR-49: the staples' kitchen locations, one per line, in walking order.</summary>
+    public const string StapleLocations = "Shopping.StapleLocations";
     public const string DiskThresholds = "Health.DiskThresholds";
     public const string WebhookUrl = "Health.WebhookUrl";
     public const string WebhookFormat = "Health.WebhookFormat";

@@ -50,6 +50,7 @@
         @if (ViewData["Title"] is string ogTitle) { <meta property="og:title" content="@ogTitle"> }
         @if (ViewData["Description"] is string ogDescription) { <meta property="og:description" content="@ogDescription"> }
     }
+    <partial name="_AppIcons" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
     <script src="~/js/theme.js" asp-append-version="true" defer></script>
     <script src="~/lib/htmx/htmx.min.js" defer></script>

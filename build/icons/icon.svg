@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-7.2 -7.2 38.4 38.4">
+  <!-- RecipeWarden app icon (ADR 0060): the header logo, terracotta rounded square with the line icon in white. -->
+  <rect x="-7.2" y="-7.2" width="38.4" height="38.4" rx="10.8" fill="#a33f19"/>
+  <g fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 13.5h12v2.5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4z"/><path d="M8.5 13.5V11M15.5 13.5V11"/><path d="M7 11a3 3 0 0 1 1.5-5.6 3.5 3.5 0 0 1 7 0A3 3 0 0 1 17 11z"/></g>
+</svg>

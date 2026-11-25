@@ -104,4 +104,46 @@ public sealed partial class FR_SHOP_05_StaplePageTests
         (await editor.GetStringAsync("/manage/staples?done=removed", Ct)).ShouldNotContain("(household item)");
         (await editor.PostFormAsync("/manage/staples?handler=Remove", ("id", "999999"))).StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
+
+    [Fact]
+    [Trait("Req", "AC-133")]
+    [Trait("Req", "BR-49")]
+    public async Task Renaming_a_location_moves_its_staples_and_removing_one_sends_them_to_other()
+    {
+        await using var factory = new RecipeWardenFactory();
+        using var editor = await factory.SignInAsync("staple-locations@example.com");
+        (await editor.PostFormAsync("/manage/staples?handler=Add", ("name", "dish soap"), ("location", "Under the sink"))).StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        (await editor.PostFormAsync("/manage/staples?handler=Add", ("name", "ice pops"), ("location", "Freezer"))).StatusCode.ShouldBe(HttpStatusCode.Redirect);
+
+        var page = WebUtility.HtmlDecode(await editor.GetStringAsync("/manage/staples", Ct));
+        page.ShouldContain("Kitchen locations");
+        var rows = new List<(string, string)>();
+        var locations = new[] { "Fridge", "Freezer", "Pantry", "Spice rack", "Under the sink" };
+        for (var i = 0; i < locations.Length; i++)
+        {
+            var newName = locations[i] switch { "Under the sink" => "Sink cupboard", _ => locations[i] };
+            rows.Add(("original", locations[i]));
+            rows.Add(("name", newName));
+            rows.Add(("order", locations[i] == "Under the sink" ? "1" : (i + 2).ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        }
+
+        rows.Add(("remove", "1")); // Freezer
+        rows.Add(("original", ""));
+        rows.Add(("name", "Garage"));
+        rows.Add(("order", "9"));
+        (await editor.PostFormAsync("/manage/staples?handler=Locations", [.. rows])).StatusCode.ShouldBe(HttpStatusCode.Redirect);
+
+        var after = WebUtility.HtmlDecode(await editor.GetStringAsync("/manage/staples?done=locations", Ct));
+        after.ShouldContain("Locations saved.");
+        after.IndexOf("<h2>Sink cupboard</h2>", StringComparison.Ordinal).ShouldBeLessThan(after.IndexOf("<h2>Other</h2>", StringComparison.Ordinal));
+        after.ShouldNotContain("<h2>Freezer</h2>");
+        after.ShouldContain("<option value=\"Garage\">Garage</option>");
+        var sink = after.IndexOf("<h2>Sink cupboard</h2>", StringComparison.Ordinal);
+        after.IndexOf("dish soap", sink, StringComparison.Ordinal).ShouldBeGreaterThan(sink);
+        var other = after.IndexOf("<h2>Other</h2>", StringComparison.Ordinal);
+        after.IndexOf("ice pops", other, StringComparison.Ordinal).ShouldBeGreaterThan(other);
+
+        var bad = await editor.PostFormAsync("/manage/staples?handler=Locations", ("original", "Fridge"), ("name", "Garage"), ("original", "Garage"), ("name", "garage"));
+        bad.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+    }
 }
