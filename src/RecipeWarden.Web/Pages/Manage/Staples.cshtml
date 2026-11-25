@@ -22,7 +22,7 @@
             <div class="field">
                 <label for="staple-location">Where it lives</label>
                 <select id="staple-location" name="location">
-                    @foreach (var l in StapleRules.Locations) { <option value="@l" selected="@(l == StapleRules.DefaultLocation)">@l</option> }
+                    @foreach (var l in Model.Locations) { <option value="@l" selected="@(l == StapleRules.DefaultFor(Model.Locations))">@l</option> }
                 </select>
             </div>
             <div class="field">
@@ -68,7 +68,7 @@
                                 <input type="hidden" name="foodId" value="@s.FoodId">
                                 <label for="loc-@rowId">Where it lives</label>
                                 <select id="loc-@rowId" name="location">
-                                    @foreach (var l in StapleRules.Locations) { <option value="@l" selected="@(l == s.Location)">@l</option> }
+                                    @foreach (var l in Model.Locations) { <option value="@l" selected="@(l == s.Location)">@l</option> }
                                 </select>
                                 <label for="restock-@rowId">Usual amount</label>
                                 <input id="restock-@rowId" name="restock" value="@s.Restock" maxlength="@StapleRules.MaxRestockLength" size="10">
@@ -92,3 +92,44 @@
         </table>
     </section>
 }
+
+@* BR-49: the kitchen locations, in the order you walk round the kitchen. *@
+<section aria-labelledby="locations-heading">
+    <h2 id="locations-heading">Kitchen locations</h2>
+    <p class="hint">The walk-through visits these in order. Renaming a location moves its staples with it; removing one
+        moves its staples to Other. Other is always last.</p>
+    <form method="post" action="/manage/staples?handler=Locations" asp-antiforgery="true">
+        <table class="list">
+            <thead><tr><th scope="col">Order</th><th scope="col">Location</th><th scope="col">Remove</th></tr></thead>
+            <tbody>
+            @{ var editable = Model.Locations.Where(l => l != StapleRules.OtherLocation).ToList(); }
+            @for (var i = 0; i < editable.Count; i++)
+            {
+                <tr>
+                    <td><label class="visually-hidden" for="loc-order-@i">Order of @editable[i]</label>
+                        <input id="loc-order-@i" name="order" type="number" min="1" max="@StapleRules.MaxLocations" value="@(i + 1)" size="3"></td>
+                    <td>
+                        <input type="hidden" name="original" value="@editable[i]">
+                        <label class="visually-hidden" for="loc-name-@i">Location @(i + 1)</label>
+                        <input id="loc-name-@i" name="name" value="@editable[i]" maxlength="@StapleRules.MaxLocationLength" required>
+                    </td>
+                    <td><label><input type="checkbox" name="remove" value="@i"> <span class="visually-hidden">Remove @editable[i]</span></label></td>
+                </tr>
+            }
+            <tr>
+                <td><label class="visually-hidden" for="loc-order-new">Order of the new location</label>
+                    <input id="loc-order-new" name="order" type="number" min="1" max="@StapleRules.MaxLocations" value="@(editable.Count + 1)" size="3"></td>
+                <td>
+                    <input type="hidden" name="original" value="">
+                    <label for="loc-new">Add a location</label>
+                    <input id="loc-new" name="name" maxlength="@StapleRules.MaxLocationLength" placeholder="Garage freezer">
+                </td>
+                <td></td>
+            </tr>
+            <tr><td></td><td>@StapleRules.OtherLocation <span class="hint">(always last)</span></td><td></td></tr>
+            </tbody>
+        </table>
+        <p class="hint">Change the numbers to reorder; rows with the same number keep their order.</p>
+        <button type="submit">Save locations</button>
+    </form>
+</section>

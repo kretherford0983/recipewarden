@@ -65,7 +65,7 @@ public sealed class StaplesModel(ShoppingService shopping, StapleService staples
 
         FromRecipes = List.View.Pantry.Where(i => i.Answer is null).ToList();
         var onList = List.View.ToBuy.Concat(List.View.Pantry).Select(i => i.Key).ToHashSet(StringComparer.Ordinal);
-        Others = StapleRules.ByLocation((await staples.ListAsync(ct)).Where(s => !onList.Contains(Key(s))));
+        Others = StapleRules.ByLocation((await staples.ListAsync(ct)).Where(s => !onList.Contains(Key(s))), await staples.LocationsAsync(ct));
         return true;
     }
 }
