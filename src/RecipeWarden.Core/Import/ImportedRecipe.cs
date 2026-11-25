@@ -24,6 +24,9 @@ public enum ExtractionMethod
     Heuristic,
     RecipeMarkdown,
     Headings,
+
+    /// <summary>FR-IMP-12, BR-117: recipe-scrapers' site-specific reader (M10, ADR 0059).</summary>
+    SiteReader,
 }
 
 /// <summary>

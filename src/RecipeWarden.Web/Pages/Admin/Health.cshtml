@@ -106,6 +106,15 @@
         <form method="post" action="/admin/health?handler=PythonSelftest" asp-antiforgery="true"><button type="submit">Run the Python self-test</button></form>
     }
 </div>
+<p id="site-readers">Site readers for web imports: @(Model.SiteReadersEnabled ? "on" : "off")
+    <span class="hint">(ADR 0059: when a page's recipe data is missing or incomplete, recipe-scrapers' reader for that site is tried.
+    Run <code>sudo recipewarden import-compare</code> to see whether it would help before turning it on.)</span></p>
+<div class="actions">
+    <form method="post" action="/admin/health?handler=SiteReaderSwitch" asp-antiforgery="true">
+        <input type="hidden" name="enabled" value="@(Model.SiteReadersEnabled ? "false" : "true")">
+        <button type="submit">@(Model.SiteReadersEnabled ? "Turn site readers off" : "Turn site readers on")</button>
+    </form>
+</div>
 
 <h2>Maintenance</h2>
 <div class="actions">

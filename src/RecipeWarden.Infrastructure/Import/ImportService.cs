@@ -59,7 +59,8 @@ public sealed record ImportSaveResult(SaveOutcome? Outcome, bool NeedsDuplicateC
 /// recipe pipeline, keeps a web recipe's credit (BR-10), and copies the image only when ticked (BR-12, AC-11).
 /// </summary>
 public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptions options, SafeFetcher fetcher, RecipeService recipes,
-    ImageStore images, Ai.AiParserService ai, Core.Python.IIngredientSecondOpinion secondOpinion, TimeProvider clock)
+    ImageStore images, Ai.AiParserService ai, Core.Python.IIngredientSecondOpinion secondOpinion, Core.Python.ISiteRecipeScraper siteReader,
+    SiteReaderSettings siteReaders, TimeProvider clock)
 {
     public static readonly TimeSpan KeepFor = TimeSpan.FromDays(30);
 
@@ -94,7 +95,8 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
         }
 
         var pageUri = fetched.FinalUri ?? check.Uri!;
-        var read = await WithAiAsync(ImportReader.ReadPage(html, pageUri), () => HtmlText.PageText(html), pageUri, cancellationToken).ConfigureAwait(false);
+        var page = await WithSiteReaderAsync(ImportReader.ReadPage(html, pageUri), html, pageUri, cancellationToken).ConfigureAwait(false);
+        var read = await WithAiAsync(page, () => HtmlText.PageText(html), pageUri, cancellationToken).ConfigureAwait(false);
         if (read.Error is not null)
         {
             return ImportStart.Fail(read.Error, offerPaste: true);
@@ -130,7 +132,13 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
             page = check.Uri;
         }
 
-        var read = await WithAiAsync(ImportReader.ReadPaste(text, page), () => ImportPlainText.From(Encoding.UTF8.GetBytes(text), null), page, cancellationToken)
+        var pasted = ImportReader.ReadPaste(text, page);
+        if (page is not null && ImportReader.LooksLikeHtml(text))
+        {
+            pasted = await WithSiteReaderAsync(pasted, text, page, cancellationToken).ConfigureAwait(false); // AC-112: the pasted HTML only
+        }
+
+        var read = await WithAiAsync(pasted, () => ImportPlainText.From(Encoding.UTF8.GetBytes(text), null), page, cancellationToken)
             .ConfigureAwait(false);
         if (read.Error is not null)
         {
@@ -262,6 +270,25 @@ public sealed class ImportService(AppDbContext db, DataOptions data, ImportOptio
         }
 
         return photos;
+    }
+
+    /// <summary>
+    /// FR-IMP-12, BR-117, ADR 0059: when site readers are on and JSON-LD/microdata gave no complete reading, the site
+    /// reader reads the same HTML (from SafeFetcher or the paste, AC-112); a complete reading on a supported host
+    /// replaces the .NET one. Off, failed or incomplete: the .NET reading stands (AC-131, BR-119).
+    /// </summary>
+    private async Task<ReadResult> WithSiteReaderAsync(ReadResult read, string html, Uri pageUri, CancellationToken ct)
+    {
+        var ours = read.Recipes.Count > 0 ? read.Recipes[0] : null;
+        if (!SiteReaderRules.ShouldTry(ours) || !await siteReaders.EnabledAsync(ct).ConfigureAwait(false))
+        {
+            return read;
+        }
+
+        var outcome = await siteReader.ScrapeAsync(html, pageUri, ct).ConfigureAwait(false);
+        return outcome.Ok && SiteReaderRules.ToImported(outcome.Value!, pageUri, ours) is { } site
+            ? new ReadResult([site], null)
+            : read;
     }
 
     /// <summary>FR-IMP-04, FR-IMP-05, W4: several files in one go; every file is validated (SEC-50, SEC-51).</summary>
